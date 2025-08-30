@@ -1,0 +1,138 @@
+
+ :root {
+      --primary: #ff7e45;
+      --primary-light: #FFA76A;
+      --secondary: #F4B942;
+      --dark: #333333;
+      --light: #F9F7F4;
+      --gray: #E5E5E5;
+    }
+    
+    body {
+      font-family: 'Open Sans', sans-serif;
+      color: var(--dark);
+      background-color: var(--light);
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+    }
+    
+    .btn {
+      @apply rounded-md px-6 py-2 font-medium transition duration-300 ease-in-out;
+    }
+    
+    .btn-primary {
+      @apply bg-[#FF7E45] text-white hover:bg-[#FFA76A];
+    }
+    
+    .btn-outline {
+      @apply border-2 border-[#FF7E45] text-[#FF7E45] hover:bg-[#FF7E45] hover:text-white;
+    }
+    
+    .nav-link {
+      @apply relative px-3 py-2 font-medium text-gray-800 hover:text-[#FF7E45] transition-colors duration-200;
+    }
+    
+    .nav-link.active {
+      @apply text-[#FF7E45];
+    }
+    
+    .nav-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 20px;
+      height: 2px;
+      background-color: var(--primary);
+    }
+    
+    .hero {
+      background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://cdn.pixabay.com/photo/2019/08/09/19/35/church-4395760_1280.jpg');
+      background-size: cover;
+      background-position: center;
+      height: 80vh;
+      min-height: 500px;
+    }
+    
+    .event-card {
+      @apply bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300 hover:shadow-lg hover:-translate-y-1;
+    }
+    
+    .sermon-card {
+      @apply bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl;
+    }
+    
+    .testimonial-card {
+      @apply bg-white rounded-lg shadow-md p-6;
+    }
+    
+    .ministry-card {
+      @apply bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-105;
+    }
+    
+    .blog-card {
+      @apply bg-white rounded-lg shadow-md overflow-hidden;
+    }
+    
+    .swiper-pagination-bullet-active {
+      background-color: var(--primary) !important;
+    }
+    
+    .form-input {
+      @apply w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent;
+    }
+    
+    /* Mobile menu */
+    .mobile-menu {
+      transition: transform 0.3s ease-in-out;
+      transform: translateX(-100%);
+    }
+    
+    .mobile-menu.show {
+      transform: translateX(0);
+    }
+    
+    /* Calendar styles */
+    .fc-button-primary {
+      background-color: var(--primary) !important;
+      border-color: var(--primary) !important;
+    }
+    
+    .fc-button-primary:hover {
+      background-color: var(--primary-light) !important;
+      border-color: var(--primary-light) !important;
+    }
+    
+    .fc-event {
+      background-color: var(--primary) !important;
+      border-color: var(--primary) !important;
+      cursor: pointer;
+    }
+    
+    /* Animate page transitions */
+    .page {
+      animation: fadeIn 0.5s;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Custom scroll bar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: var(--light);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background-color: var(--primary);
+      border-radius: 20px;
+    }
