@@ -2,31 +2,34 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { authService } from '../services/apiService';
 import { getAuthToken, setAuthToken, removeAuthToken, getUserFromToken, getStoredUser, setStoredUser as persistUser, isValidTokenFormat, isTokenValid } from '../utils/auth';
 
-// Types
-export type User = {
-  id: string;
-  name?: string;
-  email?: string;
-  role?: string;
-  [key: string]: any;
-};
+// Types (JSDoc style for JS files)
 
-type AuthContextType = {
-  user: User | null;
-  token: string | null;
-  isLoading: boolean;
-  error: string | null;
-  login: (credentials: { email: string; password: string }) => Promise<{ success: boolean; user?: User; error?: string }>;
-  logout: () => void;
-  refreshToken: () => Promise<boolean>;
-  setUser: (u: User | null) => void;
-};
+/**
+ * @typedef {Object} User
+ * @property {string} id
+ * @property {string=} name
+ * @property {string=} email
+ * @property {string=} role
+ * @property {Object.<string, any>=} [key]
+ */
 
-const DEFAULT_USER: User | null = null;
+/**
+ * @typedef {Object} AuthContextType
+ * @property {User|null} user
+ * @property {string|null} token
+ * @property {boolean} isLoading
+ * @property {string|null} error
+ * @property {(credentials: { email: string; password: string }) => Promise<{ success: boolean; user?: User; error?: string }>} login
+ * @property {() => void} logout
+ * @property {() => Promise<boolean>} refreshToken
+ * @property {(u: User|null) => void} setUser
+ */
+
+const DEFAULT_USER = null;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState<User | null>(DEFAULT_USER);
   const [token, setToken] = useState<string | null>(getAuthToken() || null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -39,7 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (existingToken && isValidTokenFormat(existingToken) && isTokenValid(existingToken)) {
           const userFromToken = getUserFromToken(existingToken);
           if (userFromToken && typeof userFromToken === 'object') {
-            const u = userFromToken as Partial<User> & { _id?: string };
+            const u = userFromToken;
             const normalized = {
               id: u.id || u._id || `user-${Date.now()}`,
               name: u.name || u.email || '',
@@ -52,8 +55,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else {
             const stored = getStoredUser();
             if (stored) {
-              const s = stored as Partial<User> & { _id?: string };
-              const normalizedStored: User = {
+              const s = stored;
+              const normalizedStored = {
                 id: s.id || s._id || `user-${Date.now()}`,
                 name: s.name || s.email || '',
                 email: s.email || '',
@@ -77,7 +80,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initialize();
   }, []);
 
-  const login = async (credentials: { email: string; password: string }) => {
+  // Fix for login flow in useAuth.jsx
+// Replace only the login() function block with this corrected version.
+
+ const login = async (credentials) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -88,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setAuthToken(data.token);
       const userData = data.user || getUserFromToken(data.token) || {};
-      const normalizedUser: User = {
+      const normalizedUser = {
         id: userData.userId || userData.id || `user-${Date.now()}`,
         name: userData.name || userData.fullName || userData.email || '',
         email: userData.email || '',
@@ -98,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       persistUser(normalizedUser);
       setToken(data.token);
       return { success: true, user: normalizedUser };
-    } catch (err: any) {
+    } catch (err) {
       console.error('Login failed', err);
       const msg = err?.response?.data?.message || err.message || 'Login failed';
       setError(msg);
@@ -107,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     }
   };
+
 
   const logout = () => {
     try {
