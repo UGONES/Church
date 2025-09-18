@@ -1,7 +1,10 @@
 import axios from 'axios';
 import { getAuthToken, removeAuthToken } from './auth';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+// Track pending requests to prevent duplicates
+const pendingRequests = new Map();
 
 // Create axios instance
 const axiosInstance = axios.create({
@@ -15,10 +18,36 @@ const axiosInstance = axios.create({
 // Add request timing interceptor (for performance monitoring)
 axiosInstance.interceptors.request.use(
   (config) => {
-    config.metadata = { startTime: Date.now() };
+        const url = config.url || "";
+
+    // Safely handle params & data
+    const safeData =
+      config.data && Object.keys(config.data).length > 0
+        ? JSON.stringify(config.data)
+        : "";
+
+    const safeParams =
+      config.params && Object.keys(config.params).length > 0
+        ? JSON.stringify(config.params)
+        : "";
+
+    // Unique key considers method + url + params + data
+    const requestKey = `${config.method}-${url}${safeParams ? `-${safeParams}` : ""}${safeData ? `-${safeData}` : ""}`;
+
+    if (pendingRequests.has(requestKey)) {
+      console.log("⚠️ Cancelling duplicate request:", requestKey);
+      return Promise.reject(new axios.Cancel("Duplicate request cancelled"));
+    }
+
+    pendingRequests.set(requestKey, true);
+    config.metadata = {
+      startTime: Date.now(),
+      requestKey,
+    };
     return config;
   }
 );
+
 
 // Add request interceptor for authentication
 axiosInstance.interceptors.request.use(
@@ -37,6 +66,12 @@ axiosInstance.interceptors.request.use(
 // Add response interceptor with enhanced error handling
 axiosInstance.interceptors.response.use(
   (response) => {
+    // Remove from pending requests
+    const requestKey = response.config.metadata?.requestKey;
+    if (requestKey) {
+      pendingRequests.delete(requestKey);
+    }
+    
     // Add duration tracking
     if (response.config.metadata) {
       response.config.metadata.endTime = Date.now();
@@ -46,9 +81,15 @@ axiosInstance.interceptors.response.use(
       console.debug(`API Request: ${response.config.url} took ${response.duration}ms`);
     }
     
-    return response.data;
+    return response;
   },
   async (error) => {
+    // Remove from pending requests
+    const requestKey = error.config?.metadata?.requestKey;
+    if (requestKey) {
+      pendingRequests.delete(requestKey);
+    }
+    
     // Handle 401 unauthorized errors
     if (error.response?.status === 401) {
       removeAuthToken();
@@ -56,8 +97,14 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(error);
     }
     
+    // Handle duplicate request cancellation
+    if (axios.isCancel(error)) {
+      console.log('Request cancelled:', error.message);
+      return Promise.reject(error);
+    }
+    
     // Retry logic for network errors (no response received)
-    if (!error.response && error.config) {
+    if (!error.response && error.config && !axios.isCancel(error)) {
       error.config.retry = error.config.retry || 0;
       
       // Retry up to 3 times for network errors

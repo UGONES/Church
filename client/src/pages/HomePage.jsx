@@ -8,7 +8,7 @@ import {
   testimonialService, 
   ministryService, 
   utilityService 
-} from '../constants/apiService';
+} from '../services/apiService';
 import Loader from '../components/Loader';
 import { useAlert } from '../utils/Alert';
 import { Sermon } from '../models/Sermon';

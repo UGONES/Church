@@ -1,43 +1,34 @@
-import { ShareButton as LoginButton } from 'react-facebook';
-import { apiClient } from './api';
-import { authService } from '../constants/apiService';
+import { useState } from 'react';
+import { socialAuthService, authService } from '../services/apiService';
 
 export const FacebookAuthButton = ({ onSuccess, onError, text = "Continue with Facebook" }) => {
-  const handleSuccess = async (response) => {
-    try {
-      // Send the access token to your backend
-      const authResponse = await apiClient.post('/auth/facebook', {
-        accessToken: response.tokenDetail.accessToken
-      });
+  const [isLoading, setIsLoading] = useState(false);
 
-      if (authResponse.success) {
-        onSuccess(authResponse.data);
-      } else {
-        onError(authResponse.message || 'Facebook authentication failed');
-      }
+  const handleLogin = async () => {
+    setIsLoading(true);
+    try {
+      socialAuthService.facebookLogin();
     } catch (error) {
-      console.error('Facebook authentication error:', error);
-      onError('Failed to authenticate with Facebook');
+      onError('Failed to initiate Facebook login');
+      setIsLoading(false);
     }
   };
 
-  const handleError = (error) => {
-    console.error('Facebook auth error:', error);
-    onError('Facebook authentication failed');
-  };
-
   return (
-    <LoginButton 
-      scope="email,public_profile"
-      onCompleted={handleSuccess}
-      onError={handleError}
-      className="facebook-login-button"
+    <button
+      onClick={handleLogin}
+      disabled={isLoading}
+      className="flex items-center justify-center bg-[#1877F2] text-white px-4 py-3 rounded-md hover:bg-[#166FE5] transition-colors w-full disabled:opacity-50"
     >
-      <div className="flex items-center justify-center bg-[#1877F2] text-white px-4 py-3 rounded-md hover:bg-[#166FE5] transition-colors w-full">
-        <i className="fab fa-facebook-f mr-2"></i>
-        {text}
-      </div>
-    </LoginButton>
+      {isLoading ? (
+        <span>Loading...</span>
+      ) : (
+        <>
+          <i className="fab fa-facebook-f mr-2"></i>
+          {text}
+        </>
+      )}
+    </button>
   );
 };
 
@@ -51,7 +42,7 @@ export const handleFacebookLogin = async (accessToken) => {
   }
 };
 
-export const initFacebookAuth = (appId) => {
+export const initFacebookSDK = (appId) => {
   return new Promise((resolve) => {
     if (window.FB) {
       window.FB.init({
@@ -62,7 +53,6 @@ export const initFacebookAuth = (appId) => {
       });
       resolve(true);
     } else {
-      // Load Facebook SDK dynamically
       window.fbAsyncInit = function() {
         window.FB.init({
           appId: appId,

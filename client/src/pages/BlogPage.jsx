@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
-import { blogService } from '../constants/apiService';
+import { blogService } from '../services/apiService';
 import { useAlert } from '../utils/Alert';
+import useAuth from "../hooks/useAuth";
 import { BlogPost } from '../models/BlogPost';
 
-const BlogPage = ({ user }) => {
+const BlogPage = () => {
+  const { user } = useAuth();
   const [activeCategory, setActiveCategory] = useState("all");
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

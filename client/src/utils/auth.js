@@ -11,9 +11,9 @@ const getValidAdminCodes = () => {
   // Try to get from environment variables (available during build)
   try {
     const envCodes = [
-      process.env.REACT_APP_ADMIN_CODE_1,
-      process.env.REACT_APP_ADMIN_CODE_2,
-      process.env.REACT_APP_ADMIN_CODE_3
+      import.meta.env.VITE_ADMIN_CODE_1,
+      import.meta.env.VITE_ADMIN_CODE_2,
+      import.meta.env.VITE_ADMIN_CODE_3
     ].filter(Boolean);
     
     if (envCodes.length > 0) {
@@ -124,24 +124,29 @@ export const revokeAdminAccess = () => {
  * Sets authentication token and extracts user data
  * @param {string} token - JWT token
  */
-export const setAuthToken = (token) => {
+export const setAuthToken = (token, extraUserData = {}) => {
   if (!token || typeof token !== 'string' || !isValidTokenFormat(token)) {
     throw new Error('Invalid token provided: Malformed JWT token');
   }
 
   try {
     localStorage.setItem(TOKEN_KEY, token);
+
+    const userData = getUserFromToken(token) || {};
+    const finalUserData = {
+      ...userData,
+      ...extraUserData,
+      role: userData.role || extraUserData.role || "user"
+    };
+
+    // STORE USER DATA TOO
+    localStorage.setItem(USER_KEY, JSON.stringify(finalUserData));
     
-    const userData = getUserFromToken(token);
-    if (userData) {
-      localStorage.setItem(USER_KEY, JSON.stringify(userData));
-    }
   } catch (error) {
     console.error('Error setting auth token:', error);
     throw new Error('Failed to set authentication token');
   }
 };
-
 /**
  * Retrieves authentication token
  * @returns {string|null} - Token or null if not found or invalid
@@ -175,6 +180,18 @@ export const removeAuthToken = () => {
   } catch (error) {
     console.error('Error removing auth token:', error);
   }
+};
+
+/**
+ * Gets the current authentication state
+ * @returns {object} - Contains token, isValid, and user information
+ */
+export const getConsistentAuthState = () => {
+  const token = getAuthToken();
+  const isValid = token ? isTokenValid(token) : false;
+  const user = isValid ? (getUserFromToken(token) || getStoredUser()) : null;
+  
+  return { token, isValid, user };
 };
 
 /**
@@ -225,12 +242,37 @@ export const getUserFromToken = (token) => {
 export const getStoredUser = () => {
   try {
     const userData = localStorage.getItem(USER_KEY);
-    if (!userData) return null;
+    console.log('Retrieved from localStorage:', userData);
+    
+    if (!userData) {
+      console.log('No user data found in localStorage');
+      return null;
+    }
 
-    return JSON.parse(userData);
+    const parsedData = JSON.parse(userData);
+    console.log('Parsed user data:', parsedData);
+    return parsedData;
   } catch (error) {
     console.error('Error retrieving stored user:', error);
     return null;
+  }
+};
+
+/**
+ * Stores user data in localStorage
+ * @param {object} userData - User data to store
+ */
+export const setStoredUser = (userData) => {
+  try {
+    if (userData) {
+      console.log('Setting stored user:', userData);
+      localStorage.setItem(USER_KEY, JSON.stringify(userData));
+    } else {
+      console.log('Removing stored user');
+      localStorage.removeItem(USER_KEY);
+    }
+  } catch (error) {
+    console.error('Error storing user data:', error);
   }
 };
 
@@ -264,12 +306,12 @@ export const getAuthHeaders = () => {
  * Gets remaining token validity time in seconds
  * @returns {number} - Seconds until expiration
  */
-export const getTokenExpiryTime = () => {
-  const token = getAuthToken();
-  if (!token) return 0;
+export const getTokenExpiryTime = (token = null) => {
+  const currentToken = token || getAuthToken();
+  if (!currentToken) return 0;
 
   try {
-    const decoded = jwtDecode(token);
+    const decoded = jwtDecode(currentToken);
     const currentTime = Date.now() / 1000;
     return Math.max(0, decoded.exp - currentTime);
   } catch (error) {
@@ -325,7 +367,7 @@ export const checkAndRefreshAuthToken = async () => {
     
     // Check if token is valid
     if (isTokenValid(token)) {
-      const expiryTime = getTokenExpiryTime();
+      const expiryTime = getTokenExpiryTime(token);
       
       // Refresh token if it expires in less than 5 minutes
       if (expiryTime < 300) {
@@ -353,4 +395,95 @@ export const checkAndRefreshAuthToken = async () => {
     removeAuthToken();
     return false;
   }
+};
+
+/**
+ * Gets user role from token or stored data
+ * @returns {string} - User role (default: 'user')
+ */
+export const getUserRole = () => {
+  try {
+    const token = getAuthToken();
+    if (token && isTokenValid(token)) {
+      const userData = getUserFromToken(token);
+      return userData?.role || 'user';
+    }
+    
+    const storedUser = getStoredUser();
+    return storedUser?.role || 'user';
+  } catch (error) {
+    console.error('Error getting user role:', error);
+    return 'user';
+  }
+};
+
+/**
+ * Checks if current user has a specific role
+ * @param {string} role - Role to check for
+ * @returns {boolean} - True if user has the specified role
+ */
+export const hasRole = (role) => {
+  const userRole = getUserRole();
+  return userRole === role;
+};
+
+/**
+ * Gets user ID from token or stored data
+ * @returns {string|null} - User ID or null if not available
+ */
+export const getUserId = () => {
+  try {
+    const token = getAuthToken();
+    if (token && isTokenValid(token)) {
+      const userData = getUserFromToken(token);
+      return userData?.id || userData?.userId || null;
+    }
+    
+    const storedUser = getStoredUser();
+    return storedUser?.id || storedUser?.userId || null;
+  } catch (error) {
+    console.error('Error getting user ID:', error);
+    return null;
+  }
+};
+
+// Check what's actually in localStorage
+console.log('Token:', localStorage.getItem('church_auth_token'));
+console.log('User:', localStorage.getItem('church_user_data'));
+
+// Check if your functions work
+console.log('getStoredUser():', getStoredUser());
+console.log('getAuthToken():', getAuthToken());
+console.log('isTokenValid():', isTokenValid(getAuthToken()));
+
+export default {
+  // Token operations
+  setAuthToken,
+  getAuthToken,
+  removeAuthToken,
+  isValidTokenFormat,
+  isTokenValid,
+  getTokenExpiryTime,
+  
+  // User operations
+  getUserFromToken,
+  getStoredUser,
+  setStoredUser,
+  getUserId,
+  getUserRole,
+  hasRole,
+  isAuthenticated,
+  
+  // Admin operations
+  validateAdminCode,
+  isAdmin,
+  revokeAdminAccess,
+  getAdminSessionTime,
+  
+  // Utility functions
+  getAuthHeaders,
+  getConsistentAuthState,
+  clearAllAuthData,
+  checkAndRefreshAuthToken,
+  refreshToken
 };

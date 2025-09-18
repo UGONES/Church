@@ -1,17 +1,17 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { authService } from '../constants/apiService'; // Fixed import path
+import { authService } from '../services/apiService'; // Fixed import path
 import { useAlert } from "../utils/Alert";
 import { User } from '../models/User';
-import { 
-  setAuthToken, 
-  validateAdminCode, 
-  isAdmin, 
+import {
+  setAuthToken,
+  validateAdminCode,
+  isAdmin,
   getStoredUser,
   isAuthenticated,
   removeAuthToken
 } from '../utils/auth';
-import SocialLoginButtons from '../components/SocialLoginButtons'; // Import the SocialLoginButtons component
+// import SocialLoginButtons from '../components/SocialLoginButtons'; // Import the SocialLoginButtons component
 
 const LoginPage = ({ login }) => {
   const [isRegistering, setIsRegistering] = useState(false);
@@ -19,6 +19,7 @@ const LoginPage = ({ login }) => {
   const [error, setError] = useState("");
   const [showAdminCode, setShowAdminCode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const navigate = useNavigate();
@@ -26,12 +27,12 @@ const LoginPage = ({ login }) => {
 
   // Check if user is already authenticated on component mount
   React.useEffect(() => {
-    document.title = "SMC: - Sign-In/Sign-Up | St. Micheal`s & All Angels Church | Ifite-Awka";
+    document.title = "SMC: - Sign-In | St. Micheal`s & All Angels Church | Ifite-Awka";
 
     if (isAuthenticated()) {
       const user = getStoredUser();
       if (user) {
-        navigate(isAdmin() ? '/admin/dashboard' : '/dashboard');
+        navigate(isAdmin() ? `/admin/${result.user.id}/dashboard`: `/user/${result.user.id}/dashboard`);
       }
     }
   }, [navigate]);
@@ -39,14 +40,14 @@ const LoginPage = ({ login }) => {
   const handleSocialSuccess = (userData) => {
     // Set auth token and store user data
     setAuthToken(userData.token);
-    
+
     const user = new User(userData.user);
     login(userData.token, user);
-    
+
     alert.success(`Welcome ${user.name || user.email}!`);
-    
+
     // Redirect based on admin status
-    navigate(isAdmin() ? '/admin/dashboard' : '/dashboard');
+    navigate(isAdmin() ? `/admin/${user.id}/dashboard` : `/user/${user.id}/dashboard`);
   };
 
   const handleSocialError = (error) => {
@@ -54,70 +55,105 @@ const LoginPage = ({ login }) => {
     alert.error(error);
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
+ const handleLogin = async (e) => {
+  e.preventDefault();
+  setIsLoading(true);
+  setError("");
 
-    const formData = new FormData(e.target);
-    const credentials = {
-      email: formData.get("email"),
-      password: formData.get("password")
-    };
-
-    try {
-      const response = await authService.login(credentials);
-      
-      if (response.success) {
-        const userData = new User(response.data.user);
-        
-        // Set auth token and store user data
-        setAuthToken(response.data.token);
-        
-        if (userData.emailVerified === false) {
-          navigate('/verify-email', { state: { email: userData.email } });
-          alert.info('Please verify your email address before logging in.');
-          return;
-        }
-
-        // Check for admin code in localStorage and validate if exists
-        const adminCode = formData.get("adminCode");
-        if (adminCode) {
-          const isAdminValid = await validateAdminCode(adminCode);
-          if (isAdminValid) {
-            alert.success('Admin privileges granted!');
-          }
-        }
-
-        login(response.data.token, userData);
-        alert.success(`Welcome back, ${userData.name || userData.email}!`);
-        
-        // Redirect based on admin status
-        navigate(isAdmin() ? '/admin/dashboard' : '/dashboard');
-      } else {
-        setError(response.message || "Login failed");
-
-        if (response.code === 'EMAIL_NOT_VERIFIED') {
-          navigate('/verify-email', { state: { email: credentials.email } });
-          alert.info('Please verify your email address before logging in.');
-        }
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      if (error.response?.status === 401) {
-        setError("Invalid email or password. Please try again.");
-      } else if (error.response?.status === 403) {
-        setError("Your account is not activated. Please verify your email.");
-        navigate('/verify-email', { state: { email: credentials.email } });
-      } else if (error.response?.status === 429) {
-        setError("Too many login attempts. Please try again later.");
-      } else {
-        setError("Login failed. Please try again later.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
+  const formData = new FormData(e.target);
+  const credentials = {
+    email: formData.get("email"),
+    password: formData.get("password")
   };
+
+  try {
+    const response = await authService.login(credentials);
+    console.log('Full login response:', response);
+
+    // FIX: Correct response structure check - handle both response formats
+    let success, userData, token, message, code;
+    
+    // Handle both response structures: 
+    // 1. response.data.{success, user, token} (API client returns full response)
+    // 2. response.{success, user, token} (if API client was modified to return data directly)
+    if (response && response.data) {
+      success = response.data.success;
+      userData = response.data.user;
+      token = response.data.token;
+      message = response.data.message;
+      code = response.data.code;
+    } else {
+      success = response.success;
+      userData = response.user;
+      token = response.token;
+      message = response.message;
+      code = response.code;
+    }
+
+    if (success) {
+      // Set auth token and store user data
+      setAuthToken(token);
+
+      if (!userData.emailVerified) {
+        // FIX: Correct route format - remove colon before token
+        navigate('/verify-email', { 
+          state: { 
+            email: userData.email,
+            // If you need to pass the token for any reason, do it in state, not URL
+            token: token 
+          } 
+        });
+        alert.info('Please verify your email address before logging in.');
+        return;
+      }
+
+      login(token, userData);
+      alert.success(`Welcome back, ${userData.name || userData.email}!`);
+      
+      // FIX: Correct navigation
+      if (userData.role === 'admin') {
+        navigate(`/admin/${userData.id}/dashboard`);
+      } else {
+        navigate(`/user/${userData.id}/dashboard`);
+      }
+    } else {
+      // FIX: Correct error message extraction
+      setError(message || "Login failed");
+
+      if (code === 'EMAIL_NOT_VERIFIED') {
+        // FIX: Correct route format
+        navigate('/verify-email', { 
+          state: { 
+            email: credentials.email 
+          } 
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    
+    // FIX: Correct error response structure
+    const errorData = error.response?.data || error.response;
+    alert.error(errorData?.message || 'Default error message');
+
+    if (errorData?.message) {
+      setError(errorData.message);
+    } else if (error.response?.status === 401) {
+      setError("Invalid email or password");
+    } else if (error.response?.status === 403) {
+      setError("Please verify your email address first");
+      navigate('/verify-email', {
+        state: { email: credentials.email }
+      });
+    } else if (error.message === 'Duplicate request cancelled') {
+      setError("Login request already in progress. Please wait.");
+    } else {
+      setError("Login failed. Please try again later.");
+    }
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -133,49 +169,29 @@ const LoginPage = ({ login }) => {
       adminCode: formData.get("adminCode") || null
     };
 
+    // Validation
     if (userData.password !== userData.confirmPassword) {
       setError("Passwords do not match");
       setIsLoading(false);
       return;
     }
 
-    // Password strength validation
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
-    if (!passwordRegex.test(userData.password)) {
-      setError("Password must be at least 8 characters with uppercase, lowercase, and numbers");
-      setIsLoading(false);
-      return;
-    }
-
     try {
       const response = await authService.register(userData);
-      
+
       if (response.success) {
-        // If admin code was provided and valid, set admin session
-        if (userData.adminCode) {
-          const isAdminValid = await validateAdminCode(userData.adminCode);
-          if (isAdminValid) {
-            alert.success('Admin account created successfully!');
-          }
-        } else {
-          alert.success('Account created successfully! Please check your email for verification.');
-        }
-        
-        navigate('/verify-email', { 
-          state: { 
-            email: userData.email,
-            isAdmin: userData.adminCode ? await validateAdminCode(userData.adminCode) : false
-          } 
-        });
+        alert.success(response.message);
+        navigate(`/verify-email:${response.token}`, { state: { email: userData.email } });
       } else {
         setError(response.message || "Registration failed");
       }
     } catch (error) {
       console.error('Registration error:', error);
-      if (error.response?.status === 400) {
-        setError(error.response.data.message || "Registration failed. Please check your information.");
+
+      if (error.response?.data?.message) {
+        setError(error.response.data.message);
       } else if (error.response?.status === 409) {
-        setError("Email already exists. Please use a different email or login.");
+        setError("Email already exists. Please login instead.");
       } else {
         setError("Registration failed. Please try again later.");
       }
@@ -218,6 +234,9 @@ const LoginPage = ({ login }) => {
       case 'login':
         setShowLoginPassword(!showLoginPassword);
         break;
+      case 'admin':
+        setShowAdminPassword(!showAdminPassword);
+        break;
       case 'register':
         setShowPassword(!showPassword);
         break;
@@ -240,7 +259,7 @@ const LoginPage = ({ login }) => {
       const response = await authService.resendVerification(email);
       if (response.success) {
         alert.success('Verification email sent successfully!');
-        navigate('/verify-email', { state: { email } });
+        navigate(`/verify-email:${response.token}`, { state: { email } });
       }
     } catch (error) {
       console.error('Resend verification error:', error);
@@ -338,14 +357,24 @@ const LoginPage = ({ login }) => {
                     {showAdminCode && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Admin Code
+                          Admin Password
                         </label>
-                        <input
-                          type="password"
-                          name="adminCode"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent transition-colors"
-                          placeholder="Enter admin code for privileged access"
-                        />
+                        <div className="relative">
+                          <input
+                            type={showAdminPassword ? "text" : "password"}
+                            name="adminPassword"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent transition-colors pr-10"
+                            placeholder="Enter your password"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => togglePasswordVisibility('admin')}
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                          >
+                            <i className={`fas ${showAdminPassword ? 'fa-eye-slash' : 'fa-eye'} text-sm`}></i>
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -388,11 +417,11 @@ const LoginPage = ({ login }) => {
                 </form>
 
                 {/* Social Login - Using the new component */}
-                <SocialLoginButtons
+                {/* <SocialLoginButtons
                   onSuccess={handleSocialSuccess}
                   onError={handleSocialError}
                   loading={isLoading}
-                />
+                /> */}
 
                 <div className="mt-6 text-center">
                   <p className="text-sm text-gray-600">
@@ -550,11 +579,11 @@ const LoginPage = ({ login }) => {
                 </button>
 
                 {/* Social Login for Registration too */}
-                <SocialLoginButtons
+                {/* <SocialLoginButtons
                   onSuccess={handleSocialSuccess}
                   onError={handleSocialError}
                   loading={isLoading}
-                />
+                /> */}
 
                 <div className="text-center">
                   <p className="text-sm text-gray-600">

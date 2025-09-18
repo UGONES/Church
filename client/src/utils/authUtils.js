@@ -1,8 +1,13 @@
-import { authService } from '../constants/apiService';
+import { authService } from '../services/apiService';
 
 // Initialize Google Auth
 export const initGoogleAuth = (clientId) => {
   return new Promise((resolve) => {
+    if (!clientId) {
+      resolve(false);
+      return;
+    }
+
     if (window.google) {
       resolve(true);
     } else {
@@ -20,13 +25,12 @@ export const initGoogleAuth = (clientId) => {
 // Initialize Facebook Auth
 export const initFacebookAuth = (appId) => {
   return new Promise((resolve) => {
+    if (!appId) {
+      resolve(false);
+      return;
+    }
+
     if (window.FB) {
-      window.FB.init({
-        appId: appId,
-        cookie: true,
-        xfbml: true,
-        version: 'v18.0'
-      });
       resolve(true);
     } else {
       window.fbAsyncInit = function() {
@@ -47,6 +51,11 @@ export const initFacebookAuth = (appId) => {
       document.head.appendChild(script);
     }
   });
+};
+
+// Handle social login callback
+export const handleSocialLoginCallback = () => {
+  return socialAuthService.handleOAuthCallback();
 };
 
 // Handle social login response
@@ -106,6 +115,7 @@ export default {
   initFacebookAuth,
   handleSocialLogin,
   isAuthenticated,
+  handleSocialLoginCallback,
   getCurrentUser,
   logout
 };

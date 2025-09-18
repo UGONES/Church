@@ -4,7 +4,7 @@ export class Donation {
     this._id = data._id || null;
     this.userId = data.userId || null;
     this.amount = data.amount || 0;
-    this.currency = data.currency || 'USD';
+    this.currency = data.currency || ['USD', 'NGN', 'EUR'];
     this.frequency = data.frequency || 'one-time';
     this.status = data.status || 'pending';
     this.stripePaymentIntentId = data.stripePaymentIntentId || null;

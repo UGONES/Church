@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { apiClient } from '../utils/api';
+import { useState, useEffect } from "react";
+import { testimonialService } from '../services/apiService';
 import Loader from '../components/Loader';
 import { useAlert } from '../utils/Alert';
 import { Testimonial } from '../models/Testimonial';
+import useAuth from '../hooks/useAuth';
 
-const TestimonialsPage = ({ user }) => {
+const TestimonialsPage = () => {
+  const { user } = useAuth();
   const alert = useAlert();
   const [showSubmitForm, setShowSubmitForm] = useState(false);
   const [testimonials, setTestimonials] = useState([]);
@@ -20,129 +22,134 @@ const TestimonialsPage = ({ user }) => {
   useEffect(() => {
     document.title = "SMC: - Testimonies | St. Micheal`s & All Angels Church | Ifite-Awka";
 
-    fetchTestimonials();
-    fetchVideoTestimonials();
-    fetchCategories();
-    if (isAdmin) {
-      fetchAllTestimonials();
-      fetchTestimonialStats();
-    }
-  }, [isAdmin]);
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-  const fetchTestimonials = async () => {
+        // Fetch public data in parallel
+        const [testimonialsResponse, videosResponse, categoriesResponse] = await Promise.allSettled([
+          testimonialService.getAll(),
+          testimonialService.getVideos(),
+          testimonialService.getCategories()
+        ]);
+
+        // Handle testimonials response
+        if (testimonialsResponse.status === 'fulfilled' && testimonialsResponse.value.data) {
+          const testimonialsData = testimonialsResponse.value.data.testimonials || testimonialsResponse.value.data;
+          setTestimonials(Array.isArray(testimonialsData) ? testimonialsData.map(t => new Testimonial(t)) : []);
+        } else {
+          console.error('Failed to fetch testimonials:', testimonialsResponse.reason);
+          setTestimonials([]);
+        }
+
+        // Handle videos response
+        if (videosResponse.status === 'fulfilled' && videosResponse.value.data) {
+          setVideoTestimonials(Array.isArray(videosResponse.value.data) ? videosResponse.value.data : []);
+        } else {
+          console.error('Failed to fetch video testimonials:', videosResponse.reason);
+          setVideoTestimonials([]);
+        }
+
+        // Handle categories response
+        if (categoriesResponse.status === 'fulfilled' && categoriesResponse.value.data) {
+          setCategories(Array.isArray(categoriesResponse.value.data) ? categoriesResponse.value.data : []);
+        } else {
+          console.error('Failed to fetch categories:', categoriesResponse.reason);
+          setCategories([]);
+        }
+
+        // Fetch admin data if user is admin
+        if (isAdmin) {
+          try {
+            const [allResponse, statsResponse] = await Promise.allSettled([
+              testimonialService.getAllAdmin(),
+              testimonialService.getStats()
+            ]);
+
+            if (allResponse.status === 'fulfilled') {
+              console.log('All testimonials:', allResponse.value.data);
+            }
+
+            if (statsResponse.status === 'fulfilled' && statsResponse.value.data) {
+              setTestimonialStats(statsResponse.value.data);
+            }
+          } catch (adminError) {
+            console.error('Error fetching admin data:', adminError);
+          }
+        }
+
+      } catch (error) {
+        console.error('Error in fetchData:', error);
+        const errorMsg = error.response?.data?.message || "Failed to load testimonials. Please try again later.";
+        setError(errorMsg);
+        alert.error(errorMsg);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [isAdmin, alert]);
+
+  // ✅ Refetch function for after submissions/updates
+  const refetchTestimonials = async () => {
     try {
-      setIsLoading(true);
-      setError(null);
-      const response = await apiClient.get('/api/testimonials');
-      if (response.success) {
-        setTestimonials(response.data.map(testimonial => new Testimonial(testimonial)));
+      const response = await testimonialService.getAll();
+      if (response.data) {
+        const testimonialsData = response.data.testimonials || response.data;
+        setTestimonials(Array.isArray(testimonialsData) ? testimonialsData.map(t => new Testimonial(t)) : []);
       }
     } catch (error) {
-      console.error('Error fetching testimonials:', error);
-      setError('Failed to load testimonials. Please try again later.');
-      alert.error('Failed to load testimonials. Please try again later.');
-      setTestimonials([]);
-    } finally {
-      setIsLoading(false);
+      console.error('Error refetching testimonials:', error);
     }
   };
 
-  const fetchVideoTestimonials = async () => {
-    try {
-      const response = await apiClient.get('/api/testimonials/videos');
-      if (response.success) {
-        setVideoTestimonials(response.data);
-      }
-    } catch (error) {
-      console.error('Error fetching video testimonials:', error);
-      setVideoTestimonials([]);
-      alert.error('Failed to load video testimonials.');
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const response = await apiClient.get('/api/testimonials/categories');
-      if (response.success) {
-        setCategories(response.data);
-      }
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    }
-  };
-
-  const fetchAllTestimonials = async () => {
-    try {
-      const response = await apiClient.get('/api/admin/testimonials');
-      if (response.success) {
-        // Handle all testimonials for admin
-      }
-    } catch (error) {
-      console.error('Error fetching all testimonials:', error);
-    }
-  };
-
-  const fetchTestimonialStats = async () => {
-    try {
-      const response = await apiClient.get('/api/admin/testimonials/stats');
-      if (response.success) {
-        setTestimonialStats(response.data);
-      }
-    } catch (error) {
-      console.error('Error fetching testimonial stats:', error);
-    }
-  };
-
+  // ✅ Submit testimonial
   const handleSubmitTestimonial = async (formData) => {
     try {
       setError(null);
-      const response = await apiClient.post('/api/testimonials', formData);
-
-      if (response.success) {
+      const response = await testimonialService.submit(formData);
+      
+      if (response.status === 201 || response.data) {
         setSubmissionSuccess(true);
         setShowSubmitForm(false);
-        fetchTestimonials();
-        alert.success('Testimonial submitted successfully!');
-      } else {
-        setError(response.message || "Failed to submit testimonial");
-        alert.error(response.message || "Failed to submit testimonial");
+        await refetchTestimonials();
+        alert.success(response.data?.message || 'Testimonial submitted successfully!');
       }
     } catch (error) {
       console.error('Error submitting testimonial:', error);
-      setError("Failed to submit testimonial. Please try again.");
-      alert.error("Failed to submit testimonial. Please try again.");
+      const errorMsg = error.response?.data?.message || "Failed to submit testimonial. Please try again.";
+      setError(errorMsg);
+      alert.error(errorMsg);
     }
   };
 
-  // Admin functions
+  // ✅ Admin update testimonial
   const handleUpdateTestimonial = async (testimonialId, updates) => {
     try {
-      const response = await apiClient.put(`/api/admin/testimonials/${testimonialId}`, updates);
-      if (response.success) {
-        alert.success('Testimonial updated successfully');
-        fetchTestimonials();
-      }
+      const response = await testimonialService.update(testimonialId, updates);
+      alert.success(response.data?.message || 'Testimonial updated successfully');
+      await refetchTestimonials();
     } catch (error) {
       console.error('Error updating testimonial:', error);
-      alert.error('Failed to update testimonial');
+      alert.error(error.response?.data?.message || 'Failed to update testimonial');
     }
   };
 
+  // ✅ Admin delete testimonial
   const handleDeleteTestimonial = async (testimonialId) => {
     try {
-      const response = await apiClient.delete(`/api/admin/testimonials/${testimonialId}`);
-      if (response.success) {
-        alert.success('Testimonial deleted successfully');
-        fetchTestimonials();
-      }
+      const response = await testimonialService.delete(testimonialId);
+      alert.success(response.data?.message || 'Testimonial deleted successfully');
+      await refetchTestimonials();
     } catch (error) {
       console.error('Error deleting testimonial:', error);
-      alert.error('Failed to delete testimonial');
+      alert.error(error.response?.data?.message || 'Failed to delete testimonial');
     }
   };
 
   const handleVideoPlay = (video) => {
-    // Open video in modal or new page
     console.log('Playing video:', video);
     alert.info('Video playback feature would open here');
   };
@@ -161,18 +168,28 @@ const TestimonialsPage = ({ user }) => {
             Stories of how God is working in the lives of our church family
           </p>
 
-          {/* Admin Controls */}
-          {isAdmin && (
-            <div className="mt-6">
-              <button
-                onClick={() => {
-                  // Navigate to testimonial management
-                  alert('Testimonial management feature would open here');
-                }}
-                className="bg-white text-[#FF7E45] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-              >
-                <i className="fas fa-cog mr-2"></i>Manage Testimonials
-              </button>
+          {/* ✅ Admin Controls */}
+          {isAdmin && testimonialStats && (
+            <div className="mt-6 space-x-4">
+              <div className="bg-white text-[#FF7E45] px-6 py-2 rounded-lg font-semibold inline-block">
+                Stats: {testimonialStats.totalTestimonials} Total, {testimonialStats.approvedTestimonials} Approved
+              </div>
+              {testimonials.length > 0 && (
+                <>
+                  <button
+                    onClick={() => handleUpdateTestimonial(testimonials[0].id, { status: 'approved' })}
+                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                  >
+                    Approve First
+                  </button>
+                  <button
+                    onClick={() => handleDeleteTestimonial(testimonials[0].id)}
+                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                  >
+                    Delete First
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -183,6 +200,12 @@ const TestimonialsPage = ({ user }) => {
         <div className="container mx-auto px-4 py-4">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <p className="text-red-600">{error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="text-blue-600 underline mt-2"
+            >
+              Try Again
+            </button>
           </div>
         </div>
       )}
@@ -204,9 +227,7 @@ const TestimonialsPage = ({ user }) => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-2">What People Are Saying</h2>
-            <p className="text-gray-600">
-              Real stories from real people in our community
-            </p>
+            <p className="text-gray-600">Real stories from real people in our community</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -225,17 +246,12 @@ const TestimonialsPage = ({ user }) => {
       </section>
 
       {/* Video Testimonials */}
-      <VideoTestimonialsSection
-        videos={videoTestimonials}
-        onVideoPlay={handleVideoPlay}
-      />
+      <VideoTestimonialsSection videos={videoTestimonials} onVideoPlay={handleVideoPlay} />
 
       {/* Share Your Story CTA */}
-      <ShareStorySection
-        onSubmit={() => setShowSubmitForm(true)}
-      />
+      <ShareStorySection onSubmit={() => setShowSubmitForm(true)} />
 
-      {/* Testimonial Submission Form */}
+      {/* Submission Form */}
       {showSubmitForm && (
         <TestimonialFormModal
           onClose={() => {
@@ -245,6 +261,7 @@ const TestimonialsPage = ({ user }) => {
           }}
           onSubmit={handleSubmitTestimonial}
           error={error}
+          categories={categories}
         />
       )}
     </div>
@@ -262,7 +279,7 @@ const TestimonialCard = ({ testimonial }) => (
     </p>
     <div className="flex items-center mt-auto">
       <img
-        src={testimonial.image}
+        src={testimonial.imageUrl || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'}
         alt={testimonial.name}
         className="w-12 h-12 rounded-full object-cover mr-4"
         onError={(e) => {
@@ -272,7 +289,7 @@ const TestimonialCard = ({ testimonial }) => (
       <div>
         <h4 className="font-semibold">{testimonial.name}</h4>
         <p className="text-sm text-gray-600">
-          {testimonial.membership}
+          {testimonial.relationship}
         </p>
       </div>
     </div>
@@ -292,11 +309,11 @@ const VideoTestimonialsSection = ({ videos, onVideoPlay }) => (
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {videos.map((video) => (
-          <div key={video.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div key={video._id} className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="relative cursor-pointer" onClick={() => onVideoPlay(video)}>
               <div className="w-full h-0 pb-[56.25%] relative bg-gray-200">
                 <img
-                  src={video.thumbnail}
+                  src={video.thumbnail || 'https://via.placeholder.com/300x169'}
                   alt={video.title}
                   className="absolute inset-0 w-full h-full object-cover"
                 />
@@ -353,19 +370,31 @@ const ShareStorySection = ({ onSubmit }) => (
 );
 
 // Testimonial Form Modal Component
-const TestimonialFormModal = ({ onClose, onSubmit, error }) => {
+const TestimonialFormModal = ({ onClose, onSubmit, error, categories }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    relationship: '',
+    relationship: 'member',
     content: '',
+    category: 'other',
     image: null,
-    allowSharing: false
+    allowSharing: false,
+    allowContact: false,
+    yearsInChurch: ''
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+
+    // Create FormData object for file upload
+    const submitData = new FormData();
+    Object.keys(formData).forEach(key => {
+      if (formData[key] !== null && formData[key] !== undefined) {
+        submitData.append(key, formData[key]);
+      }
+    });
+
+    onSubmit(submitData);
   };
 
   const handleImageChange = (e) => {
@@ -373,6 +402,14 @@ const TestimonialFormModal = ({ onClose, onSubmit, error }) => {
     if (file) {
       setFormData({ ...formData, image: file });
     }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value
+    });
   };
 
   return (
@@ -395,16 +432,17 @@ const TestimonialFormModal = ({ onClose, onSubmit, error }) => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} encType="multipart/form-data">
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 Your Name *
               </label>
               <input
                 type="text"
-                className="form-input flex flex-grow w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent"
+                name="name"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={handleInputChange}
                 required
               />
             </div>
@@ -415,9 +453,10 @@ const TestimonialFormModal = ({ onClose, onSubmit, error }) => {
               </label>
               <input
                 type="email"
-                className="form-input flex flex-grow w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent"
+                name="email"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={handleInputChange}
                 required
               />
             </div>
@@ -426,13 +465,50 @@ const TestimonialFormModal = ({ onClose, onSubmit, error }) => {
               <label className="block text-gray-700 font-medium mb-2">
                 Your Relationship to the Church
               </label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="e.g., Member since 2020, Visitor, etc."
+              <select
+                name="relationship"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent"
                 value={formData.relationship}
-                onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
+                onChange={handleInputChange}
+              >
+                <option value="member">Member</option>
+                <option value="visitor">Visitor</option>
+                <option value="volunteer">Volunteer</option>
+                <option value="staff">Staff</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-gray-700 font-medium mb-2">
+                Years in Church
+              </label>
+              <input
+                type="number"
+                name="yearsInChurch"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent"
+                value={formData.yearsInChurch}
+                onChange={handleInputChange}
+                min="0"
               />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-gray-700 font-medium mb-2">
+                Category
+              </label>
+              <select
+                name="category"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent"
+                value={formData.category}
+                onChange={handleInputChange}
+              >
+                <option value="salvation">Salvation</option>
+                <option value="healing">Healing</option>
+                <option value="provision">Provision</option>
+                <option value="relationship">Relationship</option>
+                <option value="other">Other</option>
+              </select>
             </div>
 
             <div className="mb-6">
@@ -440,11 +516,12 @@ const TestimonialFormModal = ({ onClose, onSubmit, error }) => {
                 Your Story *
               </label>
               <textarea
+                name="content"
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent"
                 rows="5"
                 placeholder="Share how God has worked in your life through our church..."
                 value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                onChange={handleInputChange}
                 required
               ></textarea>
             </div>
@@ -464,6 +541,7 @@ const TestimonialFormModal = ({ onClose, onSubmit, error }) => {
                   id="testimonial-photo"
                   accept="image/*"
                   onChange={handleImageChange}
+                  name="image"
                 />
                 <label htmlFor="testimonial-photo" className="cursor-pointer">
                   {formData.image ? formData.image.name : 'Choose file'}
@@ -471,20 +549,38 @@ const TestimonialFormModal = ({ onClose, onSubmit, error }) => {
               </div>
             </div>
 
-            <div className="flex items-start mb-6">
+            <div className="flex items-start mb-4">
               <input
                 type="checkbox"
-                className="mt-1 mr-2 text-[#FF7E45] "
+                name="allowSharing"
+                className="mt-1 mr-2 text-[#FF7E45]"
                 id="permission"
                 checked={formData.allowSharing}
-                onChange={(e) => setFormData({ ...formData, allowSharing: e.target.checked })}
+                onChange={handleInputChange}
                 required
               />
               <label
                 htmlFor="permission"
-                className="text-sm text-gray-600 "
+                className="text-sm text-gray-600"
               >
                 I give permission for the church to share my story on their website and social media.
+              </label>
+            </div>
+
+            <div className="flex items-start mb-6">
+              <input
+                type="checkbox"
+                name="allowContact"
+                className="mt-1 mr-2 text-[#FF7E45]"
+                id="contact"
+                checked={formData.allowContact}
+                onChange={handleInputChange}
+              />
+              <label
+                htmlFor="contact"
+                className="text-sm text-gray-600"
+              >
+                I allow the church to contact me for more information about my story.
               </label>
             </div>
 
@@ -492,11 +588,11 @@ const TestimonialFormModal = ({ onClose, onSubmit, error }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="btn bg-gray-200 p-2 border border-gray-300 rounded-md text-gray-800 hover:bg-gray-300 mr-3"
+                className="bg-gray-200 p-2 border border-gray-300 rounded-md text-gray-800 hover:bg-gray-300 mr-3"
               >
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary p-2 border border-transparent rounded-md text-white bg-[#FF7E45] hover:bg-[#FF7E45]/80">
+              <button type="submit" className="p-2 border border-transparent rounded-md text-white bg-[#FF7E45] hover:bg-[#FF7E45]/80">
                 Submit Story
               </button>
             </div>

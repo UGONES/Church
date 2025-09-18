@@ -1,27 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { apiClient } from '../utils/api';
 import Loader from '../components/Loader';
 import { useAlert } from '../utils/Alert';
 
 const VerifyEmail = () => {
-  const [searchParams] = useSearchParams();
+  const { token } = useParams();
   const navigate = useNavigate();
   const alert = useAlert();
-  
-  const [status, setStatus] = useState('verifying'); // 'verifying', 'success', 'error', 'expired'
+  const hasVerified = useRef(false); // Prevent duplicate verification
+
+  const [status, setStatus] = useState('verifying');
   const [isLoading, setIsLoading] = useState(true);
   const [countdown, setCountdown] = useState(5);
   const [userEmail, setUserEmail] = useState('');
 
-  const token = searchParams.get('token');
-  const email = searchParams.get('email');
-
   useEffect(() => {
-        document.title = "SMC: - Verify-Email | St. Micheal`s & All Angels Church | Ifite-Awka";
+    document.title = "SMC: - Verify-Email | St. Micheal`s & All Angels Church | Ifite-Awka";
 
-    if (email) {
-      setUserEmail(email);
+    // Get email from localStorage
+    const storedEmail = localStorage.getItem('pendingVerificationEmail');
+    if (storedEmail) {
+      setUserEmail(storedEmail);
     }
     
     if (!token) {
@@ -31,8 +31,14 @@ const VerifyEmail = () => {
       return;
     }
 
-    verifyEmailToken();
-  }, [token, email]);
+    console.log('Token from URL params:', token);
+    
+    // Prevent duplicate verification
+    if (!hasVerified.current) {
+      hasVerified.current = true;
+      verifyEmailToken();
+    }
+  }, [token, alert]);
 
   useEffect(() => {
     if (status === 'success' && countdown > 0) {
@@ -41,34 +47,60 @@ const VerifyEmail = () => {
       }, 1000);
       return () => clearTimeout(timer);
     } else if (status === 'success' && countdown === 0) {
-      navigate('/login');
+      localStorage.removeItem('pendingVerificationEmail');
+      navigate('/login', {
+        state: { message: 'Email verified successfully! You can now log in.' }
+      });
     }
   }, [status, countdown, navigate]);
 
   const verifyEmailToken = async () => {
     try {
       setIsLoading(true);
-      const response = await apiClient.post('/auth/verify-email', { token });
-      
-      if (response.success) {
+      console.log('Verifying token:', token);
+
+      const response = await apiClient.get(`/auth/verify-email/${token}`);
+      console.log('Full verification response:', response);
+
+      // FIX: Handle both response structures
+      const success = response?.data?.success || response?.success;
+      const message = response?.data?.message || response?.message;
+
+      if (success) {
         setStatus('success');
         alert.success('Email verified successfully! You can now log in to your account.');
+        localStorage.removeItem('pendingVerificationEmail');
       } else {
         setStatus('error');
-        alert.error(response.message || 'Email verification failed. Please try again.');
+        alert.error(message || 'Email verification failed. Please try again.');
       }
     } catch (error) {
       console.error('Email verification error:', error);
       
-      if (error.response?.status === 400 && error.response?.data?.code === 'EXPIRED_TOKEN') {
-        setStatus('expired');
-        alert.info('Your verification link has expired. Please request a new one.');
-      } else if (error.response?.status === 400 && error.response?.data?.code === 'INVALID_TOKEN') {
+      // FIX: Correct error response structure - handle both formats
+      const errorData = error.response?.data || error.response;
+      const errorMessage = errorData?.message || error.message;
+
+      if (error.response?.status === 400) {
+        if (errorMessage?.includes('expired') || errorMessage?.includes('Expired')) {
+          setStatus('expired');
+          alert.info('Your verification link has expired. Please request a new one.');
+        } else if (errorMessage?.includes('invalid') || errorMessage?.includes('Invalid')) {
+          setStatus('error');
+          alert.error('Invalid verification token. Please check your email for the correct link.');
+        } else {
+          setStatus('error');
+          alert.error(errorMessage || 'Verification failed. Please try again.');
+        }
+      } else if (error.response?.status === 404) {
         setStatus('error');
-        alert.error('Invalid verification token. Please check your email for the correct link.');
-      } else if (error.response?.status === 409 && error.response?.data?.code === 'ALREADY_VERIFIED') {
-        setStatus('success');
-        alert.info('Your email has already been verified. You can log in to your account.');
+        alert.error('Verification link not found. Please request a new verification email.');
+      } else if (error.response?.status === 429) {
+        setStatus('error');
+        alert.error('Verification already in progress. Please wait a moment.');
+      } else if (error.response?.status === 500) {
+        setStatus('error');
+        alert.error('Server error during verification. Please try again later.');
       } else {
         setStatus('error');
         alert.error('Email verification failed. Please try again later.');
@@ -81,26 +113,44 @@ const VerifyEmail = () => {
   const resendVerificationEmail = async () => {
     try {
       setIsLoading(true);
+      if (!userEmail) {
+        alert.error('Email address is required to resend verification.');
+        return;
+      }
+
       const response = await apiClient.post('/auth/resend-verification', { email: userEmail });
       
-      if (response.success) {
+      // FIX: Handle both response structures
+      const success = response?.data?.success || response?.success;
+      const message = response?.data?.message || response?.message;
+
+      if (success) {
         alert.success('Verification email sent! Please check your inbox.');
       } else {
-        alert.error(response.message || 'Failed to send verification email. Please try again.');
+        alert.error(message || 'Failed to send verification email. Please try again.');
       }
     } catch (error) {
       console.error('Resend verification error:', error);
-      alert.error('Failed to send verification email. Please try again later.');
+      
+      // FIX: Correct error response structure
+      const errorData = error.response?.data || error.response;
+      const errorMsg = errorData?.message || 'Failed to send verification email. Please try again later.';
+      
+      alert.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoToLogin = () => {
-    navigate('/login');
+    localStorage.removeItem('pendingVerificationEmail');
+    navigate('/login', {
+      state: { message: 'Email verification completed' }
+    });
   };
 
   const handleGoToHome = () => {
+    localStorage.removeItem('pendingVerificationEmail');
     navigate('/');
   };
 
@@ -141,13 +191,13 @@ const VerifyEmail = () => {
                 </div>
               )}
             </div>
-            
+
             <h1 className="text-3xl font-bold mb-2">
               {status === 'success' && 'Email Verified!'}
               {status === 'error' && 'Verification Failed'}
               {status === 'expired' && 'Link Expired'}
             </h1>
-            
+
             <p className="text-gray-600">
               {status === 'success' && 'Your email has been successfully verified.'}
               {status === 'error' && 'We couldn\'t verify your email address.'}
@@ -179,41 +229,29 @@ const VerifyEmail = () => {
               </div>
             )}
 
-            {status === 'error' && (
+            {(status === 'error' || status === 'expired') && (
               <div className="text-center">
                 <p className="mb-6">
-                  There was a problem verifying your email address. This could be due to an invalid or malformed verification link.
+                  {status === 'error'
+                    ? 'There was a problem verifying your email address. This could be due to an invalid or malformed verification link.'
+                    : 'Your verification link has expired. Verification links are valid for 24 hours. Please request a new verification email.'
+                  }
                 </p>
                 <div className="space-y-3">
                   {userEmail && (
                     <button
                       onClick={resendVerificationEmail}
-                      className="w-full bg-[#FF7E45] text-white py-2 px-4 rounded-md hover:bg-[#FFA76A] transition-colors"
+                      disabled={isLoading}
+                      className="w-full bg-[#FF7E45] text-white py-2 px-4 rounded-md hover:bg-[#FFA76A] transition-colors disabled:opacity-50"
                     >
-                      Resend Verification Email
+                      {isLoading ? 'Sending...' : 'Resend Verification Email'}
                     </button>
                   )}
                   <button
-                    onClick={handleGoToHome}
+                    onClick={handleGoToLogin}
                     className="w-full border border-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50 transition-colors"
                   >
-                    Go to Homepage
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {status === 'expired' && (
-              <div className="text-center">
-                <p className="mb-6">
-                  Your verification link has expired. Verification links are valid for 24 hours. Please request a new verification email.
-                </p>
-                <div className="space-y-3">
-                  <button
-                    onClick={resendVerificationEmail}
-                    className="w-full bg-[#FF7E45] text-white py-2 px-4 rounded-md hover:bg-[#FFA76A] transition-colors"
-                  >
-                    Send New Verification Email
+                    Go to Login
                   </button>
                   <button
                     onClick={handleGoToHome}

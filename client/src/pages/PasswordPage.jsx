@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { apiClient } from '../utils/api';
+import { authService } from '../services/apiService'; // Updated import
 import Loader from '../components/Loader';
 import { useAlert } from '../utils/Alert';
-import { useAuth } from '../hooks/useAuth'; // Import your useAuth hook
+import { useAuth } from '../hooks/useAuth';
 
 const PasswordPage = () => {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
   const alert = useAlert();
-  const { user, isLoading: authLoading } = useAuth(); // Use your useAuth hook
+  const { user, isLoading: authLoading } = useAuth();
   
   // Determine mode from URL path
   const getModeFromPath = () => {
@@ -51,7 +51,7 @@ const PasswordPage = () => {
   const validateToken = async (token) => {
     try {
       setIsLoading(true);
-      const response = await apiClient.post('/auth/validate-reset-token', { token });
+      const response = await authService.validateResetToken(token);
       
       if (!response.valid) {
         alert.error('Invalid or expired reset link. Please request a new one.');
@@ -125,7 +125,7 @@ const PasswordPage = () => {
     
     try {
       setIsLoading(true);
-      const response = await apiClient.post('/auth/forgot-password', { email });
+      const response = await authService.forgotPassword(email);
       
       if (response.success) {
         alert.success('Password reset instructions sent to your email!');
@@ -151,11 +151,7 @@ const PasswordPage = () => {
     
     try {
       setIsLoading(true);
-      const response = await apiClient.post('/auth/reset-password', {
-        token,
-        password,
-        confirmPassword
-      });
+      const response = await authService.resetPassword(token, password);
       
       if (response.success) {
         alert.success('Password reset successfully! You can now log in with your new password.');
@@ -189,7 +185,7 @@ const PasswordPage = () => {
     
     try {
       setIsLoading(true);
-      const response = await apiClient.post('/auth/change-password', {
+      const response = await authService.changePassword({
         currentPassword,
         newPassword: password,
         confirmPassword

@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../utils/api';
 import Loader from '../components/Loader';
 import { useAlert } from '../utils/Alert';
 import { useForm } from '../hooks/useForm';
+import  useAuth  from '../hooks/useAuth';
 import { ADMIN_ENDPOINTS } from '../constants/API';
 import { useAdmin } from '../hooks/useAdmin'; // Import your useAdmin hook
 
-// Reusable Components
+/*====================================== Reusable Components ======================================*/
+
+// StatCard Component
 const StatCard = ({ title, value, change, changeType, icon, iconBgColor, iconTextColor }) => (
   <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
     <div className="flex justify-between items-center">
@@ -26,6 +29,8 @@ const StatCard = ({ title, value, change, changeType, icon, iconBgColor, iconTex
   </div>
 );
 
+
+// SidebarButton Component
 const SidebarButton = ({ label, icon, tabName, activeTab, onClick }) => (
   <li>
     <button
@@ -40,6 +45,8 @@ const SidebarButton = ({ label, icon, tabName, activeTab, onClick }) => (
   </li>
 );
 
+
+// ActivityItem Component
 const ActivityItem = ({ icon, bgColor, text, time }) => (
   <div className="flex items-start">
     <div className={`w-10 h-10 ${bgColor} rounded-full flex items-center justify-center mr-3 flex-shrink-0`}>
@@ -52,6 +59,7 @@ const ActivityItem = ({ icon, bgColor, text, time }) => (
   </div>
 );
 
+// DataTable Component
 const DataTable = ({ columns, data, onEdit, onDelete, emptyMessage, actions = true }) => {
   return (
     <div className="overflow-x-auto">
@@ -3245,6 +3253,7 @@ const AdminPage = () => {
   const [isUserAdmin, setIsUserAdmin] = useState(false);
   const [accessChecked, setAccessChecked] = useState(false);
   
+  const { user } = useAuth();
   const alert = useAlert();
   const navigate = useNavigate();
 
@@ -3254,33 +3263,39 @@ const AdminPage = () => {
   }, []);
 
   const checkAdminAccess = () => {
-    // First check if user is authenticated
-    if (!admin) {
-      alert.error('Please log in to access admin features');
-      navigate('/login');
-      return;
-    }
+  // Ensure user is logged in
+  if (!user) {
+    alert.error("Please log in to access admin features");
+    navigate("/login");
+    return false;
+  }
 
-    // Then check if user is admin
-    const adminStatus = useAdmin();
-    setIsUserAdmin(adminStatus);
-    setAccessChecked(true);
+  // Normalize role
+  const role = (user?.role || "guest").toLowerCase();
 
-    if (!adminStatus) {
-      alert.error('Admin privileges required to access this page');
-      navigate('/unauthorized');
-      return;
-    }
+  // Allow only admins and moderators
+  if (role !== "admin" && role !== "moderator") {
+    alert.error("Admin or Moderator privileges required");
+    navigate("/login");
+    return false;
+  }
 
-    // If user is admin, load the dashboard data
-    fetchDashboardData();
-    checkLiveStreamStatus();
-    fetchSettings();
-    
-    const liveStreamInterval = setInterval(checkLiveStreamStatus, 30000);
-    
-    return () => clearInterval(liveStreamInterval);
-  };
+  // Mark access as checked
+  setIsUserAdmin(true);
+  setAccessChecked(true);
+
+  // Load dashboard data
+  fetchDashboardData();
+  checkLiveStreamStatus();
+  fetchSettings();
+
+  // Start periodic live stream check
+  const liveStreamInterval = setInterval(checkLiveStreamStatus, 30000);
+
+  // Cleanup interval when component unmounts
+  return () => clearInterval(liveStreamInterval);
+};
+
 
   const fetchDashboardData = async () => {
     try {
@@ -3665,7 +3680,9 @@ const AdminPage = () => {
     }
   };
 
-  // Modal Handlers
+  /* =============== Modal Handlers ================== */
+
+  // Event Modal
   const openEventModal = (event = null) => {
     setSelectedEvent(event);
     setIsEventModalOpen(true);
@@ -3676,6 +3693,8 @@ const AdminPage = () => {
     setIsEventModalOpen(false);
   };
 
+
+  // Sermon Modal
   const openSermonModal = (sermon = null) => {
     setSelectedSermon(sermon);
     setIsSermonModalOpen(true);
@@ -3686,6 +3705,8 @@ const AdminPage = () => {
     setIsSermonModalOpen(false);
   };
 
+
+  // Setting Modal
   const openSettingsModal = () => {
     setIsSettingsModalOpen(true);
   };
@@ -3694,6 +3715,8 @@ const AdminPage = () => {
     setIsSettingsModalOpen(false);
   };
 
+
+  // Delete Modal
   const openDeleteModal = (item, type) => {
     setDeleteItem(item);
     setDeleteType(type);
@@ -4225,13 +4248,17 @@ const AdminPage = () => {
                 </div>
               )}
 
-              {activeTab === 'settings' && (
+             <div>
+              <button>
+                 {activeTab === 'settings' && (
                 <SettingsForm 
                   settings={settings}
                   onUpdateSettings={handleUpdateSettings}
                   onResetSettings={handleResetSettings}
                 />
               )}
+                </button>
+                </div>
             </div>
           </div>
         </div>

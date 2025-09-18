@@ -1,4 +1,3 @@
-import React from "react";
 
 const Footer = ({ setActivePage }) => {
   return (
@@ -110,8 +109,7 @@ const Footer = ({ setActivePage }) => {
               </li>
               <li className="flex items-center">
                 <i className="fas fa-envelope text-[#FF7E45] mr-2"></i>
-                info@stmichaelschurch
-                .org
+                michaelmassifite@gmail.com
               </li>
             </ul>
           </div>

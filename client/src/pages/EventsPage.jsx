@@ -4,7 +4,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import listPlugin from "@fullcalendar/list";
 import interactionPlugin from "@fullcalendar/interaction";
-import { eventService } from '../constants/apiService'; // Fixed import path
+import { eventService } from '../services/apiService'; // Fixed import path
 import Loader from '../components/Loader';
 import { useAlert } from '../utils/Alert';
 import { Event } from '../models/Events'; // Fixed import name

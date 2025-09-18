@@ -1,150 +1,122 @@
-import React, { useState, useEffect } from "react";
-import { apiClient } from "../utils/api";
-import Loader, { ContentLoader } from "../components/Loader";
-import { useAlert } from '../utils/Alert';
+import { useState, useEffect, useCallback } from "react";
+import { apiClient } from '../utils/api';
+import { authService, donationService, volunteerService } from '../services/apiService';
+import Loader from '../components/Loader';
+import { useAlert } from "../utils/Alert";
+import useAuth from "../hooks/useAuth";
 
-const MyRSVPsPage = () => {
-  const alert = useAlert();
+const UserPage = () => {
+  const { user, isLoading: authLoading } = useAuth();
+  const [userData, setUserData] = useState(null);
+  const [recentDonations, setRecentDonations] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
-  const [pastEvents, setPastEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [volunteerApplications, setVolunteerApplications] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_ENDPOINTS = {
-    UPCOMING_RSVPS: "/rsvps/upcoming",
-    PAST_RSVPS: "/rsvps/past",
-    CANCEL_RSVP: "/rsvps/cancel/",
-    ADD_TO_CALENDAR: "/calendar/add/",
-    EVENT_RECORDINGS: "/events/recordings/",
-    EVENT_MATERIALS: "/events/materials/",
-  };
+  const alert = useAlert();
+
+  const fetchDashboardData = useCallback(async () => {
+    if (!user || !user.id) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Fetch user data
+      const userResponse = await authService.getCurrentUser();
+      const userData = userResponse.data || userResponse;
+      setUserData(userData);
+
+      // Fetch dashboard-specific data
+      const [
+        donationsResponse,
+        eventsResponse,
+        volunteersResponse
+      ] = await Promise.allSettled([
+        donationService.getUserDonations({ limit: 3 }),
+        apiClient.get('/user/upcoming-events'),
+        volunteerService.getUserApplications()
+      ]);
+
+      if (donationsResponse.status === 'fulfilled') {
+        const donations = donationsResponse.value.donations || donationsResponse.value.data || [];
+        setRecentDonations(donations.slice(0, 3));
+      }
+
+      if (eventsResponse.status === 'fulfilled') {
+        setUpcomingEvents(eventsResponse.value.events || eventsResponse.value.data || []);
+      }
+
+      if (volunteersResponse.status === 'fulfilled') {
+        setVolunteerApplications(volunteersResponse.value || []);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      if (!error.response || error.response.status !== 401) {
+        setError('Failed to load dashboard data. Please try again.');
+        alert('Failed to load dashboard data. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, alert]);
 
   useEffect(() => {
-    document.title = "SMC: - RSVPs | St. Micheal`s & All Angels Church | Ifite-Awka";
+    document.title = "SMC: - Dashboard | St. Michael's & All Angels Church | Ifite-Awka";
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
-    fetchRSVPs();
-  }, []);
-
-  const fetchRSVPs = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const [upcomingResponse, pastResponse] = await Promise.allSettled([
-        apiClient.get(API_ENDPOINTS.UPCOMING_RSVPS),
-        apiClient.get(API_ENDPOINTS.PAST_RSVPS)
-      ]);
-      if (upcomingResponse.status === 'fulfilled') {
-        setUpcomingEvents(upcomingResponse.value || []);
-      } else {
-        console.error("Error fetching upcoming events:", upcomingResponse.reason);
-        alert.error("Failed to load upcoming events.");
-      }
-      if (pastResponse.status === 'fulfilled') {
-        setPastEvents(pastResponse.value || []);
-      } else {
-        console.error("Error fetching past events:", pastResponse.reason);
-        alert.error("Failed to load past events.");
-      }
-      if (upcomingResponse.status === 'rejected' && pastResponse.status === 'rejected') {
-        throw new Error("Failed to load events. Please check your connection.");
-      }
-    } catch (err) {
-      console.error("Error fetching RSVPs:", err);
-      setError(err.message || "Failed to load your events. Please try again.");
-      alert.error(err.message || "Failed to load your events. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancelRSVP = async (eventId, eventTitle) => {
-    alert.info(`Are you sure you want to cancel your RSVP for "${eventTitle}"?`, {
-      confirm: async () => {
-        try {
-          setActionLoading(true);
-          const response = await apiClient.post(`${API_ENDPOINTS.CANCEL_RSVP}${eventId}`);
-          if (response.success) {
-            fetchRSVPs();
-            alert.success('RSVP cancelled successfully!');
-          } else {
-            throw new Error(response.message || "Failed to cancel RSVP");
-          }
-        } catch (err) {
-          console.error("Error canceling RSVP:", err);
-          setError(err.message || "Failed to cancel RSVP. Please try again.");
-          alert.error(err.message || "Failed to cancel RSVP. Please try again.");
-        } finally {
-          setActionLoading(false);
-        }
-      }
-    });
-  };
-
-  const handleAddToCalendar = async (eventId, eventTitle) => {
-    try {
-      setActionLoading(true);
-      const response = await apiClient.post(`${API_ENDPOINTS.ADD_TO_CALENDAR}${eventId}`);
-      if (response.success) {
-        alert.success(`"${eventTitle}" has been added to your calendar successfully!`);
-      } else {
-        throw new Error(response.message || "Failed to add to calendar");
-      }
-    } catch (err) {
-      console.error("Error adding to calendar:", err);
-      setError(err.message || "Failed to add event to calendar. Please try again.");
-      alert.error(err.message || "Failed to add event to calendar. Please try again.");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleViewRecording = async (eventId) => {
-    try {
-      window.open(`${API_ENDPOINTS.EVENT_RECORDINGS}${eventId}`, '_blank');
-    } catch (err) {
-      console.error("Error accessing recording:", err);
-      setError("Failed to access recording. Please try again.");
-      alert.error("Failed to access recording. Please try again.");
-    }
-  };
-
-  const handleDownloadMaterials = async (eventId) => {
-    try {
-      window.open(`${API_ENDPOINTS.EVENT_MATERIALS}${eventId}`, '_blank');
-    } catch (err) {
-      console.error("Error downloading materials:", err);
-      setError("Failed to download materials. Please try again.");
-      alert.error("Failed to download materials. Please try again.");
-    }
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
   };
 
   const formatDate = (dateString) => {
-    try {
-      const date = new Date(dateString);
-      return {
-        day: date.getDate().toString().padStart(2, '0'),
-        month: date.toLocaleString('default', { month: 'short' }).toUpperCase(),
-        time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return {
-        day: '--',
-        month: '---',
-        time: '--:--'
-      };
-    }
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
-  if (loading) {
+  const getVolunteerStatusBadge = (status) => {
+    const statusColors = {
+      pending: 'bg-yellow-100 text-yellow-800',
+      approved: 'bg-blue-100 text-blue-800',
+      active: 'bg-green-100 text-green-800',
+      rejected: 'bg-red-100 text-red-800',
+      inactive: 'bg-gray-100 text-gray-800'
+    };
+    
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs ${statusColors[status] || 'bg-gray-100 text-gray-800'}`}>
+        {status?.charAt(0).toUpperCase() + status?.slice(1)}
+      </span>
+    );
+  };
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return <Loader type="spinner" text="Checking authentication..." />;
+  }
+
+  // Show login prompt if user is not authenticated
+  if (!user || !user.id) {
     return (
       <div className="page">
         <div className="container mx-auto px-4 py-12">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6">My RSVPs & Events</h1>
-            <div className="space-y-8">
-              <ContentLoader type="card" count={3} />
+          <div className="max-w-md mx-auto text-center">
+            <div className="bg-white rounded-lg shadow-md p-8">
+              <h2 className="text-2xl font-bold mb-4">Please Log In</h2>
+              <p className="text-gray-600 mb-6">You need to be logged in to view your dashboard.</p>
+              <a href="/login" className="btn btn-primary">Log In</a>
             </div>
           </div>
         </div>
@@ -152,195 +124,181 @@ const MyRSVPsPage = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="page">
-        <div className="container mx-auto px-4 py-12">
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
-              <div className="flex items-center mb-3">
-                <i className="fas fa-exclamation-triangle text-red-500 text-xl mr-2"></i>
-                <h2 className="text-xl font-semibold text-red-800">Error Loading Events</h2>
-              </div>
-              <p className="text-red-600 mb-4">{error}</p>
-              <button 
-                onClick={fetchRSVPs}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                disabled={loading}
-              >
-                {loading ? 'Loading...' : 'Try Again'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  if (isLoading) {
+    return <Loader type="spinner" text="Loading your dashboard..." />;
   }
+
+  const currentUser = userData || user;
+  const userRole = currentUser.role || 'user';
 
   return (
     <div className="page">
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6">My RSVPs & Events</h1>
-
-          {/* Upcoming Events */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-bold mb-4">Upcoming Events</h2>
-
-            {upcomingEvents.length === 0 ? (
-              <div className="text-center py-8">
-                <i className="fas fa-calendar-plus text-4xl text-gray-300 mb-3"></i>
-                <p className="text-gray-500 mb-2">You have no upcoming events.</p>
-                <a 
-                  href="/events" 
-                  className="text-[#FF7E45] hover:text-[#F4B942] font-medium inline-flex items-center"
-                >
-                  <i className="fas fa-arrow-right mr-2"></i>Browse upcoming events
-                </a>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {upcomingEvents.map((event) => {
-                  const formattedDate = formatDate(event.date || event.startTime);
-                  return (
-                    <div key={event.id || event._id} className="border rounded-lg overflow-hidden transition-shadow hover:shadow-lg">
-                      <div className="flex flex-col md:flex-row">
-                        <div className="md:w-1/4 bg-gray-100 flex items-center justify-center p-4 md:p-6">
-                          <div className="text-center">
-                            <div className="text-2xl font-bold">{formattedDate.day}</div>
-                            <div className="text-sm text-gray-600">{formattedDate.month}</div>
-                            <div className="text-sm mt-2">{formattedDate.time}</div>
-                          </div>
-                        </div>
-                        <div className="md:w-3/4 p-4 md:p-6">
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-bold text-lg">{event.title}</h3>
-                            <span className={`text-xs px-2 py-1 rounded ${
-                              event.status === 'Confirmed' 
-                                ? 'bg-green-100 text-green-800' 
-                                : event.status === 'Pending'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {event.status || "Confirmed"}
-                            </span>
-                          </div>
-                          <p className="text-gray-600 mb-4">{event.description}</p>
-                          <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-3 md:space-y-0">
-                            <div className="text-sm text-gray-500">
-                              <i className="fas fa-map-marker-alt mr-1"></i> {event.location || 'TBA'}
-                            </div>
-                            <div className="flex space-x-2">
-                              <button 
-                                onClick={() => handleAddToCalendar(event.id || event._id, event.title)}
-                                className="text-[#FF7E45] hover:text-[#F4B942] text-sm inline-flex items-center"
-                                disabled={actionLoading}
-                              >
-                                <i className="far fa-calendar-alt mr-1"></i> Add to Calendar
-                              </button>
-                              <button 
-                                onClick={() => handleCancelRSVP(event.id || event._id, event.title)}
-                                className="text-red-500 hover:text-red-700 text-sm inline-flex items-center"
-                                disabled={actionLoading}
-                              >
-                                <i className="fas fa-times mr-1"></i> Cancel RSVP
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+      <div className="container mx-auto px-4 py-8">
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <i className="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+              <p className="text-red-600">{error}</p>
+            </div>
+            <button 
+              onClick={() => setError(null)}
+              className="mt-2 text-red-600 text-sm hover:text-red-800"
+            >
+              Dismiss
+            </button>
           </div>
+        )}
 
-          {/* Past Events */}
+        {/* Welcome Section */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h1 className="text-2xl font-bold mb-2">Welcome back, {currentUser?.firstName || currentUser?.name || 'User'}!</h1>
+          <p className="text-gray-600">
+            {userRole === 'admin' ? 'Administrator Dashboard' : 
+             userRole === 'moderator' ? 'Moderator Dashboard' : 
+             'Member Dashboard'}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Quick Stats */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold mb-4">Past Events</h2>
+            <h2 className="text-lg font-bold mb-4">Quick Stats</h2>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Upcoming Events</span>
+                <span className="font-bold">{upcomingEvents.length}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Recent Donations</span>
+                <span className="font-bold">{recentDonations.length}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Volunteer Applications</span>
+                <span className="font-bold">{volunteerApplications.length}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Member Since</span>
+                <span className="font-bold">
+                  {currentUser?.memberSince ? new Date(currentUser.memberSince).getFullYear() : 'N/A'}
+                </span>
+              </div>
+            </div>
+          </div>
 
-            {pastEvents.length === 0 ? (
-              <div className="text-center py-8">
-                <i className="fas fa-history text-4xl text-gray-300 mb-3"></i>
-                <p className="text-gray-500">You haven't attended any events yet.</p>
+          {/* Quick Actions */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-lg font-bold mb-4">Quick Actions</h2>
+            <div className="space-y-3">
+              <a href={`/profile/${user.id}`} className="block btn btn-outline w-full text-center">
+                <i className="fas fa-user mr-2"></i>Edit Profile
+              </a>
+              <a href="/events" className="block btn btn-outline w-full text-center">
+                <i className="fas fa-calendar mr-2"></i>View Events
+              </a>
+              <a href="/ministries" className="block btn btn-outline w-full text-center">
+                <i className="fas fa-hands-helping mr-2"></i>Volunteer
+              </a>
+              <a href="/donate" className="block btn btn-primary w-full text-center">
+                <i className="fas fa-donate mr-2"></i>Make a Donation
+              </a>
+              
+              {/* Admin/Moderator specific actions */}
+              {(userRole === 'admin' || userRole === 'moderator') && (
+                <a href={`/admin/${user.id}/dashboard`} className="block btn btn-outline w-full text-center bg-blue-50 border-blue-200">
+                  <i className="fas fa-cog mr-2"></i>Admin Panel
+                </a>
+              )}
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="bg-white rounded-lg shadow-md p-6 md:col-span-2 lg:col-span-1">
+            <h2 className="text-lg font-bold mb-4">Recent Activity</h2>
+            {recentDonations.length > 0 ? (
+              <div className="space-y-3">
+                {recentDonations.map((donation) => (
+                  <div key={donation.id || donation._id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <div>
+                      <p className="font-medium">Donation</p>
+                      <p className="text-sm text-gray-600">{formatDate(donation.date || donation.createdAt)}</p>
+                    </div>
+                    <span className="font-bold text-green-600">{formatCurrency(donation.amount)}</span>
+                  </div>
+                ))}
               </div>
             ) : (
-              <div className="space-y-4">
-                {pastEvents.map((event) => {
-                  const formattedDate = formatDate(event.date || event.startTime);
-                  return (
-                    <div key={event.id || event._id} className="border rounded-lg overflow-hidden bg-gray-50 transition-shadow hover:shadow-md">
-                      <div className="flex flex-col md:flex-row">
-                        <div className="md:w-1/4 bg-gray-100 flex items-center justify-center p-4 md:p-6">
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-500">{formattedDate.day}</div>
-                            <div className="text-sm text-gray-500">{formattedDate.month}</div>
-                            <div className="text-sm mt-2 text-gray-500">{formattedDate.time}</div>
-                          </div>
-                        </div>
-                        <div className="md:w-3/4 p-4 md:p-6">
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-bold text-lg text-gray-700">{event.title}</h3>
-                            <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">
-                              {event.attendanceStatus || "Attended"}
-                            </span>
-                          </div>
-                          <p className="text-gray-500 mb-4">{event.description}</p>
-                          <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-3 md:space-y-0">
-                            <div className="text-sm text-gray-500">
-                              <i className="fas fa-map-marker-alt mr-1"></i> {event.location || 'Unknown location'}
-                            </div>
-                            <div className="flex space-x-3">
-                              {event.recordingAvailable && (
-                                <button
-                                  onClick={() => handleViewRecording(event.id || event._id)}
-                                  className="text-[#FF7E45] hover:text-[#F4B942] text-sm inline-flex items-center"
-                                >
-                                  <i className="fas fa-play-circle mr-1"></i> Watch Recording
-                                </button>
-                              )}
-                              {event.materialsAvailable && (
-                                <button
-                                  onClick={() => handleDownloadMaterials(event.id || event._id)}
-                                  className="text-[#FF7E45] hover:text-[#F4B942] text-sm inline-flex items-center"
-                                >
-                                  <i className="fas fa-download mr-1"></i> Materials
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* View More Button - Only show if there are more past events */}
-            {pastEvents.length > 5 && (
-              <div className="mt-6 text-center">
-                <button 
-                  className="btn btn-outline"
-                  onClick={() => {/* Implement pagination or view more logic */}}
-                >
-                  View More Past Events
-                </button>
-              </div>
+              <p className="text-gray-600 text-center py-4">No recent activity</p>
             )}
           </div>
+        </div>
+
+        {/* Volunteer Applications */}
+        {volunteerApplications.length > 0 && (
+          <div className="bg-white rounded-lg shadow-md p-6 mt-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold">Your Volunteer Applications</h2>
+              <a href="/ministries" className="text-[#FF7E45] hover:text-[#F4B942] text-sm">
+                View Ministries
+              </a>
+            </div>
+            
+            <div className="space-y-3">
+              {volunteerApplications.slice(0, 3).map((application) => (
+                <div key={application._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex-1">
+                    <p className="font-medium">{application.ministryId?.name || 'Ministry'}</p>
+                    <p className="text-sm text-gray-600">
+                      Applied: {formatDate(application.createdAt)}
+                    </p>
+                  </div>
+                  <div className="ml-4">
+                    {getVolunteerStatusBadge(application.status)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Upcoming Events */}
+        <div className="bg-white rounded-lg shadow-md p-6 mt-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-bold">Upcoming Events</h2>
+            <a href={`/my-rsvps/${user.id}`} className="text-[#FF7E45] hover:text-[#F4B942] text-sm">
+              View All
+            </a>
+          </div>
+          
+          {upcomingEvents.length > 0 ? (
+            <div className="space-y-3">
+              {upcomingEvents.slice(0, 3).map((event) => (
+                <div key={event.id || event._id} className="flex items-center p-3 bg-gray-50 rounded-lg">
+                  <div className="flex-shrink-0 w-12 h-12 bg-[#FF7E45] rounded-lg flex items-center justify-center text-white font-bold mr-3">
+                    {new Date(event.date || event.startTime).getDate()}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">{event.title}</p>
+                    <p className="text-sm text-gray-600">
+                      {formatDate(event.date || event.startTime)} • {event.location || 'TBA'}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <i className="fas fa-calendar-plus text-3xl text-gray-300 mb-3"></i>
+              <p className="text-gray-600 mb-4">No upcoming events</p>
+              <a href="/events" className="btn btn-outline">
+                Browse Events
+              </a>
+            </div>
+          )}
         </div>
       </div>
-      
-      {/* Global loader for actions */}
-      {actionLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
-          <Loader type="spinner" size="medium" color="#FF7E45" text="Processing..." />
-        </div>
-      )}
     </div>
   );
 };
 
-export default MyRSVPsPage;
+export default UserPage;

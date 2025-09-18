@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { apiClient } from '../utils/api';
+import { authService, userService, donationService } from '../services/apiService';
 import Loader from '../components/Loader';
+import { useAlert } from "../utils/Alert";
 
 const ProfilePage = ({ user }) => {
   const [activeTab, setActiveTab] = useState('personal');
@@ -14,9 +16,10 @@ const ProfilePage = ({ user }) => {
   const [isAddingFamilyMember, setIsAddingFamilyMember] = useState(false);
   const [newFamilyMember, setNewFamilyMember] = useState({ name: '', relationship: '' });
 
-  useEffect(() => {
-    document.title = "SMC: - Profile | St. Micheal`s & All Angels Church | Ifite-Awka";
+  const alert = useAlert();
 
+  useEffect(() => {
+    document.title = "SMC: - Profile | St. Michael's & All Angels Church | Ifite-Awka";
     fetchUserProfileData();
   }, [user]);
 
@@ -25,59 +28,46 @@ const ProfilePage = ({ user }) => {
       setIsLoading(true);
       setError(null);
 
-      // Fetch all user data in parallel
-      const [
-        userResponse,
-        donationsResponse,
-        rsvpsResponse,
-        favoritesResponse,
-        familyResponse
-      ] = await Promise.allSettled([
-        apiClient.get('/auth/me'),
-        apiClient.get('/donations'),
-        apiClient.get('/user/rsvps'),
-        apiClient.get('/user/favorites'),
-        apiClient.get('/user/family')
-      ]);
+      // Fetch user data based on role
+      const userResponse = await authService.getCurrentUser();
+      setUserData(userResponse.data || userResponse);
 
-      // Process responses
-      if (userResponse.status === 'fulfilled') {
-        setUserData(userResponse.value);
-      } else {
-        console.error('Failed to fetch user data:', userResponse.reason);
+      // Fetch additional data only if user is authenticated
+      if (userResponse && !userResponse.error) {
+        const [
+          donationsResponse,
+          rsvpsResponse,
+          favoritesResponse,
+          familyResponse
+        ] = await Promise.allSettled([
+          donationService.getUserDonations(),
+          apiClient.get('/user/rsvps'),
+          apiClient.get('/user/favorites'),
+          apiClient.get('/user/family')
+        ]);
+
+        if (donationsResponse.status === 'fulfilled') {
+          setDonations(donationsResponse.value.donations || donationsResponse.value.data || []);
+        }
+
+        if (rsvpsResponse.status === 'fulfilled') {
+          setRsvps(rsvpsResponse.value.rsvps || rsvpsResponse.value.data || []);
+        }
+
+        if (favoritesResponse.status === 'fulfilled') {
+          setFavorites(favoritesResponse.value.favorites || favoritesResponse.value.data || { events: [], sermons: [], posts: [] });
+        }
+
+        if (familyResponse.status === 'fulfilled') {
+          setFamilyMembers(familyResponse.value.family || familyResponse.value.data || []);
+        }
       }
-
-      if (donationsResponse.status === 'fulfilled') {
-        setDonations(donationsResponse.value.donations || donationsResponse.value);
-      } else {
-        console.error('Failed to fetch donations:', donationsResponse.reason);
-        setDonations([]);
-      }
-
-      if (rsvpsResponse.status === 'fulfilled') {
-        setRsvps(rsvpsResponse.value.rsvps || rsvpsResponse.value);
-      } else {
-        console.error('Failed to fetch RSVPs:', rsvpsResponse.reason);
-        setRsvps([]);
-      }
-
-      if (favoritesResponse.status === 'fulfilled') {
-        setFavorites(favoritesResponse.value.favorites || favoritesResponse.value);
-      } else {
-        console.error('Failed to fetch favorites:', favoritesResponse.reason);
-        setFavorites({ events: [], sermons: [], posts: [] });
-      }
-
-      if (familyResponse.status === 'fulfilled') {
-        setFamilyMembers(familyResponse.value.family || familyResponse.value);
-      } else {
-        console.error('Failed to fetch family members:', familyResponse.reason);
-        setFamilyMembers([]);
-      }
-
     } catch (error) {
       console.error('Error fetching profile data:', error);
-      setError('Failed to load profile data. Please try again.');
+      // Don't set error if it's just an authentication issue
+      if (!error.response || error.response.status !== 401) {
+        setError('Failed to load profile data. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -85,26 +75,32 @@ const ProfilePage = ({ user }) => {
 
   const handleUpdateProfile = async (formData) => {
     try {
-      const response = await apiClient.put('/auth/profile', formData);
-      setUserData(response.user || response);
+      const response = await authService.updateProfile(formData);
+      setUserData(response.user || response.data);
       return { success: true, message: 'Profile updated successfully' };
     } catch (error) {
       console.error('Error updating profile:', error);
-      return { success: false, message: error.message || 'Failed to update profile' };
+      return { 
+        success: false, 
+        message: error.response?.data?.message || error.message || 'Failed to update profile' 
+      };
     }
   };
 
   const handleAddFamilyMember = async (memberData) => {
     try {
       const response = await apiClient.post('/user/family', memberData);
-      const newMember = response.member || response;
+      const newMember = response.member || response.data;
       setFamilyMembers(prev => [...prev, newMember]);
       setIsAddingFamilyMember(false);
       setNewFamilyMember({ name: '', relationship: '' });
       return { success: true, message: 'Family member added successfully' };
     } catch (error) {
       console.error('Error adding family member:', error);
-      return { success: false, message: error.message || 'Failed to add family member' };
+      return { 
+        success: false, 
+        message: error.response?.data?.message || error.message || 'Failed to add family member' 
+      };
     }
   };
 
@@ -115,39 +111,47 @@ const ProfilePage = ({ user }) => {
       return { success: true, message: 'Family member removed successfully' };
     } catch (error) {
       console.error('Error removing family member:', error);
-      return { success: false, message: error.message || 'Failed to remove family member' };
+      return { 
+        success: false, 
+        message: error.response?.data?.message || error.message || 'Failed to remove family member' 
+      };
     }
   };
 
   const handleUpdateCommunicationPrefs = async (preferences) => {
     try {
-      const response = await apiClient.put('/user/communication', { preferences });
+      await apiClient.put('/user/communication', { preferences });
       return { success: true, message: 'Preferences updated successfully' };
     } catch (error) {
       console.error('Error updating preferences:', error);
-      return { success: false, message: error.message || 'Failed to update preferences' };
+      return { 
+        success: false, 
+        message: error.response?.data?.message || error.message || 'Failed to update preferences' 
+      };
     }
   };
 
   const handleChangePassword = async (passwordData) => {
     try {
-      await apiClient.post('/auth/change-password', passwordData);
+      await authService.changePassword(passwordData);
       return { success: true, message: 'Password changed successfully' };
     } catch (error) {
       console.error('Error changing password:', error);
-      return { success: false, message: error.message || 'Failed to change password' };
+      return { 
+        success: false, 
+        message: error.response?.data?.message || error.message || 'Failed to change password' 
+      };
     }
   };
 
   const handleDeleteAccount = async () => {
     if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
       try {
-        await apiClient.delete('/auth/account');
-        // Redirect to home or login page after account deletion
+        await authService.deleteAccount();
         window.location.href = '/';
       } catch (error) {
         console.error('Error deleting account:', error);
-        setError(error.message || 'Failed to delete account');
+        setError(error.response?.data?.message || error.message || 'Failed to delete account');
       }
     }
   };
@@ -168,9 +172,39 @@ const ProfilePage = ({ user }) => {
     });
   };
 
+  // Show login prompt if user is not authenticated
+  if (!user && !userData) {
+    return (
+      <div className="page">
+        <div className="container mx-auto px-4 py-12">
+          <div className="max-w-md mx-auto text-center">
+            <div className="bg-white rounded-lg shadow-md p-8">
+              <h2 className="text-2xl font-bold mb-4">Please Log In</h2>
+              <p className="text-gray-600 mb-6">You need to be logged in to view your profile.</p>
+              <a href="/login" className="btn btn-primary">Log In</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return <Loader type="spinner" text="Loading your profile..." />;
   }
+
+  // Determine user role display text
+  const getRoleDisplayText = (role) => {
+    const roleMap = {
+      'admin': 'Administrator',
+      'moderator': 'Moderator',
+      'user': 'Church Member'
+    };
+    return roleMap[role] || 'Church Member';
+  };
+
+  const currentUser = userData || user;
+  const userRole = currentUser.role || 'user';
 
   return (
     <div className="page">
@@ -197,7 +231,7 @@ const ProfilePage = ({ user }) => {
             <div className="bg-gradient-to-r from-[#FF7E45] to-[#F4B942] h-32 relative">
               <div className="absolute -bottom-16 left-8">
                 <div className="w-32 h-32 bg-gray-300 rounded-full border-4 border-white flex items-center justify-center text-4xl text-white">
-                  {userData?.name?.charAt(0) || user?.name?.charAt(0) || 'U'}
+                  {currentUser?.name?.charAt(0) || currentUser?.firstName?.charAt(0) || 'U'}
                 </div>
               </div>
             </div>
@@ -206,9 +240,16 @@ const ProfilePage = ({ user }) => {
             <div className="pt-20 px-8 pb-8">
               <div className="flex justify-between items-start mb-8">
                 <div>
-                  <h1 className="text-3xl font-bold mb-1">{userData?.name || user?.name || 'User'}</h1>
+                  <h1 className="text-3xl font-bold mb-1">
+                    {currentUser?.name || `${currentUser?.firstName} ${currentUser?.lastName}` || 'User'}
+                  </h1>
                   <p className="text-gray-600">
-                    {userData?.role === "admin" ? "Administrator" : "Church Member"}
+                    {getRoleDisplayText(userRole)}
+                    {userRole !== 'user' && (
+                      <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                        {userRole}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <button 
@@ -239,13 +280,25 @@ const ProfilePage = ({ user }) => {
                       </button>
                     </li>
                   ))}
+                  
+                  {/* Admin-only tab */}
+                  {userRole === 'admin' && (
+                    <li className="mr-2">
+                      <button
+                        onClick={() => window.location.href = '/admin'}
+                        className="inline-block py-4 px-4 border-b-2 border-transparent hover:text-blue-600 hover:border-blue-300 text-blue-500"
+                      >
+                        Admin Dashboard
+                      </button>
+                    </li>
+                  )}
                 </ul>
               </div>
 
               {/* Tab Content */}
               {activeTab === 'personal' && (
                 <PersonalInfoTab 
-                  userData={userData || user}
+                  userData={currentUser}
                   familyMembers={familyMembers}
                   isAddingFamilyMember={isAddingFamilyMember}
                   newFamilyMember={newFamilyMember}
@@ -254,6 +307,7 @@ const ProfilePage = ({ user }) => {
                   onRemoveFamilyMember={handleRemoveFamilyMember}
                   setIsAddingFamilyMember={setIsAddingFamilyMember}
                   setNewFamilyMember={setNewFamilyMember}
+                  formatDate={formatDate}
                 />
               )}
 
@@ -277,6 +331,7 @@ const ProfilePage = ({ user }) => {
                 <AccountSettingsTab 
                   onChangePassword={handleChangePassword}
                   onDeleteAccount={handleDeleteAccount}
+                  userRole={userRole}
                 />
               )}
             </div>
@@ -297,21 +352,38 @@ const PersonalInfoTab = ({
   onAddFamilyMember, 
   onRemoveFamilyMember, 
   setIsAddingFamilyMember, 
-  setNewFamilyMember 
+  setNewFamilyMember,
+  formatDate
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    name: userData?.name || '',
+    firstName: userData?.firstName || '',
+    lastName: userData?.lastName || '',
     email: userData?.email || '',
     phone: userData?.phone || '',
     address: userData?.address || ''
   });
 
+  const [saveStatus, setSaveStatus] = useState('');
+
+  useEffect(() => {
+    setFormData({
+      firstName: userData?.firstName || '',
+      lastName: userData?.lastName || '',
+      email: userData?.email || '',
+      phone: userData?.phone || '',
+      address: userData?.address || ''
+    });
+  }, [userData]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await onUpdateProfile(formData);
+    setSaveStatus(result.success ? 'success' : 'error');
+    
     if (result.success) {
       setIsEditing(false);
+      setTimeout(() => setSaveStatus(''), 3000);
     }
   };
 
@@ -320,13 +392,25 @@ const PersonalInfoTab = ({
     if (!newFamilyMember.name || !newFamilyMember.relationship) return;
     
     const result = await onAddFamilyMember(newFamilyMember);
-    if (result.success) {
-      // Reset form is handled in the parent
-    }
+    setSaveStatus(result.success ? 'success' : 'error');
+    setTimeout(() => setSaveStatus(''), 3000);
   };
 
   return (
     <div>
+      {/* Status Messages */}
+      {saveStatus === 'success' && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+          <p className="text-green-600">Operation completed successfully!</p>
+        </div>
+      )}
+      
+      {saveStatus === 'error' && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+          <p className="text-red-600">Operation failed. Please try again.</p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Contact Info */}
         <div>
@@ -342,15 +426,27 @@ const PersonalInfoTab = ({
 
           {isEditing ? (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="form-input"
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">First Name</label>
+                  <input
+                    type="text"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                    className="form-input"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Last Name</label>
+                  <input
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                    className="form-input"
+                    required
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Email</label>
@@ -387,6 +483,15 @@ const PersonalInfoTab = ({
           ) : (
             <div className="space-y-4">
               <div>
+                <label className="block text-sm text-gray-600 mb-1">Name</label>
+                <p className="font-medium">
+                  {userData?.firstName && userData?.lastName 
+                    ? `${userData.firstName} ${userData.lastName}` 
+                    : userData?.name || 'Not provided'
+                  }
+                </p>
+              </div>
+              <div>
                 <label className="block text-sm text-gray-600 mb-1">Email Address</label>
                 <p className="font-medium">{userData?.email || 'Not provided'}</p>
               </div>
@@ -408,7 +513,7 @@ const PersonalInfoTab = ({
           <div className="space-y-4">
             <div>
               <label className="block text-sm text-gray-600 mb-1">Member Since</label>
-              <p className="font-medium">{userData?.memberSince || 'Not specified'}</p>
+              <p className="font-medium">{userData?.memberSince ? formatDate(userData.memberSince) : 'Not specified'}</p>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Membership Status</label>
@@ -482,13 +587,13 @@ const PersonalInfoTab = ({
         {familyMembers.length > 0 ? (
           <div className="space-y-3">
             {familyMembers.map((member) => (
-              <div key={member.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <div key={member.id || member._id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                 <div>
                   <p className="font-medium">{member.name}</p>
                   <p className="text-sm text-gray-600 capitalize">{member.relationship}</p>
                 </div>
                 <button
-                  onClick={() => onRemoveFamilyMember(member.id)}
+                  onClick={() => onRemoveFamilyMember(member.id || member._id)}
                   className="text-red-500 hover:text-red-700"
                   title="Remove family member"
                 >
@@ -505,7 +610,7 @@ const PersonalInfoTab = ({
   );
 };
 
-// Involvement Tab Component - Updated to use the actual data structure
+// Involvement Tab Component
 const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDate }) => {
   return (
     <div className="space-y-8">
@@ -526,9 +631,9 @@ const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDat
                 </thead>
                 <tbody>
                   {donations.slice(0, 5).map((donation) => (
-                    <tr key={donation.id} className="border-b">
+                    <tr key={donation.id || donation._id} className="border-b">
                       <td className="py-3 font-medium">{formatCurrency(donation.amount)}</td>
-                      <td className="py-3">{formatDate(donation.date)}</td>
+                      <td className="py-3">{formatDate(donation.date || donation.createdAt)}</td>
                       <td className="py-3 capitalize">{donation.frequency || 'One-time'}</td>
                       <td className="py-3">
                         <span className={`px-2 py-1 rounded-full text-xs ${
@@ -566,7 +671,7 @@ const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDat
         {rsvps && rsvps.length > 0 ? (
           <div className="space-y-3">
             {rsvps.slice(0, 3).map((rsvp) => (
-              <div key={rsvp.id} className="bg-gray-50 rounded-lg p-4">
+              <div key={rsvp.id || rsvp._id} className="bg-gray-50 rounded-lg p-4">
                 <h3 className="font-medium">{rsvp.eventTitle}</h3>
                 <p className="text-sm text-gray-600">{formatDate(rsvp.eventDate)}</p>
                 <p className="text-sm text-gray-600">{rsvp.eventTime}</p>
@@ -586,14 +691,16 @@ const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDat
       {/* Favorites */}
       <div>
         <h2 className="text-xl font-bold mb-4">Your Favorites</h2>
-        {(favorites.events.length > 0 || favorites.sermons.length > 0 || favorites.posts.length > 0) ? (
+        {(favorites.events && favorites.events.length > 0) || 
+         (favorites.sermons && favorites.sermons.length > 0) || 
+         (favorites.posts && favorites.posts.length > 0) ? (
           <div className="space-y-4">
-            {favorites.events.length > 0 && (
+            {favorites.events && favorites.events.length > 0 && (
               <div>
                 <h3 className="font-medium mb-2">Events ({favorites.events.length})</h3>
                 <div className="space-y-2">
                   {favorites.events.slice(0, 2).map((event) => (
-                    <div key={event.id} className="bg-gray-50 rounded-lg p-3">
+                    <div key={event.id || event._id} className="bg-gray-50 rounded-lg p-3">
                       <p className="font-medium">{event.title}</p>
                       <p className="text-sm text-gray-600">{formatDate(event.date)}</p>
                     </div>
@@ -602,12 +709,12 @@ const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDat
               </div>
             )}
             
-            {favorites.sermons.length > 0 && (
+            {favorites.sermons && favorites.sermons.length > 0 && (
               <div>
                 <h3 className="font-medium mb-2">Sermons ({favorites.sermons.length})</h3>
                 <div className="space-y-2">
                   {favorites.sermons.slice(0, 2).map((sermon) => (
-                    <div key={sermon.id} className="bg-gray-50 rounded-lg p-3">
+                    <div key={sermon.id || sermon._id} className="bg-gray-50 rounded-lg p-3">
                       <p className="font-medium">{sermon.title}</p>
                       <p className="text-sm text-gray-600">{sermon.speaker}</p>
                     </div>
@@ -616,12 +723,12 @@ const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDat
               </div>
             )}
 
-            {favorites.posts.length > 0 && (
+            {favorites.posts && favorites.posts.length > 0 && (
               <div>
                 <h3 className="font-medium mb-2">Posts ({favorites.posts.length})</h3>
                 <div className="space-y-2">
                   {favorites.posts.slice(0, 2).map((post) => (
-                    <div key={post.id} className="bg-gray-50 rounded-lg p-3">
+                    <div key={post.id || post._id} className="bg-gray-50 rounded-lg p-3">
                       <p className="font-medium">{post.title}</p>
                       <p className="text-sm text-gray-600">By {post.author}</p>
                     </div>
@@ -755,7 +862,7 @@ const CommunicationTab = ({ onUpdatePreferences }) => {
 };
 
 // Account Settings Tab Component
-const AccountSettingsTab = ({ onChangePassword, onDeleteAccount }) => {
+const AccountSettingsTab = ({ onChangePassword, onDeleteAccount, userRole }) => {
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -858,6 +965,16 @@ const AccountSettingsTab = ({ onChangePassword, onDeleteAccount }) => {
           This action cannot be undone. All your data will be permanently removed.
         </p>
       </div>
+
+      {/* Admin note */}
+      {userRole === 'admin' && (
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="font-medium text-blue-800 mb-2">Admin Note</h3>
+          <p className="text-blue-700 text-sm">
+            As an administrator, your account has special privileges. Please be cautious when making changes.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

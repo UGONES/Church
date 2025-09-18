@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ministryService } from "../constants/apiService";
+import { ministryService } from "../services/apiService";
 import Loader from '../components/Loader';
 import { useAlert } from '../utils/Alert';
 import { Ministry } from '../models/Ministry';

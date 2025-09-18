@@ -11,7 +11,9 @@ const SocialLoginButtons = ({ onSuccess, onError, loading: externalLoading }) =>
   };
 
   const handleSocialError = (error) => {
-    onError(error);
+    console.error('Social login error:', error);
+    alert(error.message || error);
+    onError(error.message || error);
   };
 
   if (authLoading || externalLoading) {

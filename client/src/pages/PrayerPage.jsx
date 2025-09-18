@@ -391,7 +391,6 @@ const handlePrayForRequest = async (prayerId) => {
 };
 
 // Prayer Form Modal Component
-// Prayer Form Modal Component
 const PrayerFormModal = ({ user, onClose, onSubmit, submitted, error }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

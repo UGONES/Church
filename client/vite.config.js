@@ -10,4 +10,7 @@ export default defineConfig({
       'Referrer-Policy': 'strict-origin-when-cross-origin',
     },
   },
+    esbuild: {
+    jsx: 'automatic',
+  },
 });
