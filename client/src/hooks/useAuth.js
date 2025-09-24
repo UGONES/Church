@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
-import { 
-  getAuthToken, 
-  isTokenValid, 
-  getUserFromToken, 
-  checkAndRefreshAuthToken, 
+import { useState, useEffect } from "react";
+import {
+  getAuthToken,
+  isTokenValid,
+  getUserFromToken,
+  checkAndRefreshAuthToken,
   clearAllAuthData,
-  getTokenExpiryTime 
-} from '../utils/auth';
+  getTokenExpiryTime,
+} from "../utils/auth";
 
 export const useAuth = () => {
   const [user, setUser] = useState(null);
@@ -22,7 +22,7 @@ export const useAuth = () => {
           token = newToken;
         }
       }
-      
+
       if (isTokenValid(token)) {
         const userData = getUserFromToken(token);
         setUser(userData);
@@ -33,10 +33,10 @@ export const useAuth = () => {
         setUser(null);
       }
     } catch (err) {
-      console.error('Token validation/refresh failed:', err);
+      console.error("Token validation/refresh failed:", err);
       clearAllAuthData();
       setUser(null);
-      setError('Authentication failed');
+      setError("Authentication failed");
     }
   };
 
@@ -44,15 +44,15 @@ export const useAuth = () => {
     const initializeAuth = async () => {
       try {
         const token = getAuthToken();
-        
+
         if (token) {
           await checkAndRefreshToken(token);
         } else {
           setUser(null);
         }
       } catch (err) {
-        console.error('Auth initialization failed:', err);
-        setError('Authentication initialization failed');
+        console.error("Auth initialization failed:", err);
+        setError("Authentication initialization failed");
         setUser(null);
       } finally {
         setIsLoading(false);
@@ -81,7 +81,7 @@ export const useAuth = () => {
       setUser(userData);
       return { success: true };
     } catch (err) {
-      setError(err.message || 'Login failed');
+      setError(err.message || "Login failed");
       return { success: false, error: err.message };
     } finally {
       setIsLoading(false);
@@ -95,15 +95,15 @@ export const useAuth = () => {
     // Optional: Call logout API endpoint if needed
   };
 
-  return { 
-    user, 
-    isLoading, 
+  return {
+    user,
+    isLoading,
     error,
     login,
     logout,
     refreshToken: () => {
       const token = getAuthToken();
       if (token) return checkAndRefreshToken(token);
-    }
+    },
   };
 };

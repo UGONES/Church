@@ -1,26 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
-const Loader = ({ 
-  type = "spinner", 
-  size = "medium", 
-  color = "#FF7E45", 
+const Loader = ({
+  type = "spinner",
+  size = "medium",
+  color = "#FF7E45",
   text = "Loading...",
   fullScreen = false,
   timeout = 0, // Timeout in milliseconds (0 = no timeout)
   onTimeout, // Callback function when timeout occurs
   timeoutMessage = "Taking longer than expected...", // Message to show after timeout
-  showTimeoutMessage = true // Whether to show timeout message
+  showTimeoutMessage = true, // Whether to show timeout message
 }) => {
   const [hasTimedOut, setHasTimedOut] = useState(false);
   const sizeClasses = {
     small: "w-6 h-6",
     medium: "w-12 h-12",
     large: "w-16 h-16",
-    xlarge: "w-24 h-24"
+    xlarge: "w-24 h-24",
   };
 
   const spinnerStyles = {
-    borderColor: `${color} transparent transparent transparent`
+    borderColor: `${color} transparent transparent transparent`,
   };
 
   // Handle timeout
@@ -48,13 +48,23 @@ const Loader = ({
                 className="rounded-full animate-bounce"
                 style={{
                   backgroundColor: color,
-                  width: size === "small" ? "8px" : 
-                         size === "medium" ? "12px" : 
-                         size === "large" ? "16px" : "20px",
-                  height: size === "small" ? "8px" : 
-                          size === "medium" ? "12px" : 
-                          size === "large" ? "16px" : "20px",
-                  animationDelay: `${i * 0.1}s`
+                  width:
+                    size === "small"
+                      ? "8px"
+                      : size === "medium"
+                        ? "12px"
+                        : size === "large"
+                          ? "16px"
+                          : "20px",
+                  height:
+                    size === "small"
+                      ? "8px"
+                      : size === "medium"
+                        ? "12px"
+                        : size === "large"
+                          ? "16px"
+                          : "20px",
+                  animationDelay: `${i * 0.1}s`,
                 }}
               />
             ))}
@@ -63,58 +73,79 @@ const Loader = ({
 
       case "ring":
         return (
-          <div className={`${sizeClasses[size]} border-4 rounded-full animate-spin`} style={spinnerStyles}></div>
+          <div
+            className={`${sizeClasses[size]} border-4 rounded-full animate-spin`}
+            style={spinnerStyles}
+          />
         );
 
       case "pulse":
         return (
-          <div 
+          <div
             className="rounded-full animate-pulse"
             style={{
               backgroundColor: color,
-              width: size === "small" ? "1.5rem" : 
-                     size === "medium" ? "2rem" : 
-                     size === "large" ? "3rem" : "4rem",
-              height: size === "small" ? "1.5rem" : 
-                      size === "medium" ? "2rem" : 
-                      size === "large" ? "3rem" : "4rem"
+              width:
+                size === "small"
+                  ? "1.5rem"
+                  : size === "medium"
+                    ? "2rem"
+                    : size === "large"
+                      ? "3rem"
+                      : "4rem",
+              height:
+                size === "small"
+                  ? "1.5rem"
+                  : size === "medium"
+                    ? "2rem"
+                    : size === "large"
+                      ? "3rem"
+                      : "4rem",
             }}
-          ></div>
+          />
         );
 
       case "progress":
         return (
           <div className="w-32 bg-gray-200 rounded-full overflow-hidden">
-            <div 
+            <div
               className="h-2 rounded-full animate-progress"
               style={{
                 backgroundColor: color,
-                width: '0%',
-                animation: 'progress 1.5s ease-in-out infinite'
+                width: "0%",
+                animation: "progress 1.5s ease-in-out infinite",
               }}
-            ></div>
+            />
           </div>
         );
 
       case "church":
         return (
           <div className="animate-bounce">
-            <i 
+            <i
               className="fas fa-church"
               style={{
-                color: color,
-                fontSize: size === "small" ? "1.5rem" : 
-                         size === "medium" ? "2rem" : 
-                         size === "large" ? "3rem" : "4rem"
+                color,
+                fontSize:
+                  size === "small"
+                    ? "1.5rem"
+                    : size === "medium"
+                      ? "2rem"
+                      : size === "large"
+                        ? "3rem"
+                        : "4rem",
               }}
-            ></i>
+            />
           </div>
         );
 
       case "spinner":
       default:
         return (
-          <div className={`${sizeClasses[size]} border-4 rounded-full animate-spin`} style={spinnerStyles}></div>
+          <div
+            className={`${sizeClasses[size]} border-4 rounded-full animate-spin`}
+            style={spinnerStyles}
+          />
         );
     }
   };
@@ -122,31 +153,25 @@ const Loader = ({
   const loaderContent = (
     <div className="flex flex-col items-center justify-center space-y-4">
       {renderSpinner()}
-      
+
       {/* Show timeout message if timed out, otherwise show normal text */}
       {hasTimedOut && showTimeoutMessage ? (
         <div className="text-center">
-          <p 
+          <p
             className="font-medium text-orange-600 mb-2"
-            style={{ color: '#e67e22' }}
+            style={{ color: "#e67e22" }}
           >
             ⏰ {timeoutMessage}
           </p>
           {text && (
-            <p 
-              className="text-sm opacity-75"
-              style={{ color: color }}
-            >
+            <p className="text-sm opacity-75" style={{ color }}>
               {text}
             </p>
           )}
         </div>
       ) : (
         text && (
-          <p 
-            className="text-center font-medium"
-            style={{ color: color }}
-          >
+          <p className="text-center font-medium" style={{ color }}>
             {text}
           </p>
         )
@@ -166,10 +191,10 @@ const Loader = ({
 };
 
 // Page Loader Component with Timeout
-export const PageLoader = ({ 
+export const PageLoader = ({
   timeout = 10000, // 10 seconds default timeout
   onTimeout,
-  customMessage 
+  customMessage,
 }) => {
   const [hasTimedOut, setHasTimedOut] = useState(false);
 
@@ -189,15 +214,18 @@ export const PageLoader = ({
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-[#FF7E45] to-[#F4B942] flex items-center justify-center z-50">
       <div className="text-center">
-        <div className="w-20 h-20 border-4 border-white border-t-transparent rounded-full animate-spin mb-4"></div>
-        
+        <div className="w-20 h-20 border-4 border-white border-t-transparent rounded-full animate-spin mb-4" />
+
         {hasTimedOut ? (
           <>
-            <h2 className="text-xl font-semibold text-white mb-2">Still Working...</h2>
+            <h2 className="text-xl font-semibold text-white mb-2">
+              Still Working...
+            </h2>
             <p className="text-white/80">
-              {customMessage || "This is taking longer than expected. Please check your connection."}
+              {customMessage ||
+                "This is taking longer than expected. Please check your connection."}
             </p>
-            <button 
+            <button
               onClick={() => window.location.reload()}
               className="mt-4 px-4 py-2 bg-white text-[#FF7E45] rounded-lg hover:bg-gray-100 transition-colors"
             >
@@ -206,8 +234,12 @@ export const PageLoader = ({
           </>
         ) : (
           <>
-            <h2 className="text-xl font-semibold text-white">St Michael's Church</h2>
-            <p className="text-white/80 mt-2">Loading your spiritual journey...</p>
+            <h2 className="text-xl font-semibold text-white">
+              St Michael's Church
+            </h2>
+            <p className="text-white/80 mt-2">
+              Loading your spiritual journey...
+            </p>
           </>
         )}
       </div>
@@ -216,11 +248,11 @@ export const PageLoader = ({
 };
 
 // Content Loader Component (Skeleton) with Timeout
-export const ContentLoader = ({ 
-  type = "card", 
+export const ContentLoader = ({
+  type = "card",
   count = 1,
   timeout = 0,
-  onTimeout 
+  onTimeout,
 }) => {
   const [hasTimedOut, setHasTimedOut] = useState(false);
 
@@ -242,9 +274,11 @@ export const ContentLoader = ({
       return (
         <div className="text-center py-8">
           <div className="text-gray-400 mb-2">
-            <i className="fas fa-exclamation-triangle text-2xl"></i>
+            <i className="fas fa-exclamation-triangle text-2xl" />
           </div>
-          <p className="text-gray-600 text-sm">Content is taking longer to load</p>
+          <p className="text-gray-600 text-sm">
+            Content is taking longer to load
+          </p>
         </div>
       );
     }
@@ -253,37 +287,37 @@ export const ContentLoader = ({
       case "card":
         return (
           <div className="bg-white rounded-lg shadow-md p-6 animate-pulse">
-            <div className="h-48 bg-gray-200 rounded-md mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded mb-3"></div>
-            <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-            <div className="h-10 bg-gray-200 rounded"></div>
+            <div className="h-48 bg-gray-200 rounded-md mb-4" />
+            <div className="h-4 bg-gray-200 rounded mb-3" />
+            <div className="h-4 bg-gray-200 rounded w-3/4 mb-4" />
+            <div className="h-10 bg-gray-200 rounded" />
           </div>
         );
-      
+
       case "text":
         return (
           <div className="space-y-3 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-            <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+            <div className="h-4 bg-gray-200 rounded" />
+            <div className="h-4 bg-gray-200 rounded w-5/6" />
+            <div className="h-4 bg-gray-200 rounded w-4/6" />
           </div>
         );
-      
+
       case "list":
         return (
           <div className="space-y-4 animate-pulse">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                <div className="w-10 h-10 bg-gray-200 rounded-full" />
                 <div className="flex-1">
-                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-4 bg-gray-200 rounded mb-2" />
+                  <div className="h-3 bg-gray-200 rounded w-1/2" />
                 </div>
               </div>
             ))}
           </div>
         );
-      
+
       default:
         return null;
     }
@@ -292,9 +326,7 @@ export const ContentLoader = ({
   return (
     <>
       {[...Array(count)].map((_, index) => (
-        <React.Fragment key={index}>
-          {renderSkeleton()}
-        </React.Fragment>
+        <React.Fragment key={index}>{renderSkeleton()}</React.Fragment>
       ))}
     </>
   );

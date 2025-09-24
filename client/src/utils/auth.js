@@ -1,10 +1,10 @@
-import { jwtDecode } from 'jwt-decode';
+import { jwtDecode } from "jwt-decode";
 
 // Configuration constants
-export const TOKEN_KEY = 'church_auth_token';
-export const USER_KEY = 'church_user_data';
-export const ADMIN_KEY = 'church_admin_status';
-export const ADMIN_EXPIRY_KEY = 'church_admin_expiry';
+export const TOKEN_KEY = "church_auth_token";
+export const USER_KEY = "church_user_data";
+export const ADMIN_KEY = "church_admin_status";
+export const ADMIN_EXPIRY_KEY = "church_admin_expiry";
 
 // Admin codes - Use fallback codes for browser environment
 const getValidAdminCodes = () => {
@@ -13,18 +13,20 @@ const getValidAdminCodes = () => {
     const envCodes = [
       process.env.REACT_APP_ADMIN_CODE_1,
       process.env.REACT_APP_ADMIN_CODE_2,
-      process.env.REACT_APP_ADMIN_CODE_3
+      process.env.REACT_APP_ADMIN_CODE_3,
     ].filter(Boolean);
-    
+
     if (envCodes.length > 0) {
       return new Set(envCodes);
     }
   } catch (error) {
-    console.log('Environment variables not available in browser, using fallback codes');
+    console.log(
+      "Environment variables not available in browser, using fallback codes",
+    );
   }
-  
+
   // Fallback validation (development)
-  return new Set(['STMICHAEL2024', 'ANGELSCHURCH', 'THRONEOFSRACE']);
+  return new Set(["STMICHAEL2024", "ANGELSCHURCH", "THRONEOFSRACE"]);
 };
 
 const VALID_ADMIN_CODES = getValidAdminCodes();
@@ -38,12 +40,12 @@ const ADMIN_SESSION_DURATION = 24 * 60 * 60 * 1000;
  * @returns {boolean} - True if token has proper JWT format
  */
 export const isValidTokenFormat = (token) => {
-  if (!token || typeof token !== 'string') {
+  if (!token || typeof token !== "string") {
     return false;
   }
-  
+
   // JWT tokens should have 3 parts separated by dots
-  const parts = token.split('.');
+  const parts = token.split(".");
   return parts.length === 3;
 };
 
@@ -54,12 +56,12 @@ export const isValidTokenFormat = (token) => {
  */
 export const validateAdminCode = async (code) => {
   try {
-    if (!code || typeof code !== 'string') {
+    if (!code || typeof code !== "string") {
       return false;
     }
 
     const normalizedCode = code.toUpperCase().trim();
-    
+
     // Check against valid admin codes
     const isValid = VALID_ADMIN_CODES.has(normalizedCode);
     if (isValid) {
@@ -68,9 +70,8 @@ export const validateAdminCode = async (code) => {
     }
 
     return false;
-
   } catch (error) {
-    console.error('Admin code validation error:', error);
+    console.error("Admin code validation error:", error);
     return false;
   }
 };
@@ -80,7 +81,7 @@ export const validateAdminCode = async (code) => {
  */
 const setAdminSession = () => {
   const expiryTime = Date.now() + ADMIN_SESSION_DURATION;
-  localStorage.setItem(ADMIN_KEY, 'true');
+  localStorage.setItem(ADMIN_KEY, "true");
   localStorage.setItem(ADMIN_EXPIRY_KEY, expiryTime.toString());
 };
 
@@ -90,7 +91,7 @@ const setAdminSession = () => {
  */
 export const isAdmin = () => {
   try {
-    const isAdminFlag = localStorage.getItem(ADMIN_KEY) === 'true';
+    const isAdminFlag = localStorage.getItem(ADMIN_KEY) === "true";
     if (!isAdminFlag) return false;
 
     const expiryTime = localStorage.getItem(ADMIN_EXPIRY_KEY);
@@ -107,7 +108,7 @@ export const isAdmin = () => {
 
     return true;
   } catch (error) {
-    console.error('Error checking admin status:', error);
+    console.error("Error checking admin status:", error);
     return false;
   }
 };
@@ -125,20 +126,20 @@ export const revokeAdminAccess = () => {
  * @param {string} token - JWT token
  */
 export const setAuthToken = (token) => {
-  if (!token || typeof token !== 'string' || !isValidTokenFormat(token)) {
-    throw new Error('Invalid token provided: Malformed JWT token');
+  if (!token || typeof token !== "string" || !isValidTokenFormat(token)) {
+    throw new Error("Invalid token provided: Malformed JWT token");
   }
 
   try {
     localStorage.setItem(TOKEN_KEY, token);
-    
+
     const userData = getUserFromToken(token);
     if (userData) {
       localStorage.setItem(USER_KEY, JSON.stringify(userData));
     }
   } catch (error) {
-    console.error('Error setting auth token:', error);
-    throw new Error('Failed to set authentication token');
+    console.error("Error setting auth token:", error);
+    throw new Error("Failed to set authentication token");
   }
 };
 
@@ -159,7 +160,7 @@ export const getAuthToken = () => {
     }
     return token;
   } catch (error) {
-    console.error('Error retrieving auth token:', error);
+    console.error("Error retrieving auth token:", error);
     return null;
   }
 };
@@ -173,7 +174,7 @@ export const removeAuthToken = () => {
     localStorage.removeItem(USER_KEY);
     revokeAdminAccess();
   } catch (error) {
-    console.error('Error removing auth token:', error);
+    console.error("Error removing auth token:", error);
   }
 };
 
@@ -189,13 +190,12 @@ export const isTokenValid = (token) => {
 
   try {
     const decoded = jwtDecode(token);
-    
+
     // Check expiration (with 5-second buffer)
     const currentTime = Date.now() / 1000;
     return decoded.exp > currentTime + 5;
-    
   } catch (error) {
-    console.error('Token validation error:', error);
+    console.error("Token validation error:", error);
     return false;
   }
 };
@@ -213,7 +213,7 @@ export const getUserFromToken = (token) => {
   try {
     return jwtDecode(token);
   } catch (error) {
-    console.error('Error decoding token:', error);
+    console.error("Error decoding token:", error);
     return null;
   }
 };
@@ -229,7 +229,7 @@ export const getStoredUser = () => {
 
     return JSON.parse(userData);
   } catch (error) {
-    console.error('Error retrieving stored user:', error);
+    console.error("Error retrieving stored user:", error);
     return null;
   }
 };
@@ -250,11 +250,11 @@ export const isAuthenticated = () => {
 export const getAuthHeaders = () => {
   const token = getAuthToken();
   const headers = {
-    'Content-Type': 'application/json'
+    "Content-Type": "application/json",
   };
 
   if (token && isTokenValid(token)) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`;
   }
 
   return headers;
@@ -273,7 +273,7 @@ export const getTokenExpiryTime = () => {
     const currentTime = Date.now() / 1000;
     return Math.max(0, decoded.exp - currentTime);
   } catch (error) {
-    console.error('Error calculating token expiry:', error);
+    console.error("Error calculating token expiry:", error);
     return 0;
   }
 };
@@ -291,7 +291,7 @@ export const getAdminSessionTime = () => {
 
     return Math.max(0, parseInt(expiryTime, 10) - Date.now());
   } catch (error) {
-    console.error('Error calculating admin session time:', error);
+    console.error("Error calculating admin session time:", error);
     return 0;
   }
 };
@@ -308,7 +308,7 @@ export const clearAllAuthData = () => {
 export const refreshToken = async () => {
   // Implement token refresh logic based on your backend API
   // This should call your refresh token endpoint and return a new token
-  throw new Error('Token refresh not implemented');
+  throw new Error("Token refresh not implemented");
 };
 
 /**
@@ -318,15 +318,15 @@ export const refreshToken = async () => {
 export const checkAndRefreshAuthToken = async () => {
   try {
     const token = getAuthToken();
-    
+
     if (!token) {
       return false;
     }
-    
+
     // Check if token is valid
     if (isTokenValid(token)) {
       const expiryTime = getTokenExpiryTime();
-      
+
       // Refresh token if it expires in less than 5 minutes
       if (expiryTime < 300) {
         try {
@@ -337,19 +337,18 @@ export const checkAndRefreshAuthToken = async () => {
           }
           return false;
         } catch (error) {
-          console.error('Token refresh failed:', error);
+          console.error("Token refresh failed:", error);
           return false;
         }
       }
       return true;
     }
-    
+
     // Token is invalid
     removeAuthToken();
     return false;
-    
   } catch (error) {
-    console.error('Error checking/refreshing token:', error);
+    console.error("Error checking/refreshing token:", error);
     removeAuthToken();
     return false;
   }

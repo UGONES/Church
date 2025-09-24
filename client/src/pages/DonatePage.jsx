@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { loadStripe } from '@stripe/stripe-js';
-import { donationService } from '../constants/apiService';
-import Loader from '../components/Loader';
+import { loadStripe } from "@stripe/stripe-js";
+import { donationService } from "../constants/apiService";
+import Loader from "../components/Loader";
 import { useAlert } from "../utils/Alert";
-import { Donation } from '../models/Donation';
+import { Donation } from "../models/Donation";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
@@ -27,7 +27,8 @@ const DonatePage = ({ user }) => {
 
   // Load data based on user role
   useEffect(() => {
-    document.title = "SMC: - Donation | St. Micheal`s & All Angels Church | Ifite-Awka";
+    document.title =
+      "SMC: - Donation | St. Micheal`s & All Angels Church | Ifite-Awka";
     if (isAdmin) {
       fetchDonationStats();
       fetchRecentDonations();
@@ -40,9 +41,11 @@ const DonatePage = ({ user }) => {
   // Check for success or cancel parameters in URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('success') === 'true') {
+    if (urlParams.get("success") === "true") {
       setShowThankYou(true);
-      alert.success("Thank you for your donation! Your payment was successful.");
+      alert.success(
+        "Thank you for your donation! Your payment was successful.",
+      );
       window.history.replaceState({}, document.title, window.location.pathname);
 
       // Refresh data if user is admin or logged in
@@ -54,8 +57,10 @@ const DonatePage = ({ user }) => {
         fetchUserDonations();
       }
     }
-    if (urlParams.get('canceled') === 'true') {
-      alert.info("Donation was canceled. You can try again whenever you're ready.");
+    if (urlParams.get("canceled") === "true") {
+      alert.info(
+        "Donation was canceled. You can try again whenever you're ready.",
+      );
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [isAdmin, isRegularUser]);
@@ -65,14 +70,16 @@ const DonatePage = ({ user }) => {
       setIsLoading(true);
       const response = await donationService.getUserDonations();
       if (response.success) {
-        setUserDonations(response.data.map(donation => new Donation(donation)));
+        setUserDonations(
+          response.data.map((donation) => new Donation(donation)),
+        );
       }
     } catch (error) {
-      console.error('Error fetching user donations:', error);
+      console.error("Error fetching user donations:", error);
       if (error.response?.status === 401) {
-        alert.info('Please log in to view your donation history');
+        alert.info("Please log in to view your donation history");
       } else {
-        alert.error('Failed to load donation history');
+        alert.error("Failed to load donation history");
       }
     } finally {
       setIsLoading(false);
@@ -87,11 +94,11 @@ const DonatePage = ({ user }) => {
         setDonationStats(response.data);
       }
     } catch (error) {
-      console.error('Error fetching donation stats:', error);
+      console.error("Error fetching donation stats:", error);
       if (error.response?.status === 403) {
-        alert.error('Access denied. Admin privileges required.');
+        alert.error("Access denied. Admin privileges required.");
       } else {
-        alert.error('Failed to load donation statistics');
+        alert.error("Failed to load donation statistics");
       }
     } finally {
       setIsLoading(false);
@@ -103,14 +110,16 @@ const DonatePage = ({ user }) => {
       setIsLoading(true);
       const response = await donationService.getRecent();
       if (response.success) {
-        setRecentDonations(response.data.map(donation => new Donation(donation)));
+        setRecentDonations(
+          response.data.map((donation) => new Donation(donation)),
+        );
       }
     } catch (error) {
-      console.error('Error fetching recent donations:', error);
+      console.error("Error fetching recent donations:", error);
       if (error.response?.status === 403) {
-        alert.error('Access denied. Admin privileges required.');
+        alert.error("Access denied. Admin privileges required.");
       } else {
-        alert.error('Failed to load recent donations');
+        alert.error("Failed to load recent donations");
       }
     } finally {
       setIsLoading(false);
@@ -124,7 +133,7 @@ const DonatePage = ({ user }) => {
         // Handle all donations data for admin
       }
     } catch (error) {
-      console.error('Error fetching all donations:', error);
+      console.error("Error fetching all donations:", error);
     }
   };
 
@@ -179,19 +188,19 @@ const DonatePage = ({ user }) => {
 
       const response = await donationService.createDonation({
         amount: amountNum,
-        currency: 'usd',
+        currency: "usd",
         frequency: donationFrequency,
         email: donorEmail,
         name: donorName,
         userId: user?.id || null,
         successUrl: `${window.location.origin}/donate?success=true`,
-        cancelUrl: `${window.location.origin}/donate?canceled=true`
+        cancelUrl: `${window.location.origin}/donate?canceled=true`,
       });
 
       if (response.success && response.data.sessionId) {
         const stripe = await stripePromise;
         if (!stripe) {
-          throw new Error('Payment service failed to initialize');
+          throw new Error("Payment service failed to initialize");
         }
 
         const { error: stripeError } = await stripe.redirectToCheckout({
@@ -199,14 +208,17 @@ const DonatePage = ({ user }) => {
         });
 
         if (stripeError) {
-          throw new Error(stripeError.message || 'Payment processing error');
+          throw new Error(stripeError.message || "Payment processing error");
         }
       } else {
-        throw new Error('Failed to create donation session');
+        throw new Error("Failed to create donation session");
       }
     } catch (error) {
-      console.error('Donation Processing Error:', error);
-      alert.error(error.message || 'An unexpected error occurred. Please try again later.');
+      console.error("Donation Processing Error:", error);
+      alert.error(
+        error.message ||
+          "An unexpected error occurred. Please try again later.",
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -217,27 +229,27 @@ const DonatePage = ({ user }) => {
     try {
       const response = await donationService.update(donationId, { status });
       if (response.success) {
-        alert.success('Donation status updated successfully');
+        alert.success("Donation status updated successfully");
         fetchRecentDonations();
       }
     } catch (error) {
-      console.error('Error updating donation status:', error);
-      alert.error('Failed to update donation status');
+      console.error("Error updating donation status:", error);
+      alert.error("Failed to update donation status");
     }
   };
 
   const viewDonationDetails = (donationId) => {
-    alert.info('Donation details feature would open here');
+    alert.info("Donation details feature would open here");
   };
 
   const handleAmountSelect = (amount) => {
-    const sanitizedAmount = amount.toString().replace(/[^0-9.]/g, '');
+    const sanitizedAmount = amount.toString().replace(/[^0-9.]/g, "");
     setDonationAmount(sanitizedAmount);
     setCustomAmount("");
   };
 
   const handleCustomAmountChange = (e) => {
-    const value = e.target.value.replace(/[^0-9.]/g, '');
+    const value = e.target.value.replace(/[^0-9.]/g, "");
     const decimalCount = (value.match(/\./g) || []).length;
 
     if (decimalCount <= 1) {
@@ -246,38 +258,40 @@ const DonatePage = ({ user }) => {
     }
   };
 
-  const exportDonations = async (format = 'csv') => {
+  const exportDonations = async (format = "csv") => {
     try {
       await donationService.exportDonations(format);
-      alert.success(`Donations exported successfully as ${format.toUpperCase()}`);
+      alert.success(
+        `Donations exported successfully as ${format.toUpperCase()}`,
+      );
     } catch (error) {
-      console.error('Export error:', error);
-      alert.error('Failed to export donations. Please try again.');
+      console.error("Export error:", error);
+      alert.error("Failed to export donations. Please try again.");
     }
   };
 
   const downloadReceipt = async (donationId) => {
     try {
       await donationService.downloadReceipt(donationId);
-      alert.success('Receipt downloaded successfully');
+      alert.success("Receipt downloaded successfully");
     } catch (error) {
-      console.error('Error downloading receipt:', error);
-      alert.error('Failed to download receipt. Please try again.');
+      console.error("Error downloading receipt:", error);
+      alert.error("Failed to download receipt. Please try again.");
     }
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
     }).format(amount);
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -301,8 +315,12 @@ const DonatePage = ({ user }) => {
                 onClick={() => setShowAdminPanel(!showAdminPanel)}
                 className="bg-white text-[#FF7E45] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
               >
-                <i className={`fas ${showAdminPanel ? 'fa-eye-slash' : 'fa-chart-bar'} mr-2`}></i>
-                {showAdminPanel ? 'Hide Admin Panel' : 'View Donation Analytics'}
+                <i
+                  className={`fas ${showAdminPanel ? "fa-eye-slash" : "fa-chart-bar"} mr-2`}
+                />
+                {showAdminPanel
+                  ? "Hide Admin Panel"
+                  : "View Donation Analytics"}
               </button>
             </div>
           )}
@@ -363,12 +381,17 @@ const DonatePage = ({ user }) => {
 };
 
 // User Donations Section Component
-const UserDonationsSection = ({ userDonations, formatCurrency, formatDate, onDownloadReceipt }) => (
+const UserDonationsSection = ({
+  userDonations,
+  formatCurrency,
+  formatDate,
+  onDownloadReceipt,
+}) => (
   <section className="bg-gray-50 py-8">
     <div className="container mx-auto px-4">
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-2xl font-bold mb-6 flex items-center">
-          <i className="fas fa-receipt mr-2 text-[#FF7E45]"></i>
+          <i className="fas fa-receipt mr-2 text-[#FF7E45]" />
           Your Donation History
         </h2>
         <div className="overflow-x-auto">
@@ -385,26 +408,32 @@ const UserDonationsSection = ({ userDonations, formatCurrency, formatDate, onDow
             <tbody>
               {userDonations.map((donation, index) => (
                 <tr key={index} className="border-b">
-                  <td className="px-4 py-2 font-semibold">{formatCurrency(donation.amount)}</td>
+                  <td className="px-4 py-2 font-semibold">
+                    {formatCurrency(donation.amount)}
+                  </td>
                   <td className="px-4 py-2">{formatDate(donation.date)}</td>
                   <td className="px-4 py-2 capitalize">{donation.frequency}</td>
                   <td className="px-4 py-2">
-                    <span className={`px-2 py-1 rounded-full text-xs ${donation.status === 'succeeded'
-                      ? 'bg-green-100 text-green-800'
-                      : donation.status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-red-100 text-red-800'
-                      }`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs ${
+                        donation.status === "succeeded"
+                          ? "bg-green-100 text-green-800"
+                          : donation.status === "pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                      }`}
+                    >
                       {donation.status}
                     </span>
                   </td>
                   <td className="px-4 py-2">
-                    {donation.status === 'succeeded' && (
+                    {donation.status === "succeeded" && (
                       <button
                         onClick={() => onDownloadReceipt(donation.id)}
                         className="text-[#FF7E45] hover:text-[#F4B942] text-sm"
                       >
-                        <i className="fas fa-download mr-1"></i>Receipt
+                        <i className="fas fa-download mr-1" />
+                        Receipt
                       </button>
                     )}
                   </td>
@@ -425,7 +454,7 @@ const AdminPanel = ({
   formatCurrency,
   formatDate,
   onExportDonations,
-  onUpdateStatus
+  onUpdateStatus,
 }) => (
   <section className="bg-gray-50 py-8">
     <div className="container mx-auto px-4">
@@ -436,24 +465,44 @@ const AdminPanel = ({
         {donationStats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-blue-800">Total Donations</h3>
-              <p className="text-2xl font-bold">{formatCurrency(donationStats.totalAmount)}</p>
-              <p className="text-sm text-gray-600">{donationStats.totalDonations} donations</p>
+              <h3 className="text-sm font-medium text-blue-800">
+                Total Donations
+              </h3>
+              <p className="text-2xl font-bold">
+                {formatCurrency(donationStats.totalAmount)}
+              </p>
+              <p className="text-sm text-gray-600">
+                {donationStats.totalDonations} donations
+              </p>
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-green-800">Successful</h3>
-              <p className="text-2xl font-bold">{formatCurrency(donationStats.successfulAmount)}</p>
-              <p className="text-sm text-gray-600">{donationStats.successfulCount} donations</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(donationStats.successfulAmount)}
+              </p>
+              <p className="text-sm text-gray-600">
+                {donationStats.successfulCount} donations
+              </p>
             </div>
             <div className="bg-yellow-50 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-yellow-800">Pending</h3>
-              <p className="text-2xl font-bold">{formatCurrency(donationStats.pendingAmount)}</p>
-              <p className="text-sm text-gray-600">{donationStats.pendingCount} donations</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(donationStats.pendingAmount)}
+              </p>
+              <p className="text-sm text-gray-600">
+                {donationStats.pendingCount} donations
+              </p>
             </div>
             <div className="bg-red-50 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-red-800">Failed/Refunded</h3>
-              <p className="text-2xl font-bold">{formatCurrency(donationStats.failedAmount)}</p>
-              <p className="text-sm text-gray-600">{donationStats.failedCount} donations</p>
+              <h3 className="text-sm font-medium text-red-800">
+                Failed/Refunded
+              </h3>
+              <p className="text-2xl font-bold">
+                {formatCurrency(donationStats.failedAmount)}
+              </p>
+              <p className="text-sm text-gray-600">
+                {donationStats.failedCount} donations
+              </p>
             </div>
           </div>
         )}
@@ -462,16 +511,28 @@ const AdminPanel = ({
         <div className="mb-6">
           <h3 className="text-xl font-semibold mb-4">Donation Management</h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            <button className="btn bg-blue-500 text-white" onClick={() => onExportDonations('csv')}>
+            <button
+              className="btn bg-blue-500 text-white"
+              onClick={() => onExportDonations("csv")}
+            >
               Export CSV
             </button>
-            <button className="btn bg-green-500 text-white" onClick={() => onExportDonations('json')}>
+            <button
+              className="btn bg-green-500 text-white"
+              onClick={() => onExportDonations("json")}
+            >
               Export JSON
             </button>
-            <button className="btn bg-purple-500 text-white" onClick={() => onExportDonations('pdf')}>
+            <button
+              className="btn bg-purple-500 text-white"
+              onClick={() => onExportDonations("pdf")}
+            >
               Export PDF
             </button>
-            <button className="btn bg-red-500 text-white" onClick={fetchAllDonations}>
+            <button
+              className="btn bg-red-500 text-white"
+              onClick={fetchAllDonations}
+            >
               Refresh Data
             </button>
           </div>
@@ -493,12 +554,16 @@ const AdminPanel = ({
               {recentDonations.map((donation) => (
                 <tr key={donation._id} className="border-b">
                   <td className="px-4 py-2">{donation.donorName}</td>
-                  <td className="px-4 py-2 font-semibold">{formatCurrency(donation.amount)}</td>
+                  <td className="px-4 py-2 font-semibold">
+                    {formatCurrency(donation.amount)}
+                  </td>
                   <td className="px-4 py-2">{formatDate(donation.date)}</td>
                   <td className="px-4 py-2">
                     <select
                       value={donation.status}
-                      onChange={(e) => onUpdateStatus(donation._id, e.target.value)}
+                      onChange={(e) =>
+                        onUpdateStatus(donation._id, e.target.value)
+                      }
                       className="border rounded px-2 py-1 text-sm"
                     >
                       <option value="pending">Pending</option>
@@ -547,7 +612,7 @@ const DonationFormSection = ({
   onGuestEmailChange,
   onGuestNameChange,
   onSubmit,
-  onReset
+  onReset,
 }) => (
   <section className="py-12">
     <div className="container mx-auto px-4">
@@ -561,70 +626,121 @@ const DonationFormSection = ({
                 <p className="mb-4">Your donations help us:</p>
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-start">
-                    <i className="fas fa-church text-[#FF7E45] mt-1 mr-3"></i>
+                    <i className="fas fa-church text-[#FF7E45] mt-1 mr-3" />
                     <span>Maintain our church facilities</span>
                   </li>
                   <li className="flex items-start">
-                    <i className="fas fa-hands-helping text-[#FF7E45] mt-1 mr-3"></i>
+                    <i className="fas fa-hands-helping text-[#FF7E45] mt-1 mr-3" />
                     <span>Support local and global missions</span>
                   </li>
                   <li className="flex items-start">
-                    <i className="fas fa-graduation-cap text-[#FF7E45] mt-1 mr-3"></i>
+                    <i className="fas fa-graduation-cap text-[#FF7E45] mt-1 mr-3" />
                     <span>Provide educational resources</span>
                   </li>
                   <li className="flex items-start">
-                    <i className="fas fa-users text-[#FF7E45] mt-1 mr-3"></i>
+                    <i className="fas fa-users text-[#FF7E45] mt-1 mr-3" />
                     <span>Fund community outreach programs</span>
                   </li>
                   <li className="flex items-start">
-                    <i className="fas fa-hands text-[#FF7E45] mt-1 mr-3"></i>
+                    <i className="fas fa-hands text-[#FF7E45] mt-1 mr-3" />
                     <span>Care for those in need</span>
                   </li>
                 </ul>
 
                 <div className="bg-white p-4 rounded-lg border border-[#FF7E45]">
-                  <h3 className="font-semibold text-[#FF7E45] mb-2">Secure Payment</h3>
+                  <h3 className="font-semibold text-[#FF7E45] mb-2">
+                    Secure Payment
+                  </h3>
                   <p className="text-sm text-gray-600">
-                    <i className="fas fa-lock mr-1 text-green-500"></i>
+                    <i className="fas fa-lock mr-1 text-green-500" />
                     PCI DSS compliant processing through Stripe
                   </p>
                   <div className="flex mt-2">
-
-                    <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" className="w-10 h-10">
-                      <path fill="#080f9ae8" d="M44 12H4a4 4 0 0 0-4 4v16a4 4 0 0 0 4 4h40a4 4 0 0 0 4-4V16a4 4 0 0 0-4-4z" />
-                      <path fill="#e9f009c2" d="M16.9 31l2.8-14h3.6l-2.8 14H16.9zm13.3-13.8c-.7-.3-1.7-.6-2.9-.6-3.2 0-5.5 1.7-5.5 4.2 0 1.8 1.6 2.8 2.9 3.4 1.3.6 1.8 1 .1 1.7-1.3.6-2.6 1.5-2.6 3.2 0 1.6 1.5 2.6 3.6 2.6 2 0 3.2-.7 3.2-.7l.6-3.2s-1.2.7-2.4.7c-.8 0-1.5-.3-1.5-1.1 0-.8 1-1.2 2-1.7 1.9-.9 3.2-1.9 3.2-3.9-.2-2-1.9-3-3.6-3.6z" />
-                      <text x="24" y="30" fontSize="14" textAnchor="middle" fill="#fefefed3" fontFamily="Arial, sans-serif" fontWeight="bold">
+                    <svg
+                      viewBox="0 0 48 48"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-10 h-10"
+                    >
+                      <path
+                        fill="#080f9ae8"
+                        d="M44 12H4a4 4 0 0 0-4 4v16a4 4 0 0 0 4 4h40a4 4 0 0 0 4-4V16a4 4 0 0 0-4-4z"
+                      />
+                      <path
+                        fill="#e9f009c2"
+                        d="M16.9 31l2.8-14h3.6l-2.8 14H16.9zm13.3-13.8c-.7-.3-1.7-.6-2.9-.6-3.2 0-5.5 1.7-5.5 4.2 0 1.8 1.6 2.8 2.9 3.4 1.3.6 1.8 1 .1 1.7-1.3.6-2.6 1.5-2.6 3.2 0 1.6 1.5 2.6 3.6 2.6 2 0 3.2-.7 3.2-.7l.6-3.2s-1.2.7-2.4.7c-.8 0-1.5-.3-1.5-1.1 0-.8 1-1.2 2-1.7 1.9-.9 3.2-1.9 3.2-3.9-.2-2-1.9-3-3.6-3.6z"
+                      />
+                      <text
+                        x="24"
+                        y="30"
+                        fontSize="14"
+                        textAnchor="middle"
+                        fill="#fefefed3"
+                        fontFamily="Arial, sans-serif"
+                        fontWeight="bold"
+                      >
                         VISA
                       </text>
                     </svg>
 
-                    <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" className="w-10 h-10">
+                    <svg
+                      viewBox="0 0 48 48"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-10 h-10"
+                    >
                       <circle cx="18" cy="24" r="10" fill="#eb001b" />
                       <circle cx="30" cy="24" r="10" fill="#f79e1b" />
-                      <path d="M22 24a10 10 0 0 1 4-8 10 10 0 0 1 0 16 10 10 0 0 1-4-8z" fill="#ff5f00" />
+                      <path
+                        d="M22 24a10 10 0 0 1 4-8 10 10 0 0 1 0 16 10 10 0 0 1-4-8z"
+                        fill="#ff5f00"
+                      />
                     </svg>
 
-                    <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" className="w-10 h-10">
-                      <path fill="#2e77bc" d="M44 12H4a4 4 0 0 0-4 4v16a4 4 0 0 0 4 4h40a4 4 0 0 0 4-4V16a4 4 0 0 0-4-4z" />
-                      <text x="8" y="28" fill="white" fontSize="10" fontWeight="bold" fontFamily="Arial, sans-serif">
+                    <svg
+                      viewBox="0 0 48 48"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-10 h-10"
+                    >
+                      <path
+                        fill="#2e77bc"
+                        d="M44 12H4a4 4 0 0 0-4 4v16a4 4 0 0 0 4 4h40a4 4 0 0 0 4-4V16a4 4 0 0 0-4-4z"
+                      />
+                      <text
+                        x="8"
+                        y="28"
+                        fill="white"
+                        fontSize="10"
+                        fontWeight="bold"
+                        fontFamily="Arial, sans-serif"
+                      >
                         AMEX
                       </text>
                     </svg>
 
-                    <svg viewBox="0 0 64 48" xmlns="http://www.w3.org/2000/svg" className="w-12 h-10 ml-2">
+                    <svg
+                      viewBox="0 0 64 48"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-12 h-10 ml-2"
+                    >
                       <rect width="64" height="40" rx="4" fill="#2e7d32" />
-                      <rect x="8" y="10" width="48" height="6" fill="#043607ff" />
+                      <rect
+                        x="8"
+                        y="10"
+                        width="48"
+                        height="6"
+                        fill="#043607ff"
+                      />
                       <circle cx="40" cy="28" r="5" fill="#fff" />
                       <circle cx="47" cy="28" r="5" fill="#ff3d00" />
                     </svg>
-
                   </div>
                 </div>
 
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-600 mb-2">Security verified by:</p>
+                  <p className="text-xs text-gray-600 mb-2">
+                    Security verified by:
+                  </p>
                   <div className="flex items-center space-x-3">
-                    <i className="fas fa-shield-alt text-green-500"></i>
+                    <i className="fas fa-shield-alt text-green-500" />
                     <span className="text-xs">256-bit SSL Encryption</span>
                   </div>
                 </div>
@@ -644,10 +760,11 @@ const DonationFormSection = ({
                         <button
                           key={amount}
                           type="button"
-                          className={`py-3 rounded-md border transition-colors ${donationAmount === amount
-                            ? "border-[#FF7E45] bg-[#FF7E45] text-white"
-                            : "border-gray-300 hover:border-[#FF7E45] hover:bg-gray-50"
-                            }`}
+                          className={`py-3 rounded-md border transition-colors ${
+                            donationAmount === amount
+                              ? "border-[#FF7E45] bg-[#FF7E45] text-white"
+                              : "border-gray-300 hover:border-[#FF7E45] hover:bg-gray-50"
+                          }`}
                           onClick={() => onAmountSelect(amount)}
                         >
                           ${amount}
@@ -655,10 +772,11 @@ const DonationFormSection = ({
                       ))}
                       <button
                         type="button"
-                        className={`py-3 rounded-md border transition-colors ${donationAmount === "custom"
-                          ? "border-[#FF7E45] bg-[#FF7E45] text-white"
-                          : "border-gray-300 hover:border-[#FF7E45] hover:bg-gray-50"
-                          }`}
+                        className={`py-3 rounded-md border transition-colors ${
+                          donationAmount === "custom"
+                            ? "border-[#FF7E45] bg-[#FF7E45] text-white"
+                            : "border-gray-300 hover:border-[#FF7E45] hover:bg-gray-50"
+                        }`}
                         onClick={() => {
                           onAmountSelect("custom");
                         }}
@@ -700,10 +818,11 @@ const DonationFormSection = ({
                         <button
                           key={freq}
                           type="button"
-                          className={`py-2 rounded-md border transition-colors ${donationFrequency === freq
-                            ? "border-[#FF7E45] bg-[#FF7E45] text-white"
-                            : "border-gray-300 hover:border-[#FF7E45] hover:bg-gray-50"
-                            }`}
+                          className={`py-2 rounded-md border transition-colors ${
+                            donationFrequency === freq
+                              ? "border-[#FF7E45] bg-[#FF7E45] text-white"
+                              : "border-gray-300 hover:border-[#FF7E45] hover:bg-gray-50"
+                          }`}
                           onClick={() => onFrequencyChange(freq)}
                         >
                           {freq === "one-time"
@@ -718,7 +837,7 @@ const DonationFormSection = ({
                   {!user?.isLoggedIn && (
                     <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
                       <p className="text-yellow-800 text-sm mb-3">
-                        <i className="fas fa-info-circle mr-1"></i>
+                        <i className="fas fa-info-circle mr-1" />
                         Please provide your details for a receipt
                       </p>
                       <div className="space-y-3">
@@ -755,19 +874,19 @@ const DonationFormSection = ({
                   >
                     {isProcessing ? (
                       <>
-                        <div className="absolute inset-0 bg-[#FF7E45] opacity-75"></div>
+                        <div className="absolute inset-0 bg-[#FF7E45] opacity-75" />
                         <span className="relative z-10">
-                          <i className="fas fa-spinner fa-spin mr-2"></i>
+                          <i className="fas fa-spinner fa-spin mr-2" />
                           Processing Securely...
                         </span>
                       </>
                     ) : (
-                      'Continue to Secure Payment'
+                      "Continue to Secure Payment"
                     )}
                   </button>
 
                   <p className="text-xs text-gray-500 text-center">
-                    <i className="fas fa-lock mr-1 text-green-500"></i>
+                    <i className="fas fa-lock mr-1 text-green-500" />
                     Your payment information is encrypted and secure
                   </p>
                 </form>
@@ -786,17 +905,13 @@ const DonationFormSection = ({
 const ThankYouSection = ({ onReset }) => (
   <div className="bg-white rounded-lg shadow-md p-8 text-center">
     <div className="w-20 h-20 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-6">
-      <i className="fas fa-check text-green-500 text-3xl"></i>
+      <i className="fas fa-check text-green-500 text-3xl" />
     </div>
-    <h2 className="text-3xl font-bold mb-4">
-      Thank You For Your Donation!
-    </h2>
+    <h2 className="text-3xl font-bold mb-4">Thank You For Your Donation!</h2>
     <p className="text-xl text-gray-600 mb-6">
       Your generosity helps us continue our mission.
     </p>
-    <p className="mb-8">
-      A receipt has been sent to your email address.
-    </p>
+    <p className="mb-8">A receipt has been sent to your email address.</p>
     <button
       onClick={onReset}
       className="border border-gray-300 px-6 py-2 rounded-md hover:bg-gray-50 transition-colors"

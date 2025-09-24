@@ -1,17 +1,17 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { authService } from '../constants/apiService'; // Fixed import path
+import { authService } from "../constants/apiService"; // Fixed import path
 import { useAlert } from "../utils/Alert";
-import { User } from '../models/User';
-import { 
-  setAuthToken, 
-  validateAdminCode, 
-  isAdmin, 
+import { User } from "../models/User";
+import {
+  setAuthToken,
+  validateAdminCode,
+  isAdmin,
   getStoredUser,
   isAuthenticated,
-  removeAuthToken
-} from '../utils/auth';
-import SocialLoginButtons from '../components/SocialLoginButtons'; // Import the SocialLoginButtons component
+  removeAuthToken,
+} from "../utils/auth";
+import SocialLoginButtons from "../components/SocialLoginButtons"; // Import the SocialLoginButtons component
 
 const LoginPage = ({ login }) => {
   const [isRegistering, setIsRegistering] = useState(false);
@@ -26,12 +26,13 @@ const LoginPage = ({ login }) => {
 
   // Check if user is already authenticated on component mount
   React.useEffect(() => {
-    document.title = "SMC: - Sign-In/Sign-Up | St. Micheal`s & All Angels Church | Ifite-Awka";
+    document.title =
+      "SMC: - Sign-In/Sign-Up | St. Micheal`s & All Angels Church | Ifite-Awka";
 
     if (isAuthenticated()) {
       const user = getStoredUser();
       if (user) {
-        navigate(isAdmin() ? '/admin/dashboard' : '/dashboard');
+        navigate(isAdmin() ? "/admin/dashboard" : "/dashboard");
       }
     }
   }, [navigate]);
@@ -39,14 +40,14 @@ const LoginPage = ({ login }) => {
   const handleSocialSuccess = (userData) => {
     // Set auth token and store user data
     setAuthToken(userData.token);
-    
+
     const user = new User(userData.user);
     login(userData.token, user);
-    
+
     alert.success(`Welcome ${user.name || user.email}!`);
-    
+
     // Redirect based on admin status
-    navigate(isAdmin() ? '/admin/dashboard' : '/dashboard');
+    navigate(isAdmin() ? "/admin/dashboard" : "/dashboard");
   };
 
   const handleSocialError = (error) => {
@@ -62,21 +63,21 @@ const LoginPage = ({ login }) => {
     const formData = new FormData(e.target);
     const credentials = {
       email: formData.get("email"),
-      password: formData.get("password")
+      password: formData.get("password"),
     };
 
     try {
       const response = await authService.login(credentials);
-      
+
       if (response.success) {
         const userData = new User(response.data.user);
-        
+
         // Set auth token and store user data
         setAuthToken(response.data.token);
-        
+
         if (userData.emailVerified === false) {
-          navigate('/verify-email', { state: { email: userData.email } });
-          alert.info('Please verify your email address before logging in.');
+          navigate("/verify-email", { state: { email: userData.email } });
+          alert.info("Please verify your email address before logging in.");
           return;
         }
 
@@ -85,30 +86,30 @@ const LoginPage = ({ login }) => {
         if (adminCode) {
           const isAdminValid = await validateAdminCode(adminCode);
           if (isAdminValid) {
-            alert.success('Admin privileges granted!');
+            alert.success("Admin privileges granted!");
           }
         }
 
         login(response.data.token, userData);
         alert.success(`Welcome back, ${userData.name || userData.email}!`);
-        
+
         // Redirect based on admin status
-        navigate(isAdmin() ? '/admin/dashboard' : '/dashboard');
+        navigate(isAdmin() ? "/admin/dashboard" : "/dashboard");
       } else {
         setError(response.message || "Login failed");
 
-        if (response.code === 'EMAIL_NOT_VERIFIED') {
-          navigate('/verify-email', { state: { email: credentials.email } });
-          alert.info('Please verify your email address before logging in.');
+        if (response.code === "EMAIL_NOT_VERIFIED") {
+          navigate("/verify-email", { state: { email: credentials.email } });
+          alert.info("Please verify your email address before logging in.");
         }
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       if (error.response?.status === 401) {
         setError("Invalid email or password. Please try again.");
       } else if (error.response?.status === 403) {
         setError("Your account is not activated. Please verify your email.");
-        navigate('/verify-email', { state: { email: credentials.email } });
+        navigate("/verify-email", { state: { email: credentials.email } });
       } else if (error.response?.status === 429) {
         setError("Too many login attempts. Please try again later.");
       } else {
@@ -130,7 +131,7 @@ const LoginPage = ({ login }) => {
       email: formData.get("email"),
       password: formData.get("password"),
       confirmPassword: formData.get("confirmPassword"),
-      adminCode: formData.get("adminCode") || null
+      adminCode: formData.get("adminCode") || null,
     };
 
     if (userData.password !== userData.confirmPassword) {
@@ -142,40 +143,51 @@ const LoginPage = ({ login }) => {
     // Password strength validation
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
     if (!passwordRegex.test(userData.password)) {
-      setError("Password must be at least 8 characters with uppercase, lowercase, and numbers");
+      setError(
+        "Password must be at least 8 characters with uppercase, lowercase, and numbers",
+      );
       setIsLoading(false);
       return;
     }
 
     try {
       const response = await authService.register(userData);
-      
+
       if (response.success) {
         // If admin code was provided and valid, set admin session
         if (userData.adminCode) {
           const isAdminValid = await validateAdminCode(userData.adminCode);
           if (isAdminValid) {
-            alert.success('Admin account created successfully!');
+            alert.success("Admin account created successfully!");
           }
         } else {
-          alert.success('Account created successfully! Please check your email for verification.');
+          alert.success(
+            "Account created successfully! Please check your email for verification.",
+          );
         }
-        
-        navigate('/verify-email', { 
-          state: { 
+
+        navigate("/verify-email", {
+          state: {
             email: userData.email,
-            isAdmin: userData.adminCode ? await validateAdminCode(userData.adminCode) : false
-          } 
+            isAdmin: userData.adminCode
+              ? await validateAdminCode(userData.adminCode)
+              : false,
+          },
         });
       } else {
         setError(response.message || "Registration failed");
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error("Registration error:", error);
       if (error.response?.status === 400) {
-        setError(error.response.data.message || "Registration failed. Please check your information.");
+        setError(
+          error.response.data.message ||
+            "Registration failed. Please check your information.",
+        );
       } else if (error.response?.status === 409) {
-        setError("Email already exists. Please use a different email or login.");
+        setError(
+          "Email already exists. Please use a different email or login.",
+        );
       } else {
         setError("Registration failed. Please try again later.");
       }
@@ -194,13 +206,13 @@ const LoginPage = ({ login }) => {
     try {
       const response = await authService.forgotPassword(email);
       if (response.success) {
-        alert.success('Password reset instructions sent to your email.');
-        navigate('/reset-password', { state: { email } });
+        alert.success("Password reset instructions sent to your email.");
+        navigate("/reset-password", { state: { email } });
       } else {
         setError(response.message || "Failed to send reset instructions");
       }
     } catch (error) {
-      console.error('Forgot password error:', error);
+      console.error("Forgot password error:", error);
       if (error.response?.status === 404) {
         setError("Email not found. Please check your email address.");
       } else {
@@ -215,13 +227,13 @@ const LoginPage = ({ login }) => {
 
   const togglePasswordVisibility = (field) => {
     switch (field) {
-      case 'login':
+      case "login":
         setShowLoginPassword(!showLoginPassword);
         break;
-      case 'register':
+      case "register":
         setShowPassword(!showPassword);
         break;
-      case 'confirm':
+      case "confirm":
         setShowConfirmPassword(!showConfirmPassword);
         break;
       default:
@@ -239,11 +251,11 @@ const LoginPage = ({ login }) => {
     try {
       const response = await authService.resendVerification(email);
       if (response.success) {
-        alert.success('Verification email sent successfully!');
-        navigate('/verify-email', { state: { email } });
+        alert.success("Verification email sent successfully!");
+        navigate("/verify-email", { state: { email } });
       }
     } catch (error) {
-      console.error('Resend verification error:', error);
+      console.error("Resend verification error:", error);
       setError("Failed to resend verification email. Please try again.");
     }
   };
@@ -257,12 +269,16 @@ const LoginPage = ({ login }) => {
           <div className="bg-gradient-to-r from-[#FF7E45] to-[#F4B942] p-8 text-center">
             <div className="flex items-center justify-center mb-4">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
-                <i className="fas fa-church text-[#FF7E45] text-3xl"></i>
+                <i className="fas fa-church text-[#FF7E45] text-3xl" />
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-white">St Michael's Church</h1>
+            <h1 className="text-3xl font-bold text-white">
+              St Michael's Church
+            </h1>
             <p className="mt-2 text-white/90">
-              {isRegistering ? "Create your account" : "Welcome back to your church community"}
+              {isRegistering
+                ? "Create your account"
+                : "Welcome back to your church community"}
             </p>
           </div>
 
@@ -271,7 +287,7 @@ const LoginPage = ({ login }) => {
             {error && (
               <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-red-600 text-sm flex items-center">
-                  <i className="fas fa-exclamation-circle mr-2"></i>
+                  <i className="fas fa-exclamation-circle mr-2" />
                   {error}
                 </p>
                 {(error.includes("verify") || error.includes("activated")) && (
@@ -316,10 +332,12 @@ const LoginPage = ({ login }) => {
                       />
                       <button
                         type="button"
-                        onClick={() => togglePasswordVisibility('login')}
+                        onClick={() => togglePasswordVisibility("login")}
                         className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                       >
-                        <i className={`fas ${showLoginPassword ? 'fa-eye-slash' : 'fa-eye'} text-sm`}></i>
+                        <i
+                          className={`fas ${showLoginPassword ? "fa-eye-slash" : "fa-eye"} text-sm`}
+                        />
                       </button>
                     </div>
                   </div>
@@ -331,8 +349,10 @@ const LoginPage = ({ login }) => {
                       onClick={toggleAdminCode}
                       className="text-sm text-[#FF7E45] hover:text-[#F4B942] mb-2 flex items-center"
                     >
-                      <i className={`fas ${showAdminCode ? 'fa-eye-slash' : 'fa-eye'} mr-2`}></i>
-                      {showAdminCode ? 'Hide' : 'Show'} Admin Login
+                      <i
+                        className={`fas ${showAdminCode ? "fa-eye-slash" : "fa-eye"} mr-2`}
+                      />
+                      {showAdminCode ? "Hide" : "Show"} Admin Login
                     </button>
 
                     {showAdminCode && (
@@ -357,7 +377,9 @@ const LoginPage = ({ login }) => {
                         name="remember"
                         className="h-4 w-4 text-[#FF7E45] focus:ring-[#FF7E45] border-gray-300 rounded"
                       />
-                      <span className="ml-2 text-sm text-gray-600">Remember me</span>
+                      <span className="ml-2 text-sm text-gray-600">
+                        Remember me
+                      </span>
                     </label>
                     <button
                       type="button"
@@ -375,12 +397,12 @@ const LoginPage = ({ login }) => {
                   >
                     {isLoading ? (
                       <>
-                        <i className="fas fa-spinner fa-spin mr-2"></i>
+                        <i className="fas fa-spinner fa-spin mr-2" />
                         Signing in...
                       </>
                     ) : (
                       <>
-                        <i className="fas fa-sign-in-alt mr-2"></i>
+                        <i className="fas fa-sign-in-alt mr-2" />
                         Sign In
                       </>
                     )}
@@ -450,10 +472,12 @@ const LoginPage = ({ login }) => {
                     />
                     <button
                       type="button"
-                      onClick={() => togglePasswordVisibility('register')}
+                      onClick={() => togglePasswordVisibility("register")}
                       className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                     >
-                      <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'} text-sm`}></i>
+                      <i
+                        className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"} text-sm`}
+                      />
                     </button>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
@@ -475,10 +499,12 @@ const LoginPage = ({ login }) => {
                     />
                     <button
                       type="button"
-                      onClick={() => togglePasswordVisibility('confirm')}
+                      onClick={() => togglePasswordVisibility("confirm")}
                       className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                     >
-                      <i className={`fas ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'} text-sm`}></i>
+                      <i
+                        className={`fas ${showConfirmPassword ? "fa-eye-slash" : "fa-eye"} text-sm`}
+                      />
                     </button>
                   </div>
                 </div>
@@ -490,8 +516,10 @@ const LoginPage = ({ login }) => {
                     onClick={toggleAdminCode}
                     className="text-sm text-[#FF7E45] hover:text-[#F4B942] mb-2 flex items-center"
                   >
-                    <i className={`fas ${showAdminCode ? 'fa-eye-slash' : 'fa-eye'} mr-2`}></i>
-                    {showAdminCode ? 'Hide' : 'Show'} Admin Registration
+                    <i
+                      className={`fas ${showAdminCode ? "fa-eye-slash" : "fa-eye"} mr-2`}
+                    />
+                    {showAdminCode ? "Hide" : "Show"} Admin Registration
                   </button>
 
                   {showAdminCode && (
@@ -521,11 +549,17 @@ const LoginPage = ({ login }) => {
                   />
                   <label className="ml-2 text-sm text-gray-600">
                     I agree to the{" "}
-                    <Link to="/terms" className="text-[#FF7E45] hover:text-[#F4B942]">
+                    <Link
+                      to="/terms"
+                      className="text-[#FF7E45] hover:text-[#F4B942]"
+                    >
                       Terms of Service
                     </Link>{" "}
                     and{" "}
-                    <Link to="/privacy" className="text-[#FF7E45] hover:text-[#F4B942]">
+                    <Link
+                      to="/privacy"
+                      className="text-[#FF7E45] hover:text-[#F4B942]"
+                    >
                       Privacy Policy
                     </Link>
                   </label>
@@ -538,12 +572,12 @@ const LoginPage = ({ login }) => {
                 >
                   {isLoading ? (
                     <>
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
+                      <i className="fas fa-spinner fa-spin mr-2" />
                       Creating account...
                     </>
                   ) : (
                     <>
-                      <i className="fas fa-user-plus mr-2"></i>
+                      <i className="fas fa-user-plus mr-2" />
                       Create Account
                     </>
                   )}
@@ -579,7 +613,7 @@ const LoginPage = ({ login }) => {
             to="/"
             className="text-[#FF7E45] hover:text-[#F4B942] transition-colors flex items-center justify-center"
           >
-            <i className="fas fa-arrow-left mr-2"></i>
+            <i className="fas fa-arrow-left mr-2" />
             Back to Homepage
           </Link>
         </div>

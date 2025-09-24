@@ -1,10 +1,18 @@
-import GoogleAuthButton from '../utils/googleAuth';
-import FacebookAuthButton from '../utils/facebookAuth';
-import { useSocialAuth } from '../contexts/SocialAuthContext';
-import Loader from './Loader';
+import GoogleAuthButton from "../utils/googleAuth";
+import FacebookAuthButton from "../utils/facebookAuth";
+import { useSocialAuth } from "../contexts/SocialAuthContext";
+import Loader from "./Loader";
 
-const SocialLoginButtons = ({ onSuccess, onError, loading: externalLoading }) => {
-  const { isGoogleReady, isFacebookReady, loading: authLoading } = useSocialAuth();
+const SocialLoginButtons = ({
+  onSuccess,
+  onError,
+  loading: externalLoading,
+}) => {
+  const {
+    isGoogleReady,
+    isFacebookReady,
+    loading: authLoading,
+  } = useSocialAuth();
 
   const handleSocialSuccess = (userData) => {
     onSuccess(userData);
@@ -22,7 +30,7 @@ const SocialLoginButtons = ({ onSuccess, onError, loading: externalLoading }) =>
     <div className="social-login-buttons space-y-4">
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-300"></div>
+          <div className="w-full border-t border-gray-300" />
         </div>
         <div className="relative flex justify-center text-sm">
           <span className="px-2 bg-white text-gray-500">Or continue with</span>
@@ -37,7 +45,7 @@ const SocialLoginButtons = ({ onSuccess, onError, loading: externalLoading }) =>
             text="Sign in with Google"
           />
         )}
-        
+
         {isFacebookReady && (
           <FacebookAuthButton
             onSuccess={handleSocialSuccess}

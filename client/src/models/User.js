@@ -2,9 +2,9 @@
 export class User {
   constructor(data = {}) {
     this._id = data._id || null;
-    this.email = data.email || '';
-    this.name = data.name || '';
-    this.role = data.role || 'user';
+    this.email = data.email || "";
+    this.name = data.name || "";
+    this.role = data.role || "user";
     this.isLoggedIn = data.isLoggedIn || false;
     this.emailVerified = data.emailVerified || false;
     this.profileImage = data.profileImage || null;

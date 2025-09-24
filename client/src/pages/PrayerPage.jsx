@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { apiClient } from '../utils/api';
-import Loader from '../components/Loader';
-import { useAlert } from '../utils/Alert';
-import { PrayerRequest } from '../models/PrayerRequest';
+import { apiClient } from "../utils/api";
+import Loader from "../components/Loader";
+import { useAlert } from "../utils/Alert";
+import { PrayerRequest } from "../models/PrayerRequest";
 
 const PrayerPage = ({ user }) => {
   const alert = useAlert();
@@ -21,7 +21,8 @@ const PrayerPage = ({ user }) => {
   const isAuthenticated = user?.isLoggedIn;
 
   useEffect(() => {
-    document.title = "SMC: - Prayers | St. Micheal`s & All Angels Church | Ifite-Awka";
+    document.title =
+      "SMC: - Prayers | St. Micheal`s & All Angels Church | Ifite-Awka";
     fetchPrayers();
     fetchPrayerTeam();
     fetchPrayerMeetings();
@@ -34,17 +35,23 @@ const PrayerPage = ({ user }) => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiClient.get(`/api/prayers?page=${pageNum}&limit=10`);
+      const response = await apiClient.get(
+        `/api/prayers?page=${pageNum}&limit=10`,
+      );
       if (response.success) {
-        const prayersData = response.data.prayers.map(prayer => new PrayerRequest(prayer));
-        setPrayers(prev => pageNum === 1 ? prayersData : [...prev, ...prayersData]);
+        const prayersData = response.data.prayers.map(
+          (prayer) => new PrayerRequest(prayer),
+        );
+        setPrayers((prev) =>
+          pageNum === 1 ? prayersData : [...prev, ...prayersData],
+        );
         setHasMore(response.data.hasMore);
         setPage(pageNum);
       }
     } catch (error) {
-      console.error('Error fetching prayers:', error);
-      setError('Failed to load prayer requests. Please try again later.');
-      alert.error('Failed to load prayer requests. Please try again later.');
+      console.error("Error fetching prayers:", error);
+      setError("Failed to load prayer requests. Please try again later.");
+      alert.error("Failed to load prayer requests. Please try again later.");
       setPrayers([]);
     } finally {
       setIsLoading(false);
@@ -53,38 +60,38 @@ const PrayerPage = ({ user }) => {
 
   const fetchPrayerTeam = async () => {
     try {
-      const response = await apiClient.get('/api/prayers/team');
+      const response = await apiClient.get("/api/prayers/team");
       if (response.success) {
         setPrayerTeam(response.data);
       }
     } catch (error) {
-      console.error('Error fetching prayer team:', error);
+      console.error("Error fetching prayer team:", error);
     }
   };
 
   const fetchPrayerMeetings = async () => {
     try {
-      const response = await apiClient.get('/api/prayers/meetings');
+      const response = await apiClient.get("/api/prayers/meetings");
       if (response.success) {
         setPrayerMeetings(response.data);
       }
     } catch (error) {
-      console.error('Error fetching prayer meetings:', error);
+      console.error("Error fetching prayer meetings:", error);
     }
   };
 
   const fetchPrayerStats = async () => {
     try {
-      const response = await apiClient.get('/api/admin/prayers/stats');
+      const response = await apiClient.get("/api/admin/prayers/stats");
       if (response.success) {
         setPrayerStats(response.data);
       }
     } catch (error) {
-      console.error('Error fetching prayer stats:', error);
+      console.error("Error fetching prayer stats:", error);
     }
   };
 
- const handleSubmitPrayer = async (e) => {
+  const handleSubmitPrayer = async (e) => {
     e.preventDefault();
     setError(null);
 
@@ -94,12 +101,12 @@ const PrayerPage = ({ user }) => {
       isPrivate: formData.get("isPrivate") === "on",
       name: formData.get("name") || "Anonymous",
       email: formData.get("email"),
-      notifyOnPray: formData.get("notifyOnPray") === "on"
+      notifyOnPray: formData.get("notifyOnPray") === "on",
     };
 
     try {
-      const response = await apiClient.post('/api/prayers', prayerData);
-      
+      const response = await apiClient.post("/api/prayers", prayerData);
+
       if (response.success) {
         setSubmitted(true);
         fetchPrayers(1);
@@ -107,19 +114,19 @@ const PrayerPage = ({ user }) => {
           setShowForm(false);
           setSubmitted(false);
         }, 3000);
-        alert.success('Prayer request submitted successfully!');
+        alert.success("Prayer request submitted successfully!");
       } else {
         setError(response.message || "Failed to submit prayer request");
         alert.error(response.message || "Failed to submit prayer request");
       }
     } catch (error) {
-      console.error('Error submitting prayer:', error);
+      console.error("Error submitting prayer:", error);
       setError("Failed to submit prayer request. Please try again.");
       alert.error("Failed to submit prayer request. Please try again.");
     }
   };
 
-const handlePrayForRequest = async (prayerId) => {
+  const handlePrayForRequest = async (prayerId) => {
     if (!isAuthenticated) {
       alert.info("Please log in to pray for requests");
       return;
@@ -127,34 +134,40 @@ const handlePrayForRequest = async (prayerId) => {
 
     try {
       const response = await apiClient.post(`/api/prayers/${prayerId}/pray`);
-      
+
       if (response.success) {
-        setPrayers(prev => prev.map(prayer => 
-          prayer._id === prayerId 
-            ? { ...prayer, prayerCount: (prayer.prayerCount || 0) + 1, userPrayed: true }
-            : prayer
-        ));
-        alert.success('Thank you for praying!');
+        setPrayers((prev) =>
+          prev.map((prayer) =>
+            prayer._id === prayerId
+              ? {
+                  ...prayer,
+                  prayerCount: (prayer.prayerCount || 0) + 1,
+                  userPrayed: true,
+                }
+              : prayer,
+          ),
+        );
+        alert.success("Thank you for praying!");
       } else {
         alert.error(response.message || "Failed to record your prayer");
       }
     } catch (error) {
-      console.error('Error praying for request:', error);
+      console.error("Error praying for request:", error);
       alert.error("Failed to record your prayer. Please try again.");
     }
   };
 
-   // Admin functions
+  // Admin functions
   const handleUpdatePrayer = async (prayerId, updates) => {
     try {
       const response = await apiClient.put(`/api/prayers/${prayerId}`, updates);
       if (response.success) {
-        alert.success('Prayer request updated successfully');
+        alert.success("Prayer request updated successfully");
         fetchPrayers();
       }
     } catch (error) {
-      console.error('Error updating prayer:', error);
-      alert.error('Failed to update prayer request');
+      console.error("Error updating prayer:", error);
+      alert.error("Failed to update prayer request");
     }
   };
 
@@ -162,35 +175,35 @@ const handlePrayForRequest = async (prayerId) => {
     try {
       const response = await apiClient.delete(`/api/prayers/${prayerId}`);
       if (response.success) {
-        alert.success('Prayer request deleted successfully');
+        alert.success("Prayer request deleted successfully");
         fetchPrayers();
       }
     } catch (error) {
-      console.error('Error deleting prayer:', error);
-      alert.error('Failed to delete prayer request');
+      console.error("Error deleting prayer:", error);
+      alert.error("Failed to delete prayer request");
     }
   };
 
   const fetchAllPrayers = async () => {
     try {
-      const response = await apiClient.get('/api/admin/prayers');
+      const response = await apiClient.get("/api/admin/prayers");
       if (response.success) {
-        return response.data.map(prayer => new PrayerRequest(prayer));
+        return response.data.map((prayer) => new PrayerRequest(prayer));
       }
     } catch (error) {
-      console.error('Error fetching all prayers:', error);
+      console.error("Error fetching all prayers:", error);
     }
   };
-  
+
   const loadMorePrayers = () => {
     fetchPrayers(page + 1);
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -230,8 +243,8 @@ const handlePrayForRequest = async (prayerId) => {
                 Our prayer team is committed to lifting up your requests in
                 prayer. Submissions can be anonymous if you prefer.
               </p>
-              <button 
-                onClick={() => setShowForm(true)} 
+              <button
+                onClick={() => setShowForm(true)}
                 className="btn btn-primary"
               >
                 Submit Prayer Request
@@ -243,14 +256,17 @@ const handlePrayForRequest = async (prayerId) => {
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">Recent Requests</h2>
                 <div className="text-sm text-gray-500">
-                  <i className="fas fa-info-circle mr-1"></i> Names are kept
+                  <i className="fas fa-info-circle mr-1" /> Names are kept
                   private unless submitted by church staff
                 </div>
               </div>
 
               <div className="space-y-4">
                 {prayers.map((prayer) => (
-                  <div key={prayer.id} className="bg-white rounded-lg shadow-md p-6">
+                  <div
+                    key={prayer.id}
+                    className="bg-white rounded-lg shadow-md p-6"
+                  >
                     <p className="text-gray-700 mb-4">{prayer.request}</p>
                     <div className="flex justify-between items-center">
                       <div className="text-sm text-gray-500">
@@ -258,20 +274,23 @@ const handlePrayForRequest = async (prayerId) => {
                         {formatDate(prayer.date)}
                         {prayer.isPrivate && (
                           <span className="ml-2 text-[#FF7E45]">
-                            <i className="fas fa-lock mr-1"></i>Private
+                            <i className="fas fa-lock mr-1" />
+                            Private
                           </span>
                         )}
                       </div>
-                      <button 
+                      <button
                         onClick={() => handlePrayForRequest(prayer.id)}
                         disabled={prayer.userPrayed}
                         className={`flex items-center ${
-                          prayer.userPrayed 
-                            ? "text-green-500 cursor-default" 
+                          prayer.userPrayed
+                            ? "text-green-500 cursor-default"
                             : "text-[#FF7E45] hover:text-[#F4B942]"
                         }`}
                       >
-                        <i className={`fas ${prayer.userPrayed ? "fa-check" : "fa-praying-hands"} mr-2`}></i>
+                        <i
+                          className={`fas ${prayer.userPrayed ? "fa-check" : "fa-praying-hands"} mr-2`}
+                        />
                         <span>Prayed ({prayer.prayerCount})</span>
                       </button>
                     </div>
@@ -281,7 +300,7 @@ const handlePrayForRequest = async (prayerId) => {
 
               {hasMore && (
                 <div className="mt-8 text-center">
-                  <button 
+                  <button
                     onClick={loadMorePrayers}
                     disabled={isLoading}
                     className="btn btn-outline"
@@ -293,8 +312,10 @@ const handlePrayForRequest = async (prayerId) => {
 
               {prayers.length === 0 && !isLoading && (
                 <div className="text-center py-12">
-                  <i className="fas fa-pray text-4xl text-gray-400 mb-4"></i>
-                  <p className="text-gray-600">No prayer requests yet. Be the first to share!</p>
+                  <i className="fas fa-pray text-4xl text-gray-400 mb-4" />
+                  <p className="text-gray-600">
+                    No prayer requests yet. Be the first to share!
+                  </p>
                 </div>
               )}
             </div>
@@ -317,7 +338,7 @@ const handlePrayForRequest = async (prayerId) => {
               {/* Prayer Team */}
               <div className="bg-white rounded-lg shadow-md p-6 text-center">
                 <div className="w-16 h-16 bg-[#FFF5F0] rounded-full flex items-center justify-center mx-auto mb-4">
-                  <i className="fas fa-users text-[#FF7E45] text-2xl"></i>
+                  <i className="fas fa-users text-[#FF7E45] text-2xl" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">Prayer Team</h3>
                 <p className="text-gray-600 mb-4">
@@ -328,14 +349,14 @@ const handlePrayForRequest = async (prayerId) => {
                   href="/prayer-team"
                   className="text-[#FF7E45] hover:text-[#F4B942] font-medium"
                 >
-                  Join the Prayer Team <i className="fas fa-arrow-right ml-1"></i>
+                  Join the Prayer Team <i className="fas fa-arrow-right ml-1" />
                 </a>
               </div>
 
               {/* Prayer Meetings */}
               <div className="bg-white rounded-lg shadow-md p-6 text-center">
                 <div className="w-16 h-16 bg-[#FFF5F0] rounded-full flex items-center justify-center mx-auto mb-4">
-                  <i className="fas fa-calendar-alt text-[#FF7E45] text-2xl"></i>
+                  <i className="fas fa-calendar-alt text-[#FF7E45] text-2xl" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">Prayer Meetings</h3>
                 <p className="text-gray-600 mb-4">
@@ -346,14 +367,14 @@ const handlePrayForRequest = async (prayerId) => {
                   href="/events?category=prayer"
                   className="text-[#FF7E45] hover:text-[#F4B942] font-medium"
                 >
-                  Prayer Calendar <i className="fas fa-arrow-right ml-1"></i>
+                  Prayer Calendar <i className="fas fa-arrow-right ml-1" />
                 </a>
               </div>
 
               {/* Prayer Resources */}
               <div className="bg-white rounded-lg shadow-md p-6 text-center">
                 <div className="w-16 h-16 bg-[#FFF5F0] rounded-full flex items-center justify-center mx-auto mb-4">
-                  <i className="fas fa-book-open text-[#FF7E45] text-2xl"></i>
+                  <i className="fas fa-book-open text-[#FF7E45] text-2xl" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">Prayer Resources</h3>
                 <p className="text-gray-600 mb-4">
@@ -364,7 +385,7 @@ const handlePrayForRequest = async (prayerId) => {
                   href="/resources/prayer"
                   className="text-[#FF7E45] hover:text-[#F4B942] font-medium"
                 >
-                  View Resources <i className="fas fa-arrow-right ml-1"></i>
+                  View Resources <i className="fas fa-arrow-right ml-1" />
                 </a>
               </div>
             </div>
@@ -403,7 +424,7 @@ const PrayerFormModal = ({ user, onClose, onSubmit, submitted, error }) => {
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600"
             >
-              <i className="fas fa-times"></i>
+              <i className="fas fa-times" />
             </button>
           </div>
 
@@ -425,16 +446,12 @@ const PrayerFormModal = ({ user, onClose, onSubmit, submitted, error }) => {
                   rows="5"
                   placeholder="Share your prayer need..."
                   required
-                ></textarea>
+                />
               </div>
 
               <div className="mb-6">
                 <label className="flex items-center">
-                  <input 
-                    type="checkbox" 
-                    name="isPrivate" 
-                    className="mr-2" 
-                  />
+                  <input type="checkbox" name="isPrivate" className="mr-2" />
                   <span className="text-gray-700">
                     Keep my request private (only visible to prayer team)
                   </span>
@@ -471,11 +488,11 @@ const PrayerFormModal = ({ user, onClose, onSubmit, submitted, error }) => {
 
               <div className="mb-6">
                 <label className="flex items-center">
-                  <input 
-                    type="checkbox" 
-                    name="notifyOnPray" 
-                    className="mr-2" 
-                    defaultChecked={true}
+                  <input
+                    type="checkbox"
+                    name="notifyOnPray"
+                    className="mr-2"
+                    defaultChecked
                   />
                   <span className="text-gray-700">
                     Notify me when someone prays for my request
@@ -499,9 +516,11 @@ const PrayerFormModal = ({ user, onClose, onSubmit, submitted, error }) => {
           ) : (
             <div className="text-center py-6">
               <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <i className="fas fa-check text-green-500 text-2xl"></i>
+                <i className="fas fa-check text-green-500 text-2xl" />
               </div>
-              <h4 className="text-xl font-bold mb-2">Prayer Request Submitted</h4>
+              <h4 className="text-xl font-bold mb-2">
+                Prayer Request Submitted
+              </h4>
               <p className="text-gray-600">
                 Thank you for sharing your request. Our prayer team will be
                 praying for you.

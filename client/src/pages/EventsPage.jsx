@@ -4,10 +4,10 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import listPlugin from "@fullcalendar/list";
 import interactionPlugin from "@fullcalendar/interaction";
-import { eventService } from '../constants/apiService'; // Fixed import path
-import Loader from '../components/Loader';
-import { useAlert } from '../utils/Alert';
-import { Event } from '../models/Events'; // Fixed import name
+import { eventService } from "../constants/apiService"; // Fixed import path
+import Loader from "../components/Loader";
+import { useAlert } from "../utils/Alert";
+import { Event } from "../models/Events"; // Fixed import name
 
 const EventsPage = ({ user }) => {
   const alert = useAlert();
@@ -20,14 +20,16 @@ const EventsPage = ({ user }) => {
   const [userFavorites, setUserFavorites] = useState(new Set());
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newEvent, setNewEvent] = useState({
-    title: '',
-    description: '',
-    location: '',
-    category: 'service',
+    title: "",
+    description: "",
+    location: "",
+    category: "service",
     startTime: new Date().toISOString().slice(0, 16),
-    endTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16),
+    endTime: new Date(Date.now() + 2 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 16),
     capacity: 50,
-    imageUrl: ''
+    imageUrl: "",
   });
 
   const isAdmin = user?.role === "admin";
@@ -35,7 +37,8 @@ const EventsPage = ({ user }) => {
 
   // Fetch events and user data
   useEffect(() => {
-    document.title = "SMC: - Events | St. Micheal`s & All Angels Church | Ifite-Awka";
+    document.title =
+      "SMC: - Events | St. Micheal`s & All Angels Church | Ifite-Awka";
     fetchEvents();
     if (isAuthenticated) {
       fetchUserRsvps();
@@ -48,11 +51,11 @@ const EventsPage = ({ user }) => {
       setIsLoading(true);
       setError(null);
       const response = await eventService.getAll();
-      
+
       if (response.success) {
-        const eventsData = response.data.map(event => new Event(event));
-        
-        const formattedEvents = eventsData.map(event => ({
+        const eventsData = response.data.map((event) => new Event(event));
+
+        const formattedEvents = eventsData.map((event) => ({
           id: event._id || event.id,
           title: event.title,
           start: event.startTime || event.start,
@@ -64,19 +67,19 @@ const EventsPage = ({ user }) => {
             imageUrl: event.imageUrl,
             capacity: event.capacity,
             registered: event.registeredCount || event.registered,
-            status: event.status
+            status: event.status,
           },
           backgroundColor: getEventColor(event.category),
           borderColor: getEventColor(event.category),
-          textColor: '#ffffff'
+          textColor: "#ffffff",
         }));
 
         setEvents(formattedEvents);
       }
     } catch (error) {
-      console.error('Error fetching events:', error);
-      setError('Failed to load events. Please try again later.');
-      alert.error('Failed to load events. Please try again later.');
+      console.error("Error fetching events:", error);
+      setError("Failed to load events. Please try again later.");
+      alert.error("Failed to load events. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -86,11 +89,13 @@ const EventsPage = ({ user }) => {
     try {
       const response = await eventService.getUserRsvps();
       if (response.success) {
-        setUserRsvps(new Set(response.data.map(rsvp => rsvp.eventId || rsvp.event?._id)));
+        setUserRsvps(
+          new Set(response.data.map((rsvp) => rsvp.eventId || rsvp.event?._id)),
+        );
       }
     } catch (error) {
-      console.error('Error fetching user RSVPs:', error);
-      alert.error('Failed to load your RSVPs.');
+      console.error("Error fetching user RSVPs:", error);
+      alert.error("Failed to load your RSVPs.");
     }
   };
 
@@ -98,21 +103,23 @@ const EventsPage = ({ user }) => {
     try {
       const response = await eventService.getUserFavorites();
       if (response.success) {
-        setUserFavorites(new Set(response.data.map(fav => fav.eventId || fav.event?._id)));
+        setUserFavorites(
+          new Set(response.data.map((fav) => fav.eventId || fav.event?._id)),
+        );
       }
     } catch (error) {
-      console.error('Error fetching user favorites:', error);
-      alert.error('Failed to load your favorites.');
+      console.error("Error fetching user favorites:", error);
+      alert.error("Failed to load your favorites.");
     }
   };
 
   const getEventColor = (category) => {
     const colors = {
-      service: '#FF7E45',
-      meeting: '#4299E1',
-      social: '#48BB78',
-      conference: '#9F7AEA',
-      default: '#718096'
+      service: "#FF7E45",
+      meeting: "#4299E1",
+      social: "#48BB78",
+      conference: "#9F7AEA",
+      default: "#718096",
     };
     return colors[category] || colors.default;
   };
@@ -130,7 +137,7 @@ const EventsPage = ({ user }) => {
       imageUrl: event.extendedProps?.imageUrl,
       capacity: event.extendedProps?.capacity,
       registered: event.extendedProps?.registered,
-      status: event.extendedProps?.status
+      status: event.extendedProps?.status,
     });
     setShowEventModal(true);
   };
@@ -145,7 +152,7 @@ const EventsPage = ({ user }) => {
       if (userRsvps.has(eventId)) {
         const response = await eventService.cancelRsvp(eventId);
         if (response.success) {
-          setUserRsvps(prev => {
+          setUserRsvps((prev) => {
             const newSet = new Set(prev);
             newSet.delete(eventId);
             return newSet;
@@ -155,12 +162,14 @@ const EventsPage = ({ user }) => {
       } else {
         const response = await eventService.rsvp(eventId);
         if (response.success) {
-          setUserRsvps(prev => new Set(prev).add(eventId));
-          alert.success("Thank you for your RSVP! You're all set for this event.");
+          setUserRsvps((prev) => new Set(prev).add(eventId));
+          alert.success(
+            "Thank you for your RSVP! You're all set for this event.",
+          );
         }
       }
     } catch (error) {
-      console.error('RSVP error:', error);
+      console.error("RSVP error:", error);
       if (error.response?.status === 409) {
         alert.error("This event is already at capacity.");
       } else {
@@ -179,7 +188,7 @@ const EventsPage = ({ user }) => {
       if (userFavorites.has(eventId)) {
         const response = await eventService.removeFavorite(eventId);
         if (response.success) {
-          setUserFavorites(prev => {
+          setUserFavorites((prev) => {
             const newSet = new Set(prev);
             newSet.delete(eventId);
             return newSet;
@@ -189,12 +198,12 @@ const EventsPage = ({ user }) => {
       } else {
         const response = await eventService.addFavorite(eventId);
         if (response.success) {
-          setUserFavorites(prev => new Set(prev).add(eventId));
+          setUserFavorites((prev) => new Set(prev).add(eventId));
           alert.success("Added to your favorites!");
         }
       }
     } catch (error) {
-      console.error('Favorite error:', error);
+      console.error("Favorite error:", error);
       alert.error("Failed to update favorites. Please try again.");
     }
   };
@@ -204,23 +213,25 @@ const EventsPage = ({ user }) => {
     try {
       const response = await eventService.create(eventData);
       if (response.success) {
-        alert.success('Event created successfully');
+        alert.success("Event created successfully");
         setShowCreateModal(false);
         setNewEvent({
-          title: '',
-          description: '',
-          location: '',
-          category: 'service',
+          title: "",
+          description: "",
+          location: "",
+          category: "service",
           startTime: new Date().toISOString().slice(0, 16),
-          endTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16),
+          endTime: new Date(Date.now() + 2 * 60 * 60 * 1000)
+            .toISOString()
+            .slice(0, 16),
           capacity: 50,
-          imageUrl: ''
+          imageUrl: "",
         });
         fetchEvents();
       }
     } catch (error) {
-      console.error('Error creating event:', error);
-      alert.error('Failed to create event');
+      console.error("Error creating event:", error);
+      alert.error("Failed to create event");
     }
   };
 
@@ -228,13 +239,13 @@ const EventsPage = ({ user }) => {
     try {
       const response = await eventService.update(eventId, eventData);
       if (response.success) {
-        alert.success('Event updated successfully');
+        alert.success("Event updated successfully");
         setShowEventModal(false);
         fetchEvents();
       }
     } catch (error) {
-      console.error('Error updating event:', error);
-      alert.error('Failed to update event');
+      console.error("Error updating event:", error);
+      alert.error("Failed to update event");
     }
   };
 
@@ -242,13 +253,13 @@ const EventsPage = ({ user }) => {
     try {
       const response = await eventService.delete(eventId);
       if (response.success) {
-        alert.success('Event deleted successfully');
+        alert.success("Event deleted successfully");
         setShowEventModal(false);
         fetchEvents();
       }
     } catch (error) {
-      console.error('Error deleting event:', error);
-      alert.error('Failed to delete event');
+      console.error("Error deleting event:", error);
+      alert.error("Failed to delete event");
     }
   };
 
@@ -276,14 +287,14 @@ const EventsPage = ({ user }) => {
   // Handle form input changes for creating events
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNewEvent(prev => ({
+    setNewEvent((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   if (isLoading) {
-    return <Loader type="spinner" text="Loading events..." fullScreen={true} />;
+    return <Loader type="spinner" text="Loading events..." fullScreen />;
   }
 
   return (
@@ -303,7 +314,8 @@ const EventsPage = ({ user }) => {
                 onClick={handleCreateNewEvent}
                 className="bg-white text-[#FF7E45] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
               >
-                <i className="fas fa-plus mr-2"></i>Create New Event
+                <i className="fas fa-plus mr-2" />
+                Create New Event
               </button>
             </div>
           )}
@@ -323,7 +335,12 @@ const EventsPage = ({ user }) => {
         <div className="container mx-auto px-4">
           <div className="bg-white rounded-lg shadow-md p-4 md:p-8">
             <FullCalendar
-              plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
+              plugins={[
+                dayGridPlugin,
+                timeGridPlugin,
+                listPlugin,
+                interactionPlugin,
+              ]}
               initialView="dayGridMonth"
               headerToolbar={{
                 left: "prev,next today",
@@ -335,9 +352,9 @@ const EventsPage = ({ user }) => {
               height="auto"
               eventDisplay="block"
               eventTimeFormat={{
-                hour: 'numeric',
-                minute: '2-digit',
-                meridiem: 'short'
+                hour: "numeric",
+                minute: "2-digit",
+                meridiem: "short",
               }}
             />
           </div>
@@ -367,7 +384,7 @@ const EventsPage = ({ user }) => {
                     alt={selectedEvent.title}
                     className="w-full h-48 object-cover rounded-lg"
                     onError={(e) => {
-                      e.target.style.display = 'none';
+                      e.target.style.display = "none";
                     }}
                   />
                 </div>
@@ -375,26 +392,36 @@ const EventsPage = ({ user }) => {
 
               <div className="mb-4 space-y-2">
                 <div className="flex items-center text-gray-600">
-                  <span className="mr-2 w-6"><i className="fas fa-calendar-alt"></i></span>
+                  <span className="mr-2 w-6">
+                    <i className="fas fa-calendar-alt" />
+                  </span>
                   <span>{formatDate(new Date(selectedEvent.start))}</span>
                 </div>
                 <div className="flex items-center text-gray-600">
-                  <span className="mr-2 w-6"><i className="fas fa-clock"></i></span>
+                  <span className="mr-2 w-6">
+                    <i className="fas fa-clock" />
+                  </span>
                   <span>
-                    {formatTime(new Date(selectedEvent.start))} - {formatTime(new Date(selectedEvent.end))}
+                    {formatTime(new Date(selectedEvent.start))} -{" "}
+                    {formatTime(new Date(selectedEvent.end))}
                   </span>
                 </div>
                 {selectedEvent.location && (
                   <div className="flex items-center text-gray-600">
-                    <span className="mr-2 w-6"><i className="fas fa-map-marker-alt"></i></span>
+                    <span className="mr-2 w-6">
+                      <i className="fas fa-map-marker-alt" />
+                    </span>
                     <span>{selectedEvent.location}</span>
                   </div>
                 )}
                 {selectedEvent.capacity && (
                   <div className="flex items-center text-gray-600">
-                    <span className="mr-2 w-6"><i className="fas fa-users"></i></span>
+                    <span className="mr-2 w-6">
+                      <i className="fas fa-users" />
+                    </span>
                     <span>
-                      {selectedEvent.registered || 0} / {selectedEvent.capacity} registered
+                      {selectedEvent.registered || 0} / {selectedEvent.capacity}{" "}
+                      registered
                       {selectedEvent.registered >= selectedEvent.capacity && (
                         <span className="ml-2 text-red-500">(Full)</span>
                       )}
@@ -410,28 +437,37 @@ const EventsPage = ({ user }) => {
                   <>
                     <button
                       onClick={() => handleRSVP(selectedEvent.id)}
-                      className={`flex-1 py-2 px-4 rounded-md transition-colors ${userRsvps.has(selectedEvent.id)
+                      className={`flex-1 py-2 px-4 rounded-md transition-colors ${
+                        userRsvps.has(selectedEvent.id)
                           ? "bg-gray-500 hover:bg-gray-600 text-white"
                           : selectedEvent.registered >= selectedEvent.capacity
                             ? "bg-gray-400 cursor-not-allowed text-white"
                             : "bg-[#FF7E45] hover:bg-[#E56A36] text-white"
-                        }`}
-                      disabled={selectedEvent.registered >= selectedEvent.capacity && !userRsvps.has(selectedEvent.id)}
+                      }`}
+                      disabled={
+                        selectedEvent.registered >= selectedEvent.capacity &&
+                        !userRsvps.has(selectedEvent.id)
+                      }
                     >
                       <span className="mr-2">
-                        <i className={`fas ${userRsvps.has(selectedEvent.id) ? 'fa-times' : 'fa-check'}`}></i>
+                        <i
+                          className={`fas ${userRsvps.has(selectedEvent.id) ? "fa-times" : "fa-check"}`}
+                        />
                       </span>
-                      {userRsvps.has(selectedEvent.id) ? 'Cancel RSVP' : 'RSVP'}
+                      {userRsvps.has(selectedEvent.id) ? "Cancel RSVP" : "RSVP"}
                     </button>
 
                     <button
                       onClick={() => handleAddToFavorites(selectedEvent.id)}
-                      className={`p-2 rounded-md transition-colors ${userFavorites.has(selectedEvent.id)
+                      className={`p-2 rounded-md transition-colors ${
+                        userFavorites.has(selectedEvent.id)
                           ? "text-[#FF7E45] bg-orange-100"
                           : "text-gray-400 hover:text-[#FF7E45] hover:bg-gray-100"
-                        }`}
+                      }`}
                     >
-                      <i className={`fas ${userFavorites.has(selectedEvent.id) ? 'fa-heart text-red-500' : 'fa-heart'}`}></i>
+                      <i
+                        className={`fas ${userFavorites.has(selectedEvent.id) ? "fa-heart text-red-500" : "fa-heart"}`}
+                      />
                     </button>
                   </>
                 ) : (
@@ -439,7 +475,10 @@ const EventsPage = ({ user }) => {
                     onClick={() => alert.info("Please log in to RSVP")}
                     className="flex-1 bg-[#FF7E45] hover:bg-[#E56A36] text-white py-2 px-4 rounded-md transition-colors"
                   >
-                    <span className="mr-2"><i className="fas fa-lock"></i></span> Login to RSVP
+                    <span className="mr-2">
+                      <i className="fas fa-lock" />
+                    </span>{" "}
+                    Login to RSVP
                   </button>
                 )}
               </div>
@@ -449,17 +488,21 @@ const EventsPage = ({ user }) => {
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <h4 className="font-semibold mb-2">Admin Actions</h4>
                   <div className="flex space-x-2">
-                    <button 
-                      onClick={() => handleUpdateEvent(selectedEvent.id, selectedEvent)}
+                    <button
+                      onClick={() =>
+                        handleUpdateEvent(selectedEvent.id, selectedEvent)
+                      }
                       className="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
                     >
-                      <i className="fas fa-edit mr-1"></i>Edit
+                      <i className="fas fa-edit mr-1" />
+                      Edit
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDeleteEvent(selectedEvent.id)}
                       className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
                     >
-                      <i className="fas fa-trash mr-1"></i>Delete
+                      <i className="fas fa-trash mr-1" />
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -483,10 +526,12 @@ const EventsPage = ({ user }) => {
                   ×
                 </button>
               </div>
-              
+
               <div className="space-y-4 mb-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Event Title</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Event Title
+                  </label>
                   <input
                     type="text"
                     name="title"
@@ -496,9 +541,11 @@ const EventsPage = ({ user }) => {
                     placeholder="Enter event title"
                   />
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Description
+                  </label>
                   <textarea
                     name="description"
                     value={newEvent.description}
@@ -508,9 +555,11 @@ const EventsPage = ({ user }) => {
                     placeholder="Enter event description"
                   />
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium mb-1">Location</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Location
+                  </label>
                   <input
                     type="text"
                     name="location"
@@ -520,10 +569,12 @@ const EventsPage = ({ user }) => {
                     placeholder="Enter event location"
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Start Time</label>
+                    <label className="block text-sm font-medium mb-1">
+                      Start Time
+                    </label>
                     <input
                       type="datetime-local"
                       name="startTime"
@@ -532,9 +583,11 @@ const EventsPage = ({ user }) => {
                       className="w-full p-2 border border-gray-300 rounded-md"
                     />
                   </div>
-                  
+
                   <div>
-                    <label className="block text-sm font-medium mb-1">End Time</label>
+                    <label className="block text-sm font-medium mb-1">
+                      End Time
+                    </label>
                     <input
                       type="datetime-local"
                       name="endTime"
@@ -544,9 +597,11 @@ const EventsPage = ({ user }) => {
                     />
                   </div>
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium mb-1">Capacity</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Capacity
+                  </label>
                   <input
                     type="number"
                     name="capacity"
@@ -557,7 +612,7 @@ const EventsPage = ({ user }) => {
                   />
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setShowCreateModal(false)}

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { isAdmin, getAdminSessionTime, isAuthenticated } from '../utils/auth';
+import { useEffect, useState } from "react";
+import { isAdmin, getAdminSessionTime, isAuthenticated } from "../utils/auth";
 
 export const useAdmin = () => {
   const [isUserAdmin, setIsUserAdmin] = useState(false);

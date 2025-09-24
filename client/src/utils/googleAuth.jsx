@@ -1,32 +1,36 @@
-import { GoogleLogin } from '@react-oauth/google';
-import { jwtDecode } from 'jwt-decode';
-import { apiClient } from './api';
-import { authService } from '../constants/apiService';
+import { GoogleLogin } from "@react-oauth/google";
+import { jwtDecode } from "jwt-decode";
+import { apiClient } from "./api";
+import { authService } from "../constants/apiService";
 
-export const GoogleAuthButton = ({ onSuccess, onError, text = "Continue with Google" }) => {
+export const GoogleAuthButton = ({
+  onSuccess,
+  onError,
+  text = "Continue with Google",
+}) => {
   const handleSuccess = async (credentialResponse) => {
     try {
       // Decode the JWT token to get user info
       const decoded = jwtDecode(credentialResponse.credential);
-      
+
       // Send the token to your backend for verification
-      const response = await apiClient.post('/auth/google', {
-        token: credentialResponse.credential
+      const response = await apiClient.post("/auth/google", {
+        token: credentialResponse.credential,
       });
 
       if (response.success) {
         onSuccess(response.data);
       } else {
-        onError(response.message || 'Google authentication failed');
+        onError(response.message || "Google authentication failed");
       }
     } catch (error) {
-      console.error('Google authentication error:', error);
-      onError('Failed to authenticate with Google');
+      console.error("Google authentication error:", error);
+      onError("Failed to authenticate with Google");
     }
   };
 
   const handleError = () => {
-    onError('Google authentication failed');
+    onError("Google authentication failed");
   };
 
   return (
@@ -36,7 +40,9 @@ export const GoogleAuthButton = ({ onSuccess, onError, text = "Continue with Goo
       useOneTap
       theme="filled_blue"
       size="large"
-      text={text.toLowerCase().includes('sign') ? 'signin_with' : 'continue_with'}
+      text={
+        text.toLowerCase().includes("sign") ? "signin_with" : "continue_with"
+      }
       shape="rectangular"
       width="300"
     />
@@ -45,10 +51,10 @@ export const GoogleAuthButton = ({ onSuccess, onError, text = "Continue with Goo
 
 export const handleGoogleLogin = async (token) => {
   try {
-    const response = await authService.socialLogin('google', token);
+    const response = await authService.socialLogin("google", token);
     return response;
   } catch (error) {
-    console.error('Google login error:', error);
+    console.error("Google login error:", error);
     throw error;
   }
 };
@@ -61,8 +67,8 @@ export const initGoogleAuth = (clientId) => {
       resolve(true);
     } else {
       // Fallback: load the script dynamically
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
       script.async = true;
       script.defer = true;
       script.onload = () => resolve(true);

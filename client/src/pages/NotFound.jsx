@@ -6,7 +6,8 @@ const NotFoundPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-        document.title = "SMC: - Not-Found | St. Micheal`s & All Angels Church | Ifite-Awka";
+    document.title =
+      "SMC: - Not-Found | St. Micheal`s & All Angels Church | Ifite-Awka";
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -38,7 +39,7 @@ const NotFoundPage = () => {
           </div>
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-32 h-32 bg-[#FF7E45] rounded-full flex items-center justify-center animate-bounce">
-              <i className="fas fa-exclamation-triangle text-white text-4xl"></i>
+              <i className="fas fa-exclamation-triangle text-white text-4xl" />
             </div>
           </div>
         </div>
@@ -48,9 +49,10 @@ const NotFoundPage = () => {
           <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
             Page Not Found
           </h1>
-          
+
           <p className="text-lg text-gray-600 mb-8">
-            Oops! The page you're looking for seems to have wandered off into the digital wilderness.
+            Oops! The page you're looking for seems to have wandered off into
+            the digital wilderness.
           </p>
 
           {/* Quick Links */}
@@ -65,8 +67,12 @@ const NotFoundPage = () => {
                   to={link.path}
                   className="flex flex-col items-center p-3 bg-gray-50 rounded-lg hover:bg-[#FFF5F0] transition-colors group"
                 >
-                  <i className={`fas fa-${link.icon} text-[#FF7E45] text-lg mb-2 group-hover:scale-110 transition-transform`}></i>
-                  <span className="text-sm font-medium text-gray-700">{link.label}</span>
+                  <i
+                    className={`fas fa-${link.icon} text-[#FF7E45] text-lg mb-2 group-hover:scale-110 transition-transform`}
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    {link.label}
+                  </span>
                 </Link>
               ))}
             </div>
@@ -78,15 +84,15 @@ const NotFoundPage = () => {
               to="/"
               className="bg-[#FF7E45] hover:bg-[#E56A36] text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
             >
-              <i className="fas fa-home mr-2"></i>
+              <i className="fas fa-home mr-2" />
               Return to Homepage
             </Link>
-            
+
             <button
               onClick={() => window.history.back()}
               className="border border-gray-300 hover:border-[#FF7E45] text-gray-700 hover:text-[#FF7E45] font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
             >
-              <i className="fas fa-arrow-left mr-2"></i>
+              <i className="fas fa-arrow-left mr-2" />
               Go Back
             </button>
           </div>
@@ -95,7 +101,8 @@ const NotFoundPage = () => {
           <div className="text-sm text-gray-500">
             <p>
               Redirecting to homepage in{" "}
-              <span className="font-bold text-[#FF7E45]">{countdown}</span> seconds...
+              <span className="font-bold text-[#FF7E45]">{countdown}</span>{" "}
+              seconds...
             </p>
           </div>
         </div>
@@ -106,21 +113,22 @@ const NotFoundPage = () => {
             Need Help?
           </h3>
           <p className="text-gray-600 mb-4">
-            If you believe this is an error or need assistance, please contact us:
+            If you believe this is an error or need assistance, please contact
+            us:
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
               href="mailto:support@stmichaels.org"
               className="text-[#FF7E45] hover:text-[#E56A36] flex items-center justify-center"
             >
-              <i className="fas fa-envelope mr-2"></i>
+              <i className="fas fa-envelope mr-2" />
               support@stmichaels.org
             </a>
             <a
               href="tel:+15551234567"
               className="text-[#FF7E45] hover:text-[#E56A36] flex items-center justify-center"
             >
-              <i className="fas fa-phone mr-2"></i>
+              <i className="fas fa-phone mr-2" />
               (555) 123-4567
             </a>
           </div>
@@ -134,7 +142,7 @@ const NotFoundPage = () => {
               placeholder="Search our website..."
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent"
             />
-            <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           </div>
         </div>
       </div>

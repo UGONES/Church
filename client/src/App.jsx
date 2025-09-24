@@ -11,7 +11,7 @@ import {
   setAuthToken,
   removeAuthToken,
   isValidTokenFormat,
-  getStoredUser
+  getStoredUser,
 } from "./utils/auth";
 import { useAlert } from "./utils/Alert";
 import "./index.css";
@@ -43,7 +43,7 @@ const App = () => {
     const initializeAuth = async () => {
       try {
         const token = getAuthToken();
-        
+
         // Check if token exists and has valid format
         if (token && isValidTokenFormat(token)) {
           if (isTokenValid(token)) {
@@ -111,11 +111,11 @@ const App = () => {
         size="large"
         color="#FF7E45"
         text="Loading St Michael's Church..."
-        fullScreen={true}
+        fullScreen
         timeout={8000}
         onTimeout={() => console.log("App loading taking longer than expected")}
         timeoutMessage="Still loading... Thank you for your patience"
-        showTimeoutMessage={true}
+        showTimeoutMessage
       />
     );
   }
@@ -126,21 +126,29 @@ const App = () => {
         <Header user={user} logout={logout} />
 
         <main className="main-content">
-          <Suspense fallback={
-            <Loader 
-              type="spinner" 
-              text="Loading page..." 
-              fullScreen={false}
-            />
-          }>
+          <Suspense
+            fallback={
+              <Loader
+                type="spinner"
+                text="Loading page..."
+                fullScreen={false}
+              />
+            }
+          >
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/events" element={<EventsPage user={user} />} />
               <Route path="/sermons" element={<SermonsPage user={user} />} />
               <Route path="/donate" element={<DonatePage user={user} />} />
               <Route path="/blog" element={<BlogPage user={user} />} />
-              <Route path="/ministries" element={<MinistriesPage user={user} />} />
-              <Route path="/testimonials" element={<TestimonialsPage user={user} />} />
+              <Route
+                path="/ministries"
+                element={<MinistriesPage user={user} />}
+              />
+              <Route
+                path="/testimonials"
+                element={<TestimonialsPage user={user} />}
+              />
               <Route path="/prayer" element={<PrayerPage user={user} />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/forgot-password" element={<PasswordPage />} />
@@ -148,13 +156,7 @@ const App = () => {
               <Route path="/change-password" element={<PasswordPage />} />
               <Route
                 path="/login"
-                element={
-                  user ? (
-                    <HomePage />
-                  ) : (
-                    <LoginPage login={login} />
-                  )
-                }
+                element={user ? <HomePage /> : <LoginPage login={login} />}
               />
 
               {/* Protected Routes */}

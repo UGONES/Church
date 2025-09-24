@@ -26,7 +26,7 @@ const Header = ({ user, logout }) => {
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
           <Link to="/" className="flex items-center cursor-pointer">
-            <i className="fas fa-church text-[#FF7E45] text-3xl mr-2"></i>
+            <i className="fas fa-church text-[#FF7E45] text-3xl mr-2" />
             <h1 className="text-xl md:text-2xl font-bold">
               St. Michael's & All Angels Church
             </h1>
@@ -115,26 +115,32 @@ const Header = ({ user, logout }) => {
           {/* Login/Profile Button */}
           <div className="hidden md:block">
             {!isAuthenticated ? (
-              <Link to="/login" className="btn btn-primary hover:text-[#FF7E45] hover:underline">
+              <Link
+                to="/login"
+                className="btn btn-primary hover:text-[#FF7E45] hover:underline"
+              >
                 Login
               </Link>
             ) : (
               <div className="relative group">
                 <button className="flex items-center space-x-1 btn btn-outline">
-                  <i className="fas fa-user"></i>
+                  <i className="fas fa-user" />
                   <span>{user.name || "User"}</span>
                 </button>
 
                 {/* Dropdown */}
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg overflow-hidden z-20 
-                  opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                <div
+                  className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg overflow-hidden z-20
+                  opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200"
+                >
                   <div className="py-2">
                     <Link
                       to="/profile"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      <i className="fas fa-user-circle mr-2"></i>Profile
+                      <i className="fas fa-user-circle mr-2" />
+                      Profile
                     </Link>
                     {userRole === "user" && (
                       <Link
@@ -142,7 +148,8 @@ const Header = ({ user, logout }) => {
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        <i className="fas fa-calendar-check mr-2"></i>My RSVPs
+                        <i className="fas fa-calendar-check mr-2" />
+                        My RSVPs
                       </Link>
                     )}
                     <hr className="my-2" />
@@ -150,7 +157,8 @@ const Header = ({ user, logout }) => {
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       onClick={handleLogout}
                     >
-                      <i className="fas fa-sign-out-alt mr-2"></i>Logout
+                      <i className="fas fa-sign-out-alt mr-2" />
+                      Logout
                     </button>
                   </div>
                 </div>
@@ -165,30 +173,33 @@ const Header = ({ user, logout }) => {
             aria-label="Toggle mobile menu"
           >
             <i
-              className={`fas ${mobileMenuOpen ? "fa-times" : "fa-bars"
-                } text-2xl`}
-            ></i>
+              className={`fas ${
+                mobileMenuOpen ? "fa-times" : "fa-bars"
+              } text-2xl`}
+            />
           </button>
         </div>
       </div>
 
       {/* Mobile Navigation */}
       <div
-        className={`fixed inset-0 z-50 md:hidden ${mobileMenuOpen ? "block" : "hidden"
-          }`}
+        className={`fixed inset-0 z-50 md:hidden ${
+          mobileMenuOpen ? "block" : "hidden"
+        }`}
       >
         <div
           className="fixed inset-0 bg-gray-800 bg-opacity-75"
           onClick={() => setMobileMenuOpen(false)}
-        ></div>
+        />
         <nav
-          className={`fixed top-0 left-0 bottom-0 w-64 bg-white z-50 transform ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-            } transition-transform duration-300 ease-in-out`}
+          className={`fixed top-0 left-0 bottom-0 w-64 bg-white z-50 transform ${
+            mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          } transition-transform duration-300 ease-in-out`}
         >
           <div className="p-4 border-b">
             <div className="flex items-center">
               <Link to="/">
-                <i className="fas fa-church text-[#FF7E45] text-xl mr-2"></i>
+                <i className="fas fa-church text-[#FF7E45] text-xl mr-2" />
                 <h2 className="font-bold text-lg">St. Michael's Church</h2>
               </Link>
             </div>
@@ -200,7 +211,8 @@ const Header = ({ user, logout }) => {
                 className="block p-2 hover:text-[#FF7E45] transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <i className="fas fa-home mr-2"></i>Home
+                <i className="fas fa-home mr-2" />
+                Home
               </Link>
             </li>
             <li>
@@ -209,7 +221,8 @@ const Header = ({ user, logout }) => {
                 className="block p-2 hover:text-[#FF7E45] transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <i className="fas fa-calendar mr-2"></i>Events
+                <i className="fas fa-calendar mr-2" />
+                Events
               </Link>
             </li>
             <li>
@@ -218,7 +231,8 @@ const Header = ({ user, logout }) => {
                 className="block p-2 hover:text-[#FF7E45] transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <i className="fas fa-play-circle mr-2"></i>Sermons
+                <i className="fas fa-play-circle mr-2" />
+                Sermons
               </Link>
             </li>
             <li>
@@ -227,7 +241,8 @@ const Header = ({ user, logout }) => {
                 className="block p-2 hover:text-[#FF7E45] transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <i className="fas fa-donate mr-2"></i>Donate
+                <i className="fas fa-donate mr-2" />
+                Donate
               </Link>
             </li>
             <li>
@@ -236,7 +251,8 @@ const Header = ({ user, logout }) => {
                 className="block p-2 hover:text-[#FF7E45] transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <i className="fas fa-blog mr-2"></i>Blog
+                <i className="fas fa-blog mr-2" />
+                Blog
               </Link>
             </li>
             <li>
@@ -245,7 +261,8 @@ const Header = ({ user, logout }) => {
                 className="block p-2 hover:text-[#FF7E45] transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <i className="fas fa-hands-helping mr-2"></i>Ministries
+                <i className="fas fa-hands-helping mr-2" />
+                Ministries
               </Link>
             </li>
             <li>
@@ -254,7 +271,8 @@ const Header = ({ user, logout }) => {
                 className="block p-2 hover:text-[#FF7E45] transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <i className="fas fa-quote-left mr-2"></i>Testimonials
+                <i className="fas fa-quote-left mr-2" />
+                Testimonials
               </Link>
             </li>
             <li>
@@ -263,7 +281,8 @@ const Header = ({ user, logout }) => {
                 className="block p-2 hover:text-[#FF7E45] transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <i className="fas fa-pray mr-2"></i>Prayer Requests
+                <i className="fas fa-pray mr-2" />
+                Prayer Requests
               </Link>
             </li>
             {userRole === "admin" && (
@@ -273,7 +292,8 @@ const Header = ({ user, logout }) => {
                   className="block p-2 hover:text-[#FF7E45] transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <i className="fas fa-cog mr-2"></i>Admin Dashboard
+                  <i className="fas fa-cog mr-2" />
+                  Admin Dashboard
                 </Link>
               </li>
             )}
@@ -285,12 +305,13 @@ const Header = ({ user, logout }) => {
                 className="w-full btn btn-primary flex items-center justify-center"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <i className="fas fa-sign-in-alt mr-2"></i>Login
+                <i className="fas fa-sign-in-alt mr-2" />
+                Login
               </Link>
             ) : (
               <div className="space-y-2">
                 <p className="font-medium flex items-center">
-                  <i className="fas fa-user-circle mr-2 text-[#FF7E45]"></i>
+                  <i className="fas fa-user-circle mr-2 text-[#FF7E45]" />
                   {user.name || "User"}
                 </p>
                 <Link
@@ -298,7 +319,8 @@ const Header = ({ user, logout }) => {
                   className="w-full btn btn-outline flex items-center justify-center"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <i className="fas fa-user mr-2"></i>Profile
+                  <i className="fas fa-user mr-2" />
+                  Profile
                 </Link>
                 {userRole === "user" && (
                   <Link
@@ -306,14 +328,16 @@ const Header = ({ user, logout }) => {
                     className="w-full btn btn-outline flex items-center justify-center"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <i className="fas fa-calendar-check mr-2"></i>My RSVPs
+                    <i className="fas fa-calendar-check mr-2" />
+                    My RSVPs
                   </Link>
                 )}
                 <button
                   className="w-full btn btn-primary flex items-center justify-center"
                   onClick={handleLogout}
                 >
-                  <i className="fas fa-sign-out-alt mr-2"></i>Logout
+                  <i className="fas fa-sign-out-alt mr-2" />
+                  Logout
                 </button>
               </div>
             )}
