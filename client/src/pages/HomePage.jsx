@@ -345,7 +345,7 @@ const MinistriesSection = ({ ministries, onNavigate }) => (
               <div key={ministry.id || index} className="ministry-card group" onClick={() => onNavigate('/ministries')}>
                 <div className="h-48 bg-gray-200 relative overflow-hidden">
                   <img 
-                    src={ministry.imageUrl || `https://cdn.pixabay.com/photo/2017/01/14/19/42/woman-1980079_1280.jpg`} 
+                    src={ministry.imageUrl || "https://cdn.pixabay.com/photo/2017/01/14/19/42/woman-1980079_1280.jpg"} 
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
                     alt={ministry.name}
                     onError={(e) => {
@@ -399,7 +399,7 @@ const TestimonialsSection = ({ testimonials, onNavigate }) => (
                   </p>
                   <div className="flex items-center">
                     <img 
-                      src={testimonial.imageUrl || `https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png`} 
+                      src={testimonial.imageUrl || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"} 
                       alt={testimonial.author} 
                       className="w-12 h-12 rounded-full object-cover mr-4" 
                       onError={(e) => {
