@@ -1,25 +1,33 @@
-import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
-import { socialAuthService, authService } from '../services/apiService';
+import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
+import { socialAuthService, authService } from "../services/apiService";
 
-export const GoogleAuthButton = ({ onSuccess, onError, text = "Continue with Google" }) => {
+export const GoogleAuthButton = ({
+  onSuccess,
+  onError,
+  text = "Continue with Google",
+}) => {
   const handleSuccess = async (credentialResponse) => {
     try {
       // Send token to backend for validation
-      const response = await socialAuthService.validateGoogleToken(credentialResponse.credential);
-      
+      const response = await socialAuthService.validateGoogleToken(
+        credentialResponse.credential,
+      );
+
       if (response.success) {
         onSuccess(response.data);
       } else {
-        onError(response.message || 'Google authentication failed');
+        onError(response.message || "Google authentication failed");
       }
     } catch (error) {
-      console.error('Google authentication error:', error);
-      onError(error.response?.data?.message || 'Failed to authenticate with Google');
+      console.error("Google authentication error:", error);
+      onError(
+        error.response?.data?.message || "Failed to authenticate with Google",
+      );
     }
   };
 
   const handleError = () => {
-    onError('Google authentication was cancelled');
+    onError("Google authentication was cancelled");
   };
 
   return (
@@ -29,7 +37,9 @@ export const GoogleAuthButton = ({ onSuccess, onError, text = "Continue with Goo
         onError={handleError}
         useOneTap={false}
         size="large"
-        text={text.toLowerCase().includes('sign') ? 'signin_with' : 'continue_with'}
+        text={
+          text.toLowerCase().includes("sign") ? "signin_with" : "continue_with"
+        }
         shape="rectangular"
         logo_alignment="left"
       />
@@ -44,10 +54,10 @@ export const redirectToGoogleLogin = () => {
 
 export const handleGoogleLogin = async (token) => {
   try {
-    const response = await authService.socialLogin('google', token);
+    const response = await authService.socialLogin("google", token);
     return response;
   } catch (error) {
-    console.error('Google login error:', error);
+    console.error("Google login error:", error);
     throw error;
   }
 };
@@ -60,8 +70,8 @@ export const initGoogleAuth = (clientId) => {
       resolve(true);
     } else {
       // Fallback: load the script dynamically
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
       script.async = true;
       script.defer = true;
       script.onload = () => resolve(true);

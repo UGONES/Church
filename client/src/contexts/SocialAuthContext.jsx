@@ -1,12 +1,12 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { initGoogleAuth, initFacebookAuth } from '../utils/authUtils';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { initGoogleAuth, initFacebookAuth } from "../utils/authUtils";
 
 const SocialAuthContext = createContext();
 
 export const useSocialAuth = () => {
   const context = useContext(SocialAuthContext);
   if (!context) {
-    throw new Error('useSocialAuth must be used within a SocialAuthProvider');
+    throw new Error("useSocialAuth must be used within a SocialAuthProvider");
   }
   return context;
 };
@@ -20,26 +20,26 @@ export const SocialAuthProvider = ({ children }) => {
     const initializeAuth = async () => {
       try {
         setLoading(true);
-        
+
         // Check if environment variables are set
         const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
         const facebookAppId = import.meta.env.VITE_FACEBOOK_APP_ID;
-        
+
         if (!googleClientId && !facebookAppId) {
-          console.warn('No social auth environment variables found');
+          console.warn("No social auth environment variables found");
           setLoading(false);
           return;
         }
 
         // Initialize providers that have environment variables
         const promises = [];
-        
+
         if (googleClientId) {
           promises.push(initGoogleAuth(googleClientId));
         } else {
           setIsGoogleReady(false);
         }
-        
+
         if (facebookAppId) {
           promises.push(initFacebookAuth(facebookAppId));
         } else {
@@ -47,16 +47,21 @@ export const SocialAuthProvider = ({ children }) => {
         }
 
         const results = await Promise.allSettled(promises);
-        
+
         if (googleClientId) {
-          setIsGoogleReady(results[0].status === 'fulfilled' && results[0].value);
+          setIsGoogleReady(
+            results[0].status === "fulfilled" && results[0].value,
+          );
         }
-        
+
         if (facebookAppId) {
-          setIsFacebookReady(results[facebookAppId ? 1 : 0].status === 'fulfilled' && results[facebookAppId ? 1 : 0].value);
+          setIsFacebookReady(
+            results[facebookAppId ? 1 : 0].status === "fulfilled" &&
+              results[facebookAppId ? 1 : 0].value,
+          );
         }
       } catch (error) {
-        console.error('Failed to initialize social auth:', error);
+        console.error("Failed to initialize social auth:", error);
       } finally {
         setLoading(false);
       }
@@ -68,7 +73,7 @@ export const SocialAuthProvider = ({ children }) => {
   const value = {
     isGoogleReady,
     isFacebookReady,
-    loading
+    loading,
   };
 
   return (
