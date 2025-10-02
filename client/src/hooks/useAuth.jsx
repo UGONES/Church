@@ -1,147 +1,235 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { authService } from '../services/apiService';
-import { getAuthToken, setAuthToken, removeAuthToken, getUserFromToken, getStoredUser, setStoredUser as persistUser, isValidTokenFormat, isTokenValid } from '../utils/auth';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { authService } from "../services/apiService";
+import {
+  getAuthToken,
+  setAuthToken,
+  removeAuthToken,
+  getUserFromToken,
+  getStoredUser,
+  setStoredUser,
+  isValidTokenFormat,
+  isTokenValid,
+} from "../utils/auth";
+import User from "../models/User";
+import { useAlert } from "../utils/Alert";
 
-// Types (JSDoc style for JS files)
-
-/**
- * @typedef {Object} User
- * @property {string} id
- * @property {string=} name
- * @property {string=} email
- * @property {string=} role
- * @property {Object.<string, any>=} [key]
- */
-
-/**
- * @typedef {Object} AuthContextType
- * @property {User|null} user
- * @property {string|null} token
- * @property {boolean} isLoading
- * @property {string|null} error
- * @property {(credentials: { email: string; password: string }) => Promise<{ success: boolean; user?: User; error?: string }>} login
- * @property {() => void} logout
- * @property {() => Promise<boolean>} refreshToken
- * @property {(u: User|null) => void} setUser
- */
-
-const DEFAULT_USER = null;
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext(undefined);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState<User | null>(DEFAULT_USER);
-  const [token, setToken] = useState<string | null>(getAuthToken() || null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const alert = useAlert();
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(getAuthToken() || null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  // ----------------------------
+  // Helpers
+  // ----------------------------
+  const normalizeUser = (rawUser) => (rawUser ? new User(rawUser) : null);
+
+
+  // ----------------------------
+  // Initialize authentication on mount
+  // ----------------------------
   useEffect(() => {
-    const initialize = async () => {
+    const initializeAuth = async () => {
       try {
+        setIsLoading(true);
         const existingToken = getAuthToken();
+
         if (existingToken && isValidTokenFormat(existingToken) && isTokenValid(existingToken)) {
-          const userFromToken = getUserFromToken(existingToken);
-          if (userFromToken && typeof userFromToken === 'object') {
-            const u = userFromToken;
-            const normalized = {
-              id: u.id || u._id || `user-${Date.now()}`,
-              name: u.name || u.email || '',
-              email: u.email || '',
-              role: (u.role || 'user').toLowerCase()
-            };
-            setUser(normalized);
-            persistUser(normalized);
-            setToken(existingToken);
-          } else {
-            const stored = getStoredUser();
-            if (stored) {
-              const s = stored;
-              const normalizedStored = {
-                id: s.id || s._id || `user-${Date.now()}`,
-                name: s.name || s.email || '',
-                email: s.email || '',
-                role: (s.role || 'user').toLowerCase(),
-                ...s
-              };
-              setUser(normalizedStored);
+          const tokenUser = getUserFromToken(existingToken);
+
+          if (tokenUser && (tokenUser.userId || tokenUser._id || tokenUser.id)) {
+            try {
+              const response = await authService.getCurrentUser();
+              const serverUser = response.data?.user || response.user || response;
+
+              if (serverUser) {
+                const normalizedUser = normalizeUser(serverUser);
+                setUser(normalizedUser);
+                setStoredUser(normalizedUser);
+                setToken(existingToken);
+
+                // ✅ Redirect admins properly if landing on /login or /
+                if (window.location.pathname === "/" || window.location.pathname === "/login") {
+                  if (normalizedUser.role === "admin" || normalizedUser.role === "moderator") {
+                    navigate(`/admin/${normalizedUser.id}/dashboard`, { replace: true });
+                  } else {
+                    navigate(`/user/${normalizedUser.id}/dashboard`, { replace: true });
+                  }
+                }
+              }
+            } catch (fetchError) {
+              console.warn("⚠️ Could not fetch user from server, falling back to token:", fetchError);
+              const normalizedUser = normalizeUser(tokenUser);
+              setUser(normalizedUser);
+              setStoredUser(normalizedUser);
+              setToken(existingToken);
             }
           }
-        } else if (existingToken) {
-          // token exists but invalid -> cleanup
-          removeAuthToken();
+        } else {
+          const storedUser = getStoredUser();
+          if (storedUser && storedUser.id) {
+            setUser(storedUser);
+          } else if (existingToken) {
+            removeAuthToken();
+          }
         }
       } catch (err) {
-        console.error('Auth initialization error', err);
+        console.error("❌ Auth initialization error:", err);
         removeAuthToken();
+        setError("Authentication initialization failed");
       } finally {
         setIsLoading(false);
+        setAuthLoading(false);
       }
     };
-    initialize();
-  }, []);
 
-  // Fix for login flow in useAuth.jsx
-// Replace only the login() function block with this corrected version.
-
- const login = async (credentials) => {
+    initializeAuth();
+  }, [navigate]);
+  
+ // ----------------------------
+  // LOGIN
+  // ----------------------------
+  const login = async (credentials) => {
     setIsLoading(true);
+    setAuthLoading(true);
     setError(null);
+
     try {
-      const resp = await authService.login(credentials);
-      const data = resp?.data ?? resp;
-      if (!data?.token) {
-        throw new Error(data?.message || 'Invalid login response');
+      if (!credentials.email || !credentials.password) {
+        throw new Error("Email and password are required");
       }
-      setAuthToken(data.token);
-      const userData = data.user || getUserFromToken(data.token) || {};
-      const normalizedUser = {
-        id: userData.userId || userData.id || `user-${Date.now()}`,
-        name: userData.name || userData.fullName || userData.email || '',
-        email: userData.email || '',
-        role: (userData.role || 'user').toLowerCase()
-      };
+
+      const response = await authService.login(credentials);
+      const data = response.data || response;
+
+      if (data.code === "EMAIL_NOT_VERIFIED") {
+        return {
+          success: false,
+          error: "Please verify your email before logging in",
+          requiresVerification: true,
+          email: data.email,
+        };
+      }
+
+      if (!data.success || !data.token) {
+        throw new Error(data.message || "Invalid login response");
+      }
+
+      if (!isValidTokenFormat(data.token)) {
+        throw new Error("Invalid token format received from server");
+      }
+
+      if (!data.user || !data.user.id) {
+        throw new Error("Invalid user data received from server");
+      }
+
+      // Save token + user
+      setAuthToken(data.token, data.user);
+      const normalizedUser = normalizeUser(data.user);
+
+      if (!normalizedUser.id || !normalizedUser.email) {
+        throw new Error("Failed to normalize user data");
+      }
+
       setUser(normalizedUser);
-      persistUser(normalizedUser);
+      setStoredUser(normalizedUser);
       setToken(data.token);
-      return { success: true, user: normalizedUser };
+
+      // ✅ Trust backend roles, no more downgrades
+      alert.success(`Welcome back, ${normalizedUser.name || normalizedUser.email}!`);
+
+      if (normalizedUser.role === "admin" || normalizedUser.role === "moderator") {
+        navigate(`/admin/${normalizedUser.id}/dashboard`, { replace: true });
+      } else {
+        navigate(`/user/${normalizedUser.id}/dashboard`, { replace: true });
+      }
+
+      return { success: true, user: normalizedUser, token: data.token };
     } catch (err) {
-      console.error('Login failed', err);
-      const msg = err?.response?.data?.message || err.message || 'Login failed';
-      setError(msg);
-      return { success: false, error: msg };
+      console.error("Login failed:", err);
+      const errorMsg =
+        err.response?.data?.message ||
+        err.message ||
+        "Login failed. Please check your credentials.";
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
     } finally {
       setIsLoading(false);
+      setAuthLoading(false);
     }
   };
 
-
-  const logout = () => {
+  // ----------------------------
+  // LOGOUT
+  // ----------------------------
+  const logout = async () => {
     try {
-      removeAuthToken();
+      await authService.logout();
+    } catch (err) {
+      console.warn("⚠️ Logout API call failed:", err);
     } finally {
+      removeAuthToken();
       setUser(null);
       setToken(null);
+      setError(null);
+      localStorage.removeItem("pendingVerificationEmail");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+      console.log("✅ Local session cleared");
+
+    }
+    navigate("/login");
+  };
+
+  // ----------------------------
+  // Refresh user profile
+  // ----------------------------
+  const refreshUser = async () => {
+    try {
+      const response = await authService.getCurrentUser();
+      const serverUser = response.data?.user || response.user || response;
+      if (serverUser) {
+        const normalizedUser = normalizeUser(serverUser);
+        setUser(normalizedUser);
+        setStoredUser(normalizedUser);
+        return normalizedUser;
+      }
+    } catch (error) {
+      console.error("❌ Failed to refresh user:", error);
+      return null;
     }
   };
 
-  const refreshToken = async () => {
-    const existing = getAuthToken();
-    if (!existing) return false;
-    // If your API supports refresh endpoint implement here. For now, re-validate token.
-    return !!existing && isTokenValid(existing);
+  const value = {
+    user,
+    token,
+    isLoading,
+    authLoading,
+    error,
+    login,
+    logout,
+    refreshUser,
+    setUser,
+    isAuthenticated: !!user && !!token,
+    isAdmin: user?.role === "admin",
+    isModerator: user?.role === "moderator" || user?.role === "admin",
   };
 
-  return (
-    <AuthContext.Provider value={{ user, token, isLoading, error, login, logout, refreshToken, setUser }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
-  return ctx;
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 };
 
 export default useAuth;

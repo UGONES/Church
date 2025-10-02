@@ -1,95 +1,134 @@
-import { Schema, model } from "mongoose";
+// models/Session.mjs
+import { Schema, model } from 'mongoose';
+
+/**
+ * Session model
+ * - stores issued tokens (access tokens) and their activity
+ * - TTL index on expiresAt ensures old sessions are removed
+ *
+ * Performance: lean returns for upsert helper
+ */
 
 const sessionSchema = new Schema(
   {
     userId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
+      index: true
     },
     token: {
       type: String,
       required: true,
-      unique: true, // ensures no duplicates
+      unique: true,
+      index: true,
+      trim: true
     },
-    userAgent: String,
-    ipAddress: String,
+    userAgent: {
+      type: String,
+      default: 'unknown'
+    },
+    ipAddress: {
+      type: String,
+      default: '0.0.0.0'
+    },
     deviceType: {
       type: String,
-      enum: ["desktop", "mobile", "tablet", "unknown"],
-      default: "unknown",
+      enum: ['desktop', 'mobile', 'tablet', 'unknown'],
+      default: 'unknown'
     },
-    browser: String,
-    os: String,
+    browser: {
+      type: String,
+      default: 'unknown'
+    },
+    os: {
+      type: String,
+      default: 'unknown'
+    },
     location: {
-      country: String,
-      region: String,
-      city: String,
+      country: {
+        type: String,
+        default: 'unknown'
+      },
+      region: {
+        type: String,
+        default: 'unknown'
+      },
+      city: {
+        type: String,
+        default: 'unknown'
+      }
     },
     isActive: {
       type: Boolean,
       default: true,
+      index: true
     },
     expiresAt: {
       type: Date,
-      default: () => new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days
       required: true,
+      default: () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      index: true
     },
     lastActivity: {
       type: Date,
       default: Date.now,
-    },
+      index: true
+    }
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true, minimize: true }
 );
 
-// Indexes
-sessionSchema.index({ userId: 1 });
-sessionSchema.index({ token: 1 }, { unique: true });
-sessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL index
-
-// Instance methods
 sessionSchema.methods.isExpired = function () {
-  return this.expiresAt < new Date();
+  return new Date() > this.expiresAt;
 };
 
-sessionSchema.methods.updateActivity = function () {
+sessionSchema.methods.updateActivity = async function () {
   this.lastActivity = new Date();
   return this.save();
 };
 
-// Static helper for upsert (no duplicate token crash)
+/**
+ * Upsert session (atomic). Returns lean document.
+ * - Accepts defaults for missing values
+ * - Ensures token uniqueness by finding by token
+ */
 sessionSchema.statics.saveOrUpdateSession = async function ({
   token,
   userId,
-  userAgent,
-  ipAddress,
-  deviceType,
-  browser,
-  os,
-  location,
-  expiresAt,
+  userAgent = 'unknown',
+  ipAddress = '0.0.0.0',
+  deviceType = 'unknown',
+  browser = 'unknown',
+  os = 'unknown',
+  location = {},
+  expiresAt
 }) {
-  return this.findOneAndUpdate(
-    { token },
-    {
-      $set: {
-        userId,
-        userAgent,
-        ipAddress,
-        deviceType,
-        browser,
-        os,
-        location,
-        isActive: true,
-        lastActivity: new Date(),
-        expiresAt: expiresAt || new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // default 7 days
+  const safeExpiresAt = expiresAt instanceof Date ? expiresAt : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  const update = {
+    $set: {
+      userId,
+      userAgent,
+      ipAddress,
+      deviceType,
+      browser,
+      os,
+      location: {
+        country: location.country || 'unknown',
+        region: location.region || 'unknown',
+        city: location.city || 'unknown'
       },
-    },
-    { upsert: true, new: true }
-  );
+      isActive: true,
+      lastActivity: new Date(),
+      expiresAt: safeExpiresAt
+    }
+  };
+
+  return this.findOneAndUpdate({ token }, update, { upsert: true, new: true, setDefaultsOnInsert: true }).lean().exec();
 };
 
-export default model("Session", sessionSchema);
+sessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+sessionSchema.index({ userId: 1, isActive: 1 });
+
+export default model('Session', sessionSchema);

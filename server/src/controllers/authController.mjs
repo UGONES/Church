@@ -1,610 +1,425 @@
-import jwt from 'jsonwebtoken';
-const { sign } = jwt;
-import { randomBytes } from 'crypto';
+import jwt from "jsonwebtoken";
+import { validationResult } from 'express-validator';
 import User from '../models/User.mjs';
 import Session from '../models/Session.mjs';
 import AuthAttempt from '../models/AuthAttempt.mjs';
 import AdminCode from '../models/AdminCode.mjs';
+import tokenUtils from '../utils/generateToken.mjs';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/emailService.mjs';
-import { validationResult } from 'express-validator';
 
-// Generate JWT token
-const generateToken = (user) => {
-  const normalizedRole = (user.role || "user").trim().toLowerCase();
-  user.role = normalizedRole;
+const { generateAuthToken, generateRandomToken } = tokenUtils;
 
-  return sign(
-    { id: user._id, email: user.email, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
-  );
-};
+const normalizeEmail = (e = '') => (e || '').trim().toLowerCase();
 
-// Register new user
+/**
+ * Register
+ * - If adminCode provided, validate it and store a pointer (don't give privilege yet)
+ */
 export async function register(req, res) {
+  console.log("➡️ Registration Init");
   try {
-    console.log('=== REGISTRATION STARTED ===');
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
-
     const errors = validationResult(req);
+    console.log("🔎 Validation errors:", errors.array());
     if (!errors.isEmpty()) {
-      console.log('Validation errors:', errors.array());
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
+      console.log("❌ Validation failed, stopping here");
+      return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { name, email, password, adminCode } = req.body;
-    console.log('Processing email:', email);
+    const { firstName, lastName, email, password, adminCode } = req.body;
+    console.log("📥 Incoming register payload:", { firstName, lastName, email, hasPassword: !!password, adminCode });
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    console.log('Existing user check:', existingUser ? 'found' : 'not found');
+    const normalizedEmail = normalizeEmail(email);
+    console.log("📧 Normalized email:", normalizedEmail);
 
-    if (existingUser) {
-      // If user exists but is a social login user, allow conversion to local auth
-      if (existingUser.authMethod !== 'local') {
-        existingUser.password = password;
-        existingUser.authMethod = 'local';
-        existingUser.name = name || existingUser.name;
-        await existingUser.save();
+    // Rate limiting - keep conservative to avoid spam (adjust as needed)
+    const recentRegistrations = await AuthAttempt.countDocuments({
+      ipAddress: req.ip,
+      attemptType: "register",
+      createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) },
+    });
+    console.log("📊 Recent registrations from this IP:", recentRegistrations);
 
-        const token = generateToken(existingUser);
+    if (recentRegistrations >= 50) {
+      console.log("⛔ Too many registrations, blocking");
+      return res.status(429).json({ success: false, message: "Too many registration attempts. Please try again later." });
+    }
 
-        return res.status(200).json({
-          success: true,
-          message: 'Account setup completed successfully. Please check your email for verification.',
-          token,
-          user: existingUser.getPublicProfile() ? existingUser.getPublicProfile() : null,
-        });
+    // Check existing user (email OR social IDs)
+    const query = [{ email: normalizedEmail }];
+    if (req.body.googleId) query.push({ "socialAuth.googleId": req.body.googleId });
+    if (req.body.facebookId) query.push({ "socialAuth.facebookId": req.body.facebookId });
+
+    console.log("🔍 Query object:", { $or: query });
+    const existing = await User.findOne({ $or: query });
+    console.log("📄 Existing user doc:", !!existing ? existing.email : null);
+
+    if (existing) {
+      if (existing.authMethod !== "local") {
+        console.log("🔄 Converting social account to local");
+        await AuthAttempt.logAttempt({ email: normalizedEmail, ipAddress: req.ip, attemptType: "register", success: false, reason: "User already exists (social)" });
+
+        existing.password = password;
+        existing.authMethod = "local";
+        existing.name = existing.name || `${(firstName || '').trim()} ${(lastName || '').trim()}`.trim();
+        await existing.save();
+
+        console.log("🛠 Saving converted account, will hash password...");
+
+        const token = generateAuthToken(existing._id.toString(), { email: existing.email, role: existing.role, name: existing.name, emailVerified: existing.emailVerified });
+        console.log("✅ Converted social → local, returning token");
+        return res.status(200).json({ success: true, message: "Account converted to local", token, user: existing.getPublicProfile() });
       }
-      return res.status(409).json({
-        success: false,
-        message: 'User already exists with this email'
-      });
+
+      console.log("❌ User already exists as local");
+      return res.status(409).json({ success: false, message: "User already exists" });
     }
 
-    // Handle admin registration
-    let role = 'user';
-    let isAdminValid = false;
-
-    if (adminCode) {
-      isAdminValid = await AdminCode.validateCode(adminCode);
-      if (isAdminValid) {
-        role = 'admin';
-      }
-    }
-
-    // Generate verification token FIRST
-    console.log('Generating verification token...');
-    const verificationToken = randomBytes(32).toString('hex');
-    console.log('Generated token:', verificationToken);
-    console.log('Token length:', verificationToken.length);
-
-    // Create user WITH verification token
-    console.log('Creating new user...');
+    // Build user record (ensure name present if model requires it)
+    const name = `${(firstName || '').trim()} ${(lastName || '').trim()}`.trim();
     const user = new User({
-      name: name.trim(),
-      email: email.toLowerCase(),
-      password,
-      authMethod: 'local',
-      role,
-      verificationToken: verificationToken, // SET TOKEN HERE
-      verificationExpires: Date.now() + 24 * 60 * 60 * 1000 // SET EXPIRATION HERE
-    });
-
-    // Save user ONCE with all data
-    await user.save();
-    console.log('User saved with ID:', user._id);
-
-    // VERIFY THE TOKEN WAS ACTUALLY SAVED
-    const savedUser = await User.findById(user._id);
-    console.log('Token verification - saved token:', savedUser.verificationToken);
-    console.log('Token verification - match:', savedUser.verificationToken === verificationToken);
-    console.log('Token verification - expiration:', savedUser.verificationExpires);
-
-    // Use admin code if provided and valid
-    if (adminCode && isAdminValid) {
-      await AdminCode.useCode(adminCode, user._id);
-    }
-
-    // Send verification email
-    console.log('Sending verification email...');
-    await sendVerificationEmail(user.email, verificationToken);
-    console.log('Verification email sent successfully');
-
-    // Generate JWT token
-    console.log('Generating JWT token...');
-    const token = generateToken(user);
-    console.log('JWT token generated');
-
-    // Create session
-    console.log('Creating session...');
-    const session = new Session({
-      userId: user._id,
-      token,
-      userAgent: req.get('User-Agent'),
-      ipAddress: req.ip,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-    });
-    await session.save();
-    console.log('Session created');
-
-    // Log auth attempt
-    console.log('Logging auth attempt...');
-    await AuthAttempt.logAttempt({
-      email: user.email,
-      ipAddress: req.ip,
-      userAgent: req.get('User-Agent'),
-      attemptType: 'register',
-      success: true
-    });
-    console.log('Auth attempt logged');
-
-    console.log('=== REGISTRATION COMPLETED SUCCESSFULLY ===');
-    res.status(201).json({
-      success: true,
-      message: 'User registered successfully. Please check your email for verification.',
-      token,
-      user: user.getPublicProfile()
-    });
-
-  } catch (error) {
-    console.error('❌ REGISTRATION ERROR:', error.message);
-    console.error('Error stack:', error.stack);
-    console.error('Error code:', error.code);
-
-    if (error.code === 11000) {
-      return res.status(409).json({
-        success: false,
-        message: 'User already exists with this email'
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Server error during registration',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-}
-
-// Login user
-export async function login(req, res) {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: "Validation failed",
-        errors: errors.array(),
-      });
-    }
-
-    const { email, password } = req.body;
-    const normalizedEmail = email.toLowerCase();
-
-    // Rate limiting
-    const recentAttempts = await AuthAttempt.getRecentAttempts(
-      normalizedEmail,
-      req.ip,
-      15
-    );
-    if (recentAttempts >= 5) {
-      return res.status(429).json({
-        success: false,
-        message: "Too many login attempts. Please try again later.",
-      });
-    }
-
-    // Find user
-    const user = await User.findOne({ email: normalizedEmail });
-    if (!user) {
-      await AuthAttempt.logAttempt({
-        email: normalizedEmail,
-        ipAddress: req.ip,
-        userAgent: req.get("User-Agent"),
-        attemptType: "login",
-        success: false,
-        reason: "User not found",
-      });
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
-    }
-
-    // Wrong auth method
-    if (user.authMethod !== "local") {
-      await AuthAttempt.logAttempt({
-        email: normalizedEmail,
-        ipAddress: req.ip,
-        userAgent: req.get("User-Agent"),
-        attemptType: "login",
-        success: false,
-        reason: `Wrong auth method: ${user.authMethod}`,
-      });
-      return res.status(401).json({
-        success: false,
-        message: `Please use ${user.authMethod} login or reset your password`,
-      });
-    }
-
-    // Check password
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      await AuthAttempt.logAttempt({
-        email: normalizedEmail,
-        ipAddress: req.ip,
-        userAgent: req.get("User-Agent"),
-        attemptType: "login",
-        success: false,
-        reason: "Invalid password",
-      });
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
-    }
-
-    // Account deactivated
-    if (!user.isActive) {
-      return res.status(403).json({
-        success: false,
-        message: "Account is deactivated. Please contact support.",
-      });
-    }
-
-    // Email not verified
-    if (!user.emailVerified) {
-      return res.status(403).json({
-        success: false,
-        message:
-          "Email not verified. Please check your email for verification instructions.",
-        code: "EMAIL_NOT_VERIFIED",
-        email: user.email,
-      });
-    }
-
-    // Generate JWT
-    const token = generateToken(user);
-
-    // Save/update session (no duplicate token crash)
-    await Session.saveOrUpdateSession({
-      token,
-      userId: user._id,
-      userAgent: req.get("User-Agent"),
-      ipAddress: req.ip,
-      deviceType: "",
-      browser: "",
-      os: "",
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-    });
-
-    // Update last login
-    user.lastLogin = new Date();
-    user.loginCount += 1;
-    await user.save();
-
-    // Log successful attempt
-    await AuthAttempt.logAttempt({
+      firstName: firstName?.trim() || '',
+      lastName: lastName?.trim() || '',
+      name: name || undefined,
       email: normalizedEmail,
-      ipAddress: req.ip,
-      userAgent: req.get("User-Agent"),
-      attemptType: "login",
-      success: true,
+      password,
+      authMethod: "local",
+      role: "user",
     });
 
-    // ✅ Single final response
-    return res.status(201).json({
-      success: true,
-      message: "Login successful",
-      token,
-      user: user.getPublicProfile(),
-    });
+    // Admin code handling (store only)
+    if (adminCode) {
+      const normalizedCode = adminCode.toString().trim().toUpperCase();
+      console.log("🔑 Admin code provided:", normalizedCode);
 
-  } catch (error) {
-    console.error("Login error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server error during login",
-      error:
-        process.env.NODE_ENV === "development" ? error.message : undefined,
-    });
+      // ✅ Use correct static method
+      const codeDoc = await AdminCode.findValidByCode(normalizedCode);
+
+      if (codeDoc) {
+        console.log("✅ Valid code found in DB:", codeDoc);
+
+        // Assign role from codeDoc.role (safer than guessing from prefix)
+        user.role = codeDoc.role ||
+          (normalizedCode.startsWith("MODCODE") ? "moderator" : "admin");
+
+        user.adminCode = normalizedCode;
+
+        // ⚠️ Save user first to generate a real _id
+        await user.save();
+
+        // Now atomically consume the code
+        // await AdminCode.useCode(normalizedCode, user._id);
+
+        console.log(`🎉 User promoted to ${user.role} using code ${normalizedCode}`);
+      } else {
+        console.warn("⚠️ Invalid or expired code:", normalizedCode);
+        await user.save();
+      }
+    } else {
+      await user.save();
+    }
+
+
+    // Create verification token: a JWT which includes id + email
+    const verificationToken = jwt.sign({ id: user._id?.toString(), email: normalizedEmail }, process.env.JWT_SECRET, { expiresIn: "24h" });
+    user.verificationToken = verificationToken;
+    user.verificationExpires = Date.now() + 24 * 60 * 60 * 1000;
+    console.log("📨 Generated verification token (JWT)");
+
+    await user.save();
+    console.log("💾 User saved:", user._id.toString(), "Role:", user.role);
+
+    // Send verification email (fire-and-forget, but log outcome)
+    try {
+      await sendVerificationEmail(user.email, verificationToken);
+      console.log("📧 Verification email sent to:", user.email);
+    } catch (err) {
+      console.error("📛 Email sending failed", err);
+    }
+
+    const responseUser = user.getPublicProfile ? user.getPublicProfile() : { id: user._id.toString(), email: user.email, role: user.role };
+    console.log("📤 Public profile prepared:", responseUser);
+
+    // Log registration attempt
+    await AuthAttempt.logAttempt({ email: normalizedEmail, ipAddress: req.ip, attemptType: "register", success: true, userAgent: req.get("User-Agent") });
+    console.log("📝 Registration attempt logged");
+
+    // Create session token for immediate session (still requires email verification)
+    const sessionToken = generateAuthToken(user._id.toString(), { email: user.email, role: user.role, name: user.name, emailVerified: user.emailVerified });
+    console.log("🔑 Generated session JWT token");
+
+    await Session.saveOrUpdateSession({ token: sessionToken, userId: user._id, userAgent: req.get("User-Agent"), ipAddress: req.ip });
+    console.log("💾 Session created/updated");
+
+    return res.status(201).json({ success: true, message: "Registered; verify email", token: sessionToken, user: responseUser });
+  } catch (err) {
+    console.error("💥 Register error", err);
+    if (err.code === 11000) {
+      return res.status(409).json({ success: false, message: "User already exists" });
+    }
+    await AuthAttempt.logAttempt({ email: req.body?.email || 'unknown', ipAddress: req.ip, attemptType: "register", success: false, reason: "Server error" }).catch(() => { });
+    return res.status(500).json({ success: false, message: "Registration failed due to server error" });
   }
 }
 
-// Verify email
-export async function verifyEmail(req, res) {
-  let cleanToken;
-
+/**
+ * Claim an admin code (for verified users who want to claim a role after verification)
+ * - This endpoint allows secure server-side claiming rather than trusting query params
+ */
+export async function claimAdminCode(req, res) {
   try {
-    console.log('=== VERIFICATION REQUEST ===');
-    console.log('Token:', req.params.token);
-    console.log('IP:', req.ip);
-    console.log('User Agent:', req.get('User-Agent'));
+    const userId = req.user && req.user._id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
 
-    const { token } = req.params;
-    cleanToken = token.trim();
+    const { code } = req.body;
+    if (!code || typeof code !== 'string') return res.status(400).json({ success: false, message: 'Code required' });
 
-    // ADD: Check if this is a duplicate request
-    if (global.pendingVerifications?.has(cleanToken)) {
-      console.log('⚠️ Duplicate verification request detected');
-      return res.status(429).json({
-        success: false,
-        message: 'Verification already in progress. Please wait a moment.'
-      });
-    }
-
-    // Track pending verification
-    if (!global.pendingVerifications) global.pendingVerifications = new Set();
-    global.pendingVerifications.add(cleanToken);
-
-    console.log('=== VERIFICATION DEBUG START ===');
-    console.log('Token received:', req.params.token);
-    console.log('Token length:', req.params.token.length);
-    console.log('Cleaned token:', cleanToken);
-    console.log('Cleaned token length:', cleanToken.length);
-
-    // DEBUG: Check ALL users with verification tokens first
-    const allUsersWithTokens = await User.find({
-      verificationToken: { $exists: true }
-    }, 'email verificationToken verificationExpires');
-
-    console.log('All users with verification tokens:', allUsersWithTokens.map(u => ({
-      email: u.email,
-      token: u.verificationToken,
-      tokenLength: u.verificationToken ? u.verificationToken.length : 0,
-      expires: u.verificationExpires,
-      isExpired: u.verificationExpires && u.verificationExpires < Date.now()
-    })));
-
-    // Find user with valid token
-    const user = await User.findOne({
-      verificationToken: cleanToken,
-      verificationExpires: { $gt: Date.now() }
+    // Find valid code
+    const valid = await AdminCode.findOne({
+      code: code.trim().toUpperCase(),
+      expiresAt: { $gt: new Date() },
+      $expr: { $lt: ['$usageCount', '$maxUsage'] }
     });
 
-    console.log('User found with matching token:', user ? {
-      id: user._id,
-      email: user.email,
-      token: user.verificationToken,
-      tokenLength: user.verificationToken.length,
-      expires: user.verificationExpires,
-      isExpired: user.verificationExpires < Date.now()
-    } : 'NO USER FOUND');
+    if (!valid) return res.status(400).json({ success: false, message: 'Invalid or expired code' });
 
-    if (!user) {
-      console.log('❌ No user found with valid token');
+    // Use code atomically
+    const used = await AdminCode.useCode(valid.code, userId);
+    if (!used) return res.status(400).json({ success: false, message: 'Failed to use code' });
 
-      // Check if token exists but expired
-      const expiredUser = await User.findOne({ verificationToken: cleanToken });
-      if (expiredUser) {
-        console.log('❌ Token exists but expired for user:', expiredUser.email);
-        console.log('Expiration:', expiredUser.verificationExpires);
-        console.log('Current time:', new Date());
-        console.log('Time difference:', (new Date() - expiredUser.verificationExpires) / 1000 / 60, 'minutes');
-      }
+    // promote user role accordingly
+    const role = used.role || 'admin';
+    const updatedUser = await User.findByIdAndUpdate(userId, { $set: { role } }, { new: true }).select('-password -__v');
 
-      // Check if token exists with different casing/encoding
-      const allUsers = await User.find({});
-      const similarTokenUsers = allUsers.filter(u =>
-        u.verificationToken && u.verificationToken.includes(cleanToken.substring(0, 20))
-      );
+    return res.json({ success: true, message: `Promoted to ${role}`, user: updatedUser.getPublicProfile() });
+  } catch (err) {
+    console.error('Claim admin code error', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+}
 
-      if (similarTokenUsers.length > 0) {
-        console.log('⚠️  Similar tokens found:', similarTokenUsers.map(u => ({
-          email: u.email,
-          token: u.verificationToken,
-          match: u.verificationToken === cleanToken
-        })));
-      }
-
-      // Remove from pending before returning
-      if (global.pendingVerifications) {
-        global.pendingVerifications.delete(cleanToken);
-      }
-
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or expired verification token'
-      });
+/**
+ * Verify email
+ * - If user had a stored adminCode and a matching AdminCode is still valid, consume it and promote role atomically.
+ * - Always mark emailVerified true, clear verification tokens.
+ */
+export async function verifyEmail(req, res) {
+  console.log("➡️ Verify email init");
+  try {
+    const { token } = req.params;
+    if (!token || typeof token !== 'string') {
+      console.log("❌ Missing token param");
+      return res.status(400).json({ success: false, message: 'Invalid token' });
     }
 
-    console.log('✅ User found, marking email as verified...');
+    let decoded;
+    try {
+      decoded = jwt.verify(token.trim(), process.env.JWT_SECRET);
+      console.log("🔓 JWT decoded:", decoded);
+    } catch (err) {
+      console.error("❌ JWT verification failed:", err.message);
+      return res.status(400).json({ success: false, message: 'Invalid or expired verification link' });
+    }
+
+    // find user with token and not expired (token must match stored token)
+    const user = await User.findOne({ _id: decoded.id, verificationToken: token.trim(), verificationExpires: { $gt: Date.now() } });
+    console.log("👤 User found for verification:", !!user);
+    if (!user) {
+      console.warn("⚠️ No user matched the provided token / token expired or mismatched");
+      return res.status(400).json({ success: false, message: 'Invalid or expired verification token' });
+    }
+
+    // If adminCode was stored, try to consume it (atomic model method expected)
+    let promotedRole = null;
+    if (user.adminCode) {
+      try {
+        const used = await AdminCode.useCode(user.adminCode, user._id);
+        console.log("🔧 AdminCode.useCode result:", !!used);
+        if (used && used.canBeUsed === undefined) { }
+        if (used && (used.role === 'admin' || used.role === 'moderator')) {
+          user.role = used.role;
+          promotedRole = used.role;
+          console.log(`🎉 User promoted to ${used.role}`);
+        }
+      } catch (err) {
+        console.error("⚠️ AdminCode.consume error (non fatal):", err);
+      }
+    }
+
+    // Mark verified
     user.emailVerified = true;
     user.verificationToken = undefined;
     user.verificationExpires = undefined;
-
+    if (!user.memberSince) user.memberSince = new Date();
     await user.save();
-    console.log('✅ Email verified successfully for user:', user.email);
+    console.log("✅ Email verified for:", user.email);
 
-    // Log successful verification
-    const jwtToken = generateToken(user);
+    // issue a new JWT reflecting updated role & emailVerified
+    const newToken = generateAuthToken(user._id.toString(), { email: user.email, role: user.role, name: user.name, emailVerified: user.emailVerified });
+    console.log("🎟 New session token issued");
 
-    console.log('=== VERIFICATION DEBUG END ===');
-
-    // Remove from pending after successful completion
-    if (global.pendingVerifications) {
-      global.pendingVerifications.delete(cleanToken);
-    }
-
-    res.json({
-      success: true,
-      message: 'Email verified successfully',
-      token: jwtToken,
-      user: user.getPublicProfile()
-    });
-
-  } catch (error) {
-    console.error('❌ VERIFICATION ERROR:', error.message);
-    console.error('Error stack:', error.stack);
-
-    // Clean up on error
-    if (global.pendingVerifications && cleanToken) {
-      global.pendingVerifications.delete(cleanToken);
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Server error during email verification'
-    });
+    return res.json({ success: true, message: 'Email verified', token: newToken, user: user.getPublicProfile ? user.getPublicProfile() : { id: user._id.toString(), email: user.email }, promotedRole });
+  } catch (err) {
+    console.error("💥 Verify email error:", err);
+    return res.status(500).json({ success: false, message: 'Server error during verification' });
   }
 }
 
-// Forgot password
+/**
+ * Login / logout / forgot / reset / resend verification / me
+ * - Login issues JWT with { userId, email, role }
+ */
+export async function login(req, res) {
+  console.log("➡️ Start login");
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+
+    const { email, password } = req.body;
+    const normalizedEmail = normalizeEmail(email);
+
+    const user = await User.findOne({ email: normalizedEmail }).select("+password");
+    console.log("🔍 User found:", !!user);
+    if (!user || user.authMethod !== 'local') {
+      await AuthAttempt.logAttempt({ email: normalizedEmail, ipAddress: req.ip, userAgent: req.get('User-Agent'), attemptType: 'login', success: false, reason: 'User not found or wrong method' });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    console.log("🛠 Stored hash exists:", !!user.password);
+
+    const match = await user.comparePassword(password);
+    console.log("🔑 Password match:", match);
+    if (!match) {
+      await AuthAttempt.logAttempt({ email: normalizedEmail, ipAddress: req.ip, userAgent: req.get('User-Agent'), attemptType: 'login', success: false, reason: 'Invalid password' });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    if (!user.isActive) return res.status(403).json({ success: false, message: 'Account deactivated' });
+    if (!user.emailVerified) return res.status(403).json({ success: false, code: 'EMAIL_NOT_VERIFIED', message: 'Please verify your email first', email: user.email });
+
+    const token = generateAuthToken(user._id.toString(), { email: user.email, role: user.role, name: user.name, emailVerified: user.emailVerified });
+    console.log("🎟 Token generated");
+
+    await Session.saveOrUpdateSession({ token, userId: user._id, userAgent: req.get('User-Agent'), ipAddress: req.ip });
+    console.log("💾 Session saved");
+
+    await User.findByIdAndUpdate(user._id, { $set: { lastLogin: new Date() }, $inc: { loginCount: 1 } });
+    console.log("📊 User updated");
+
+    await AuthAttempt.logAttempt({ email: normalizedEmail, ipAddress: req.ip, userAgent: req.get('User-Agent'), attemptType: 'login', success: true });
+    console.log("📝 Attempt logged");
+
+    return res.status(200).json({ success: true, message: 'Login successful', token, user: { ...user.getPublicProfile(), ...user.getDashboardData(), role: user.role } });
+  } catch (err) {
+    console.error('Login error', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+}
+
+export async function logout(req, res) {
+  try {
+    // Extract token from request (middleware should already set req.token, but fallback)
+    const token = req.token || (req.headers.authorization && req.headers.authorization.split(" ") [1]);
+
+    if (!token) {
+      return res.status(400).json({ success: false, message: "No token provided for logout", });
+    }
+
+    const session = await Session.findOneAndUpdate( { token, isActive: true }, { isActive: false, loggedOutAt: new Date() }, { new: true } );
+
+    if (!session) {
+      console.warn("⚠️ Logout attempted with invalid or expired token:", token);
+      return res.status(200).json({ success: true, message: "Already logged out or session not found", });
+    }
+
+    console.log(`✅ User ${session.userId} logged out at ${session.loggedOutAt}`);
+    return res.json({ success: true, message: "Logged out" });
+  } catch (err) {
+    console.error("❌ Logout error:", err);
+    return res.status(500).json({ success: false, message: "Server error during logout", });
+  }
+}
+
 export async function forgotPassword(req, res) {
   try {
     const { email } = req.body;
-    const normalizedEmail = email.toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
 
     const user = await User.findOne({ email: normalizedEmail, authMethod: 'local' });
-    if (!user) {
-      // Don't reveal if email exists or not
-      return res.json({
-        success: true,
-        message: 'If the email exists, password reset instructions will be sent'
-      });
-    }
+    if (!user) return res.json({ success: true, message: 'If the email exists, reset instructions will be sent' });
 
-    // Generate reset token
-    const resetToken = randomBytes(32).toString('hex');
+    const resetToken = generateRandomToken(32);
     user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = Date.now() + 1 * 60 * 60 * 1000;
+    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000;
     await user.save();
 
-    // Send reset email
     await sendPasswordResetEmail(user.email, resetToken);
-
-    res.json({
-      success: true,
-      message: 'Password reset instructions sent to your email'
-    });
-  } catch (error) {
-    console.error('Forgot password error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during password reset'
-    });
+    console.log("📧 Pssword reset sent to email");
+    return res.json({ success: true, message: 'Password reset instructions sent' });
+  } catch (err) {
+    console.error('💥 Forgot password error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 }
 
-// Reset password
 export async function resetPassword(req, res) {
+  console.log("➡️ Reset password init");
   try {
     const { token } = req.params;
     const { password } = req.body;
 
-    const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() },
-      authMethod: 'local'
-    });
-
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or expired reset token'
-      });
-    }
+    const user = await User.findOne({ resetPasswordToken: token, resetPasswordExpires: { $gt: Date.now() }, authMethod: 'local' });
+    console.log("👤 User found for reset:", !!user);
+    if (!user) return res.status(400).json({ success: false, message: 'Invalid or expired reset token' });
 
     user.password = password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
+    console.log("✅ Password updated");
 
-    res.json({
-      success: true,
-      message: 'Password reset successfully'
-    });
-  } catch (error) {
-    console.error('Reset password error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during password reset'
-    });
+    return res.json({ success: true, message: 'Password reset' });
+  } catch (err) {
+    console.error('💥 Reset password error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 }
 
-// Logout
-export async function logout(req, res) {
-  try {
-    // Invalidate session
-    await Session.findOneAndUpdate(
-      { token: req.token },
-      { isActive: false, loggedOutAt: new Date() }
-    );
-
-    res.json({
-      success: true,
-      message: 'Logged out successfully'
-    });
-  } catch (error) {
-    console.error('Logout error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during logout'
-    });
-  }
-}
-
-// Get current user
-export async function getCurrentUser(req, res) {
-  try {
-    res.json({
-      success: true,
-      user: req.user.getPublicProfile()
-    });
-  } catch (error) {
-    console.error('Get current user error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error fetching user data'
-    });
-  }
-}
-
-// Resend verification email
 export async function resendVerification(req, res) {
+  console.log("➡️ Resend verification init");
   try {
     const { email } = req.body;
-    const normalizedEmail = email.toLowerCase();
+    console.log("📧 Resend request for:", email);
+    const normalizedEmail = normalizeEmail(email);
+    console.log("📧 Normalized:", normalizedEmail);
 
     const user = await User.findOne({ email: normalizedEmail, authMethod: 'local' });
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
+    console.log("👤 Resend target user:", !!user);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (user.emailVerified) return res.status(400).json({ success: false, message: 'Already verified' });
 
-    if (user.emailVerified) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email is already verified'
-      });
-    }
-
-    // Generate new verification token
-    const verificationToken = randomBytes(32).toString('hex');
-    user.verificationToken = verificationToken;
+    const token = jwt.sign({ id: user._id.toString(), email: normalizedEmail }, process.env.JWT_SECRET, { expiresIn: "24h" });
+    user.verificationToken = token;
     user.verificationExpires = Date.now() + 24 * 60 * 60 * 1000;
     await user.save();
+    console.log("📨 New verification token saved");
 
-    // Send verification email
-    await sendVerificationEmail(user.email, verificationToken);
+    await sendVerificationEmail(user.email, token);
+    console.log("📧 Verification email resent");
 
-    res.json({
-      success: true,
-      message: 'Verification email sent successfully'
-    });
-  } catch (error) {
-    console.error('Resend verification error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error resending verification email'
-    });
+    return res.json({ success: true, message: '✅ Verification email resent' });
+  } catch (err) {
+    console.error('💥 Resend verification error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+}
+
+export async function getCurrentUser(req, res) {
+  try {
+    // req.user provided by auth middleware
+    if (!req.user) return res.status(401).json({ success: false, message: 'Not authenticated' });
+    return res.json({ success: true, user: req.user.getPublicProfile ? req.user.getPublicProfile() : req.user });
+  } catch (err) {
+    console.error('Get current user error', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 }

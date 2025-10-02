@@ -1,7 +1,7 @@
-import { body } from 'express-validator';
+import { body, param } from 'express-validator';
 
 // User validation rules
-const userValidationRules = () => {
+export const userValidation = () => {
   return [
     body('name')
       .trim()
@@ -11,29 +11,43 @@ const userValidationRules = () => {
       .isEmail()
       .normalizeEmail()
       .withMessage('Please provide a valid email'),
-    body('password')
-      .isLength({ min: 6 })
-      .withMessage('Password must be at least 6 characters long')
-      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-      .withMessage('Password must contain at least one lowercase letter, one uppercase letter, and one number')
+    body("password")
+      .isLength({ min: 8, max: 100 })
+      .withMessage("Password must be at least 8 characters")
+      .matches(/[A-Z]/)
+      .withMessage("Password must contain at least one uppercase letter")
+      .matches(/[a-z]/)
+      .withMessage("Password must contain at least one lowercase letter")
+      .matches(/[0-9]/)
+      .withMessage("Password must contain at least one number")
+      .matches(/[@$!%*?&]/)
+      .withMessage("Password must contain at least one special character"),
   ];
 };
 
 // Login validation rules
-const loginValidationRules = () => {
+export const loginValidation = () => {
   return [
     body('email')
       .isEmail()
       .normalizeEmail()
       .withMessage('Please provide a valid email'),
-    body('password')
-      .notEmpty()
-      .withMessage('Password is required')
+    body("password")
+      .isLength({ min: 8, max: 100 })
+      .withMessage("Password must be at least 8 characters")
+      .matches(/[A-Z]/)
+      .withMessage("Password must contain at least one uppercase letter")
+      .matches(/[a-z]/)
+      .withMessage("Password must contain at least one lowercase letter")
+      .matches(/[0-9]/)
+      .withMessage("Password must contain at least one number")
+      .matches(/[@$!%*?&]/)
+      .withMessage("Password must contain at least one special character"),
   ];
 };
 
 // Donation validation rules
-const donationValidationRules = () => {
+export const donationValidation = () => {
   return [
     body('amount')
       .isFloat({ min: 1 })
@@ -45,7 +59,7 @@ const donationValidationRules = () => {
 };
 
 // Event validation rules
-const eventValidationRules = () => {
+export const eventValidation = () => {
   return [
     body('title')
       .trim()
@@ -69,7 +83,7 @@ const eventValidationRules = () => {
 };
 
 // Sermon validation rules
-const sermonValidationRules = () => {
+export const sermonValidation = () => {
   return [
     body('title')
       .trim()
@@ -89,10 +103,138 @@ const sermonValidationRules = () => {
   ];
 };
 
+export const registerValidation = () => {
+  return [
+    body("name")
+      .trim()
+      .isLength({ min: 2, max: 50 })
+      .withMessage("Name must be between 2 and 50 characters")
+      .matches(/^[a-zA-Z\s'-]+$/)
+      .withMessage("Name contains invalid characters"),
+
+    body("email")
+      .normalizeEmail()
+      .isEmail()
+      .withMessage("Please enter a valid email"),
+
+    body("password")
+      .isLength({ min: 8, max: 100 })
+      .withMessage("Password must be at least 8 characters")
+      .matches(/[A-Z]/)
+      .withMessage("Password must contain at least one uppercase letter")
+      .matches(/[a-z]/)
+      .withMessage("Password must contain at least one lowercase letter")
+      .matches(/[0-9]/)
+      .withMessage("Password must contain at least one number")
+      .matches(/[@$!%*?&]/)
+      .withMessage("Password must contain at least one special character"),
+  ];
+};
+
+
+export const forgotPasswordValidation = () => {
+  return [
+    body("email")
+      .normalizeEmail()
+      .isEmail()
+      .withMessage("Please enter a valid email"),
+  ];
+};
+
+export const verificationValidation = () => {
+  return [
+    body("token")
+      .isString()
+      .withMessage("Invalid verification token")
+      .notEmpty()
+      .withMessage("Verification token is required"),
+  ];
+};
+
+export const resendVerificationValidation = () => {
+  return [
+    body("email")
+      .isEmail()
+      .withMessage("Invalid email address")
+      .normalizeEmail()
+  ];
+};
+
+export const resetPasswordValidation = () => {
+  return [
+    body("password")
+      .isLength({ min: 8, max: 100 })
+      .withMessage("Password must be at least 8 characters")
+      .matches(/[A-Z]/)
+      .withMessage("Password must contain at least one uppercase letter")
+      .matches(/[a-z]/)
+      .withMessage("Password must contain at least one lowercase letter")
+      .matches(/[0-9]/)
+      .withMessage("Password must contain at least one number")
+      .matches(/[@$!%*?&]/)
+      .withMessage("Password must contain at least one special character"),
+    param("token").isString().withMessage("Invalid reset token"),
+  ];
+};
+
+export const claimAdminCodeValidation = () => {
+  return [
+    body('code')
+      .isString()
+      .notEmpty()
+      .withMessage('Admin code is required')
+      .isLength({ min: 6, max: 20 })
+      .withMessage('Admin code must be between 6 and 20 characters')
+      .matches(/^[A-Z0-9]+$/)
+      .withMessage('Admin code must be alphanumeric and uppercase')
+
+  ];
+};
+
+export const generateAdminCodeValidation = () => {
+  return [
+    body('description')
+      .trim()
+      .isString()
+      .isLength({ min: 10, max: 400 })
+      .notEmpty()
+      .withMessage('Description required'),
+    body('role')
+      .isIn(['admin', 'moderator'])
+      .withMessage('Role must be admin or moderator'),
+    body('maxUsage')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('maxUsage must be >=1'),
+    body('expiresInDays')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('expiresInDays must be >=1')
+  ];
+};
+
+export const updateUserRoleValidation = () => {
+  return [
+    body('role')
+      .isIn(['user', 'moderator', 'admin'])
+      .withMessage('Invalid role')
+      .notEmpty()
+      .withMessage('Role is required')
+  ];
+};
+
 export default {
-  userValidationRules,
-  loginValidationRules,
-  donationValidationRules,
-  eventValidationRules,
-  sermonValidationRules
+  userValidation,
+  loginValidation,
+  donationValidation,
+  claimAdminCodeValidation,
+  eventValidation,
+  sermonValidation,
+  registerValidation,
+  forgotPasswordValidation,
+  resetPasswordValidation,
+  verificationValidation,
+  resendVerificationValidation,
+  generateAdminCodeValidation,
+  updateUserRoleValidation
 };

@@ -1,178 +1,220 @@
 import React, { useState, useEffect } from "react";
-import { apiClient } from '../utils/api';
-import { authService, userService, donationService } from '../services/apiService';
-import Loader from '../components/Loader';
+import { authService, userService, donationService, eventService } from "../services/apiService";
+import Loader from "../components/Loader";
+import { useAuth } from "../hooks/useAuth";
 import { useAlert } from "../utils/Alert";
 
-const ProfilePage = ({ user }) => {
-  const [activeTab, setActiveTab] = useState('personal');
+
+const ProfilePage = () => {
+  const { user, loading: authLoading } = useAuth();
+  const alert = useAlert();
+  const [activeTab, setActiveTab] = useState("personal");
   const [userData, setUserData] = useState(null);
   const [donations, setDonations] = useState([]);
   const [rsvps, setRsvps] = useState([]);
   const [favorites, setFavorites] = useState({ events: [], sermons: [], posts: [] });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [familyMembers, setFamilyMembers] = useState([]);
   const [isAddingFamilyMember, setIsAddingFamilyMember] = useState(false);
-  const [newFamilyMember, setNewFamilyMember] = useState({ name: '', relationship: '' });
-
-  const alert = useAlert();
+  const [newFamilyMember, setNewFamilyMember] = useState({ name: "", relationship: "" });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    document.title = "SMC: - Profile | St. Michael's & All Angels Church | Ifite-Awka";
-    fetchUserProfileData();
+    document.title = "SMC - Profile | St. Michael's & All Angels Church | Ifite-Awka";
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchUserProfileData();
+    } else {
+      setLoading(false);
+    }
   }, [user]);
 
   const fetchUserProfileData = async () => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       setError(null);
 
-      // Fetch user data based on role
-      const userResponse = await authService.getCurrentUser();
-      setUserData(userResponse.data || userResponse);
+      // Fetch user profile data
+      const userResponse = await userService.getProfile();
+      const profileData = userResponse.data?.user || userResponse.data || userResponse;
+      setUserData(profileData);
 
-      // Fetch additional data only if user is authenticated
-      if (userResponse && !userResponse.error) {
-        const [
-          donationsResponse,
-          rsvpsResponse,
-          favoritesResponse,
-          familyResponse
-        ] = await Promise.allSettled([
-          donationService.getUserDonations(),
-          apiClient.get('/user/rsvps'),
-          apiClient.get('/user/favorites'),
-          apiClient.get('/user/family')
-        ]);
+      // Fetch additional data in parallel
+      const [donationsResponse, rsvpsResponse, favoritesResponse, familyResponse] = await Promise.allSettled([
+        donationService.getUserDonations(),
+        eventService.getUserRsvps(),
+        eventService.getUserFavorites(),
+        userService.getFamily()
+      ]);
 
-        if (donationsResponse.status === 'fulfilled') {
-          setDonations(donationsResponse.value.donations || donationsResponse.value.data || []);
-        }
+      // Process responses with proper error handling
+      setDonations(donationsResponse.status === 'fulfilled' ?
+        donationsResponse.value.donations || donationsResponse.value.data || [] : []);
 
-        if (rsvpsResponse.status === 'fulfilled') {
-          setRsvps(rsvpsResponse.value.rsvps || rsvpsResponse.value.data || []);
-        }
+      setRsvps(rsvpsResponse.status === 'fulfilled' ?
+        rsvpsResponse.value.rsvps || rsvpsResponse.value.data || [] : []);
 
-        if (favoritesResponse.status === 'fulfilled') {
-          setFavorites(favoritesResponse.value.favorites || favoritesResponse.value.data || { events: [], sermons: [], posts: [] });
-        }
+      setFavorites(favoritesResponse.status === 'fulfilled' ?
+        favoritesResponse.value.favorites || favoritesResponse.value.data || { events: [], sermons: [], posts: [] }
+        : { events: [], sermons: [], posts: [] });
 
-        if (familyResponse.status === 'fulfilled') {
-          setFamilyMembers(familyResponse.value.family || familyResponse.value.data || []);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching profile data:', error);
-      // Don't set error if it's just an authentication issue
-      if (!error.response || error.response.status !== 401) {
-        setError('Failed to load profile data. Please try again.');
+      setFamilyMembers(familyResponse.status === 'fulfilled' ?
+        familyResponse.value.family || familyResponse.value.data || [] : []);
+
+    } catch (err) {
+      console.error("Error fetching profile data:", err);
+      if (err.response?.status !== 401) {
+        const errorMsg = err.response?.data?.message || "Failed to load profile data";
+        setError(errorMsg);
+        alert.error(errorMsg);
       }
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
+  // ---------- Handlers ----------
+
+  // Fixed profile update handler
   const handleUpdateProfile = async (formData) => {
     try {
-      const response = await authService.updateProfile(formData);
-      setUserData(response.user || response.data);
-      return { success: true, message: 'Profile updated successfully' };
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || error.message || 'Failed to update profile' 
-      };
+      const response = await userService.updateProfile(formData);
+      const updatedUser = response.data?.user || response.data || response;
+
+      if (updatedUser) {
+        setUserData(updatedUser);
+        alert.success("Profile updated successfully");
+        return { success: true, message: "Profile updated successfully" };
+      } else {
+        throw new Error("Invalid response from server");
+      }
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      const errorMsg = err.response?.data?.message || err.message || "Failed to update profile";
+      alert.error(errorMsg);
+      return { success: false, message: errorMsg };
     }
   };
 
+  // Fixed family member handlers
   const handleAddFamilyMember = async (memberData) => {
     try {
-      const response = await apiClient.post('/user/family', memberData);
-      const newMember = response.member || response.data;
-      setFamilyMembers(prev => [...prev, newMember]);
-      setIsAddingFamilyMember(false);
-      setNewFamilyMember({ name: '', relationship: '' });
-      return { success: true, message: 'Family member added successfully' };
-    } catch (error) {
-      console.error('Error adding family member:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || error.message || 'Failed to add family member' 
-      };
+      const response = await userService.addFamilyMember(memberData);
+      const newMember = response.data?.member || response.data || response;
+
+      if (newMember) {
+        setFamilyMembers(prev => [...prev, newMember]);
+        alert.success("Family member added successfully");
+        return { success: true };
+      } else {
+        throw new Error("Invalid response from server");
+      }
+    } catch (err) {
+      console.error("Error adding family member:", err);
+      const errorMsg = err.response?.data?.message || err.message || "Failed to add family member";
+      alert.error(errorMsg);
+      return { success: false, message: errorMsg };
     }
   };
 
   const handleRemoveFamilyMember = async (memberId) => {
     try {
-      await apiClient.delete(`/user/family/${memberId}`);
-      setFamilyMembers(prev => prev.filter(member => member.id !== memberId));
-      return { success: true, message: 'Family member removed successfully' };
-    } catch (error) {
-      console.error('Error removing family member:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || error.message || 'Failed to remove family member' 
-      };
+      await userService.removeFamilyMember(memberId);
+      setFamilyMembers(prev => prev.filter(member =>
+        member._id !== memberId && member.id !== memberId
+      ));
+      alert.success("Family member removed successfully");
+      return { success: true };
+    } catch (err) {
+      console.error("Error removing family member:", err);
+      const errorMsg = err.response?.data?.message || err.message || "Failed to remove family member";
+      alert.error(errorMsg);
+      return { success: false, message: errorMsg };
     }
   };
 
+  // Fixed communication preferences
   const handleUpdateCommunicationPrefs = async (preferences) => {
     try {
-      await apiClient.put('/user/communication', { preferences });
-      return { success: true, message: 'Preferences updated successfully' };
-    } catch (error) {
-      console.error('Error updating preferences:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || error.message || 'Failed to update preferences' 
-      };
+      await userService.updateCommunication(preferences);
+      alert.success("Communication preferences updated");
+      return { success: true };
+    } catch (err) {
+      console.error("Error updating communication preferences:", err);
+      const errorMsg = err.response?.data?.message || err.message || "Failed to update preferences";
+      alert.error(errorMsg);
+      return { success: false, message: errorMsg };
     }
   };
 
+  // Fixed password change
   const handleChangePassword = async (passwordData) => {
     try {
-      await authService.changePassword(passwordData);
-      return { success: true, message: 'Password changed successfully' };
-    } catch (error) {
-      console.error('Error changing password:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || error.message || 'Failed to change password' 
-      };
+      const response = await authService.changePassword(passwordData);
+
+      if (response.data?.success || response.success) {
+        alert.success("Password changed successfully");
+        return { success: true };
+      } else {
+        throw new Error(response.data?.message || "Password change failed");
+      }
+    } catch (err) {
+      console.error("Error changing password:", err);
+      const errorMsg = err.response?.data?.message || err.message || "Failed to change password";
+      alert.error(errorMsg);
+      return { success: false, message: errorMsg };
     }
   };
 
+  // Fixed account deletion
   const handleDeleteAccount = async () => {
     if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
       try {
-        await authService.deleteAccount();
-        window.location.href = '/';
-      } catch (error) {
-        console.error('Error deleting account:', error);
-        setError(error.response?.data?.message || error.message || 'Failed to delete account');
+        // Note: You'll need to add this endpoint to your userService
+        await userService.deleteAccount();
+        alert.success("Account deleted successfully");
+        window.location.href = "/";
+      } catch (err) {
+        console.error("Error deleting account:", err);
+        const errorMsg = err.response?.data?.message || err.message || "Failed to delete account";
+        setError(errorMsg);
+        alert.error(errorMsg);
       }
     }
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
+  // Helper function for role display text
+  const getRoleDisplayText = (role) => {
+    switch (role) {
+      case 'admin': return 'Administrator';
+      case 'moderator': return 'Moderator';
+      case 'user': return 'Church Member';
+      default: return 'Member';
+    }
+  };
+
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
     }).format(amount);
-  };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
+  const formatDate = (dateString) =>
+    dateString
+      ? new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+      : "N/A";
 
-  // Show login prompt if user is not authenticated
+  // ---------- Render Logic ----------
+  if (authLoading || loading) {
+    return <Loader type="spinner" text="Loading your profile..." />;
+  }
+
   if (!user && !userData) {
     return (
       <div className="page">
@@ -180,8 +222,12 @@ const ProfilePage = ({ user }) => {
           <div className="max-w-md mx-auto text-center">
             <div className="bg-white rounded-lg shadow-md p-8">
               <h2 className="text-2xl font-bold mb-4">Please Log In</h2>
-              <p className="text-gray-600 mb-6">You need to be logged in to view your profile.</p>
-              <a href="/login" className="btn btn-primary">Log In</a>
+              <p className="text-gray-600 mb-6">
+                You need to be logged in to view your profile.
+              </p>
+              <a href="/login" className="btn btn-primary">
+                Log In
+              </a>
             </div>
           </div>
         </div>
@@ -189,35 +235,16 @@ const ProfilePage = ({ user }) => {
     );
   }
 
-  if (isLoading) {
-    return <Loader type="spinner" text="Loading your profile..." />;
-  }
-
-  // Determine user role display text
-  const getRoleDisplayText = (role) => {
-    const roleMap = {
-      'admin': 'Administrator',
-      'moderator': 'Moderator',
-      'user': 'Church Member'
-    };
-    return roleMap[role] || 'Church Member';
-  };
-
   const currentUser = userData || user;
-  const userRole = currentUser.role || 'user';
-
+  const userRole = currentUser?.role || 'user';
   return (
     <div className="page">
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
-          {/* Error Message */}
           {error && (
             <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-center">
-                <i className="fas fa-exclamation-triangle text-red-500 mr-2"></i>
-                <p className="text-red-600">{error}</p>
-              </div>
-              <button 
+              <p className="text-red-600">{error}</p>
+              <button
                 onClick={() => setError(null)}
                 className="mt-2 text-red-600 text-sm hover:text-red-800"
               >
@@ -252,7 +279,7 @@ const ProfilePage = ({ user }) => {
                     )}
                   </p>
                 </div>
-                <button 
+                <button
                   className="btn btn-outline"
                   onClick={() => setActiveTab('personal')}
                 >
@@ -267,11 +294,10 @@ const ProfilePage = ({ user }) => {
                     <li key={tab} className="mr-2">
                       <button
                         onClick={() => setActiveTab(tab)}
-                        className={`inline-block py-4 px-4 border-b-2 ${
-                          activeTab === tab
-                            ? 'border-[#FF7E45] text-[#FF7E45] font-medium'
-                            : 'border-transparent hover:text-gray-600 hover:border-gray-300'
-                        }`}
+                        className={`inline-block py-4 px-4 border-b-2 ${activeTab === tab
+                          ? 'border-[#FF7E45] text-[#FF7E45] font-medium'
+                          : 'border-transparent hover:text-gray-600 hover:border-gray-300'
+                          }`}
                       >
                         {tab === 'personal' && 'Personal Information'}
                         {tab === 'involvement' && 'Involvement'}
@@ -280,7 +306,7 @@ const ProfilePage = ({ user }) => {
                       </button>
                     </li>
                   ))}
-                  
+
                   {/* Admin-only tab */}
                   {userRole === 'admin' && (
                     <li className="mr-2">
@@ -297,7 +323,7 @@ const ProfilePage = ({ user }) => {
 
               {/* Tab Content */}
               {activeTab === 'personal' && (
-                <PersonalInfoTab 
+                <PersonalInfoTab
                   userData={currentUser}
                   familyMembers={familyMembers}
                   isAddingFamilyMember={isAddingFamilyMember}
@@ -312,7 +338,7 @@ const ProfilePage = ({ user }) => {
               )}
 
               {activeTab === 'involvement' && (
-                <InvolvementTab 
+                <InvolvementTab
                   donations={donations}
                   rsvps={rsvps}
                   favorites={favorites}
@@ -322,13 +348,13 @@ const ProfilePage = ({ user }) => {
               )}
 
               {activeTab === 'communication' && (
-                <CommunicationTab 
+                <CommunicationTab
                   onUpdatePreferences={handleUpdateCommunicationPrefs}
                 />
               )}
 
               {activeTab === 'account' && (
-                <AccountSettingsTab 
+                <AccountSettingsTab
                   onChangePassword={handleChangePassword}
                   onDeleteAccount={handleDeleteAccount}
                   userRole={userRole}
@@ -343,15 +369,15 @@ const ProfilePage = ({ user }) => {
 };
 
 // Personal Information Tab Component
-const PersonalInfoTab = ({ 
-  userData, 
-  familyMembers, 
-  isAddingFamilyMember, 
-  newFamilyMember, 
-  onUpdateProfile, 
-  onAddFamilyMember, 
-  onRemoveFamilyMember, 
-  setIsAddingFamilyMember, 
+const PersonalInfoTab = ({
+  userData,
+  familyMembers,
+  isAddingFamilyMember,
+  newFamilyMember,
+  onUpdateProfile,
+  onAddFamilyMember,
+  onRemoveFamilyMember,
+  setIsAddingFamilyMember,
   setNewFamilyMember,
   formatDate
 }) => {
@@ -380,7 +406,7 @@ const PersonalInfoTab = ({
     e.preventDefault();
     const result = await onUpdateProfile(formData);
     setSaveStatus(result.success ? 'success' : 'error');
-    
+
     if (result.success) {
       setIsEditing(false);
       setTimeout(() => setSaveStatus(''), 3000);
@@ -390,7 +416,7 @@ const PersonalInfoTab = ({
   const handleAddFamilyMemberSubmit = async (e) => {
     e.preventDefault();
     if (!newFamilyMember.name || !newFamilyMember.relationship) return;
-    
+
     const result = await onAddFamilyMember(newFamilyMember);
     setSaveStatus(result.success ? 'success' : 'error');
     setTimeout(() => setSaveStatus(''), 3000);
@@ -404,7 +430,7 @@ const PersonalInfoTab = ({
           <p className="text-green-600">Operation completed successfully!</p>
         </div>
       )}
-      
+
       {saveStatus === 'error' && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
           <p className="text-red-600">Operation failed. Please try again.</p>
@@ -432,7 +458,7 @@ const PersonalInfoTab = ({
                   <input
                     type="text"
                     value={formData.firstName}
-                    onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                     className="form-input"
                     required
                   />
@@ -442,7 +468,7 @@ const PersonalInfoTab = ({
                   <input
                     type="text"
                     value={formData.lastName}
-                    onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                     className="form-input"
                     required
                   />
@@ -453,7 +479,7 @@ const PersonalInfoTab = ({
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="form-input"
                   required
                 />
@@ -463,7 +489,7 @@ const PersonalInfoTab = ({
                 <input
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="form-input"
                 />
               </div>
@@ -471,7 +497,7 @@ const PersonalInfoTab = ({
                 <label className="block text-sm text-gray-600 mb-1">Address</label>
                 <textarea
                   value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   className="form-input"
                   rows="3"
                 />
@@ -485,8 +511,8 @@ const PersonalInfoTab = ({
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Name</label>
                 <p className="font-medium">
-                  {userData?.firstName && userData?.lastName 
-                    ? `${userData.firstName} ${userData.lastName}` 
+                  {userData?.firstName && userData?.lastName
+                    ? `${userData.firstName} ${userData.lastName}`
                     : userData?.name || 'Not provided'
                   }
                 </p>
@@ -531,14 +557,14 @@ const PersonalInfoTab = ({
       <div className="mt-10">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Family Members</h2>
-          <button 
+          <button
             className="btn btn-outline text-sm"
             onClick={() => setIsAddingFamilyMember(true)}
           >
             <i className="fas fa-plus mr-2"></i> Add Family Member
           </button>
         </div>
-        
+
         {isAddingFamilyMember && (
           <form onSubmit={handleAddFamilyMemberSubmit} className="mb-4 p-4 bg-gray-50 rounded-lg">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
@@ -547,7 +573,7 @@ const PersonalInfoTab = ({
                 <input
                   type="text"
                   value={newFamilyMember.name}
-                  onChange={(e) => setNewFamilyMember({...newFamilyMember, name: e.target.value})}
+                  onChange={(e) => setNewFamilyMember({ ...newFamilyMember, name: e.target.value })}
                   className="form-input"
                   required
                 />
@@ -556,7 +582,7 @@ const PersonalInfoTab = ({
                 <label className="block text-sm text-gray-600 mb-1">Relationship</label>
                 <select
                   value={newFamilyMember.relationship}
-                  onChange={(e) => setNewFamilyMember({...newFamilyMember, relationship: e.target.value})}
+                  onChange={(e) => setNewFamilyMember({ ...newFamilyMember, relationship: e.target.value })}
                   className="form-input"
                   required
                 >
@@ -573,8 +599,8 @@ const PersonalInfoTab = ({
               <button type="submit" className="btn btn-primary text-sm">
                 Add Member
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="btn btn-outline text-sm"
                 onClick={() => setIsAddingFamilyMember(false)}
               >
@@ -583,7 +609,7 @@ const PersonalInfoTab = ({
             </div>
           </form>
         )}
-        
+
         {familyMembers.length > 0 ? (
           <div className="space-y-3">
             {familyMembers.map((member) => (
@@ -636,11 +662,10 @@ const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDat
                       <td className="py-3">{formatDate(donation.date || donation.createdAt)}</td>
                       <td className="py-3 capitalize">{donation.frequency || 'One-time'}</td>
                       <td className="py-3">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          donation.status === 'completed' || donation.status === 'succeeded' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
+                        <span className={`px-2 py-1 rounded-full text-xs ${donation.status === 'completed' || donation.status === 'succeeded'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                          }`}>
                           {donation.status}
                         </span>
                       </td>
@@ -691,9 +716,9 @@ const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDat
       {/* Favorites */}
       <div>
         <h2 className="text-xl font-bold mb-4">Your Favorites</h2>
-        {(favorites.events && favorites.events.length > 0) || 
-         (favorites.sermons && favorites.sermons.length > 0) || 
-         (favorites.posts && favorites.posts.length > 0) ? (
+        {(favorites.events && favorites.events.length > 0) ||
+          (favorites.sermons && favorites.sermons.length > 0) ||
+          (favorites.posts && favorites.posts.length > 0) ? (
           <div className="space-y-4">
             {favorites.events && favorites.events.length > 0 && (
               <div>
@@ -708,7 +733,7 @@ const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDat
                 </div>
               </div>
             )}
-            
+
             {favorites.sermons && favorites.sermons.length > 0 && (
               <div>
                 <h3 className="font-medium mb-2">Sermons ({favorites.sermons.length})</h3>
@@ -767,26 +792,26 @@ const CommunicationTab = ({ onUpdatePreferences }) => {
     e.preventDefault();
     const result = await onUpdatePreferences(preferences);
     setSaveStatus(result.success ? 'success' : 'error');
-    
+
     setTimeout(() => setSaveStatus(''), 3000);
   };
 
   return (
     <div>
       <h2 className="text-xl font-bold mb-4">Communication Preferences</h2>
-      
+
       {saveStatus === 'success' && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
           <p className="text-green-600">Preferences updated successfully!</p>
         </div>
       )}
-      
+
       {saveStatus === 'error' && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
           <p className="text-red-600">Failed to update preferences. Please try again.</p>
         </div>
       )}
-      
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div>
@@ -796,7 +821,7 @@ const CommunicationTab = ({ onUpdatePreferences }) => {
           <input
             type="checkbox"
             checked={preferences.emailNotifications}
-            onChange={(e) => setPreferences({...preferences, emailNotifications: e.target.checked})}
+            onChange={(e) => setPreferences({ ...preferences, emailNotifications: e.target.checked })}
             className="form-checkbox h-5 w-5 text-[#FF7E45]"
           />
         </div>
@@ -809,7 +834,7 @@ const CommunicationTab = ({ onUpdatePreferences }) => {
           <input
             type="checkbox"
             checked={preferences.smsNotifications}
-            onChange={(e) => setPreferences({...preferences, smsNotifications: e.target.checked})}
+            onChange={(e) => setPreferences({ ...preferences, smsNotifications: e.target.checked })}
             className="form-checkbox h-5 w-5 text-[#FF7E45]"
           />
         </div>
@@ -822,7 +847,7 @@ const CommunicationTab = ({ onUpdatePreferences }) => {
           <input
             type="checkbox"
             checked={preferences.newsletter}
-            onChange={(e) => setPreferences({...preferences, newsletter: e.target.checked})}
+            onChange={(e) => setPreferences({ ...preferences, newsletter: e.target.checked })}
             className="form-checkbox h-5 w-5 text-[#FF7E45]"
           />
         </div>
@@ -835,7 +860,7 @@ const CommunicationTab = ({ onUpdatePreferences }) => {
           <input
             type="checkbox"
             checked={preferences.eventReminders}
-            onChange={(e) => setPreferences({...preferences, eventReminders: e.target.checked})}
+            onChange={(e) => setPreferences({ ...preferences, eventReminders: e.target.checked })}
             className="form-checkbox h-5 w-5 text-[#FF7E45]"
           />
         </div>
@@ -848,7 +873,7 @@ const CommunicationTab = ({ onUpdatePreferences }) => {
           <input
             type="checkbox"
             checked={preferences.prayerUpdates}
-            onChange={(e) => setPreferences({...preferences, prayerUpdates: e.target.checked})}
+            onChange={(e) => setPreferences({ ...preferences, prayerUpdates: e.target.checked })}
             className="form-checkbox h-5 w-5 text-[#FF7E45]"
           />
         </div>
@@ -876,12 +901,12 @@ const AccountSettingsTab = ({ onChangePassword, onDeleteAccount, userRole }) => 
       setPasswordMessage("New passwords don't match");
       return;
     }
-    
+
     if (passwordData.newPassword.length < 8) {
       setPasswordMessage("Password must be at least 8 characters long");
       return;
     }
-    
+
     const result = await onChangePassword(passwordData);
     if (result.success) {
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -894,7 +919,7 @@ const AccountSettingsTab = ({ onChangePassword, onDeleteAccount, userRole }) => 
   return (
     <div>
       <h2 className="text-xl font-bold mb-4">Account Settings</h2>
-      
+
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
         <h3 className="font-medium text-yellow-800 mb-2">Security</h3>
         <p className="text-yellow-700 text-sm">
@@ -904,21 +929,20 @@ const AccountSettingsTab = ({ onChangePassword, onDeleteAccount, userRole }) => 
 
       <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
         {passwordMessage && (
-          <div className={`p-3 rounded-lg ${
-            passwordMessage.includes('success') 
-              ? 'bg-green-50 text-green-700' 
-              : 'bg-red-50 text-red-700'
-          }`}>
+          <div className={`p-3 rounded-lg ${passwordMessage.includes('success')
+            ? 'bg-green-50 text-green-700'
+            : 'bg-red-50 text-red-700'
+            }`}>
             {passwordMessage}
           </div>
         )}
-        
+
         <div>
           <label className="block text-sm font-medium mb-2">Current Password</label>
           <input
             type="password"
             value={passwordData.currentPassword}
-            onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+            onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
             className="form-input"
             required
           />
@@ -929,7 +953,7 @@ const AccountSettingsTab = ({ onChangePassword, onDeleteAccount, userRole }) => 
           <input
             type="password"
             value={passwordData.newPassword}
-            onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+            onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
             className="form-input"
             required
             minLength="8"
@@ -941,7 +965,7 @@ const AccountSettingsTab = ({ onChangePassword, onDeleteAccount, userRole }) => 
           <input
             type="password"
             value={passwordData.confirmPassword}
-            onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+            onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
             className="form-input"
             required
           />
@@ -954,7 +978,7 @@ const AccountSettingsTab = ({ onChangePassword, onDeleteAccount, userRole }) => 
 
       <div className="mt-8 pt-6 border-t border-gray-200">
         <h3 className="font-medium text-red-600 mb-3">Danger Zone</h3>
-        <button 
+        <button
           className="btn bg-red-500 text-white hover:bg-red-600"
           onClick={onDeleteAccount}
         >

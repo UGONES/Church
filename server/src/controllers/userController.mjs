@@ -1,6 +1,8 @@
 import User from '../models/User.mjs';
 
-// Get current user profile
+/* ================================
+   Get current user profile
+================================= */
 export async function getCurrentUser(req, res) {
   try {
     const user = await User.findById(req.user._id)
@@ -16,7 +18,9 @@ export async function getCurrentUser(req, res) {
   }
 }
 
-// Update user profile
+/* ================================
+   Update user profile
+================================= */
 export async function updateProfile(req, res) {
   try {
     const { 
@@ -51,7 +55,9 @@ export async function updateProfile(req, res) {
   }
 }
 
-// Add family member
+/* ================================
+   Add family member
+================================= */
 export async function addFamilyMember(req, res) {
   try {
     const { name, relationship, age } = req.body;
@@ -71,7 +77,9 @@ export async function addFamilyMember(req, res) {
   }
 }
 
-// Remove family member
+/* ================================
+   Remove family member
+================================= */
 export async function removeFamilyMember(req, res) {
   try {
     const { memberId } = req.params;
@@ -91,18 +99,14 @@ export async function removeFamilyMember(req, res) {
   }
 }
 
-// Get user dashboard data
+/* ================================
+   Get user dashboard data
+================================= */
 export async function getUserDashboard(req, res) {
   try {
     const user = await User.findById(req.user._id)
       .select('name firstName lastName email role avatar memberSince membershipStatus smallGroup familyMembers volunteerStats');
     
-    // In a real application, you would also fetch:
-    // - Recent donations
-    // - Upcoming events
-    // - Volunteer applications
-    // - etc.
-
     res.json({
       user,
       stats: {
@@ -116,7 +120,29 @@ export async function getUserDashboard(req, res) {
   }
 }
 
-// Get all users (Admin)
+/* ================================
+   Track login activity (Fix VersionError)
+================================= */
+export async function trackLoginActivity(userId) {
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { 
+        $set: { lastLogin: new Date() },
+        $inc: { loginCount: 1 }
+      },
+      { new: true }
+    ).select('-password -verificationToken -resetPasswordToken -adminCode');
+
+    return updatedUser;
+  } catch (error) {
+    throw new Error('Error tracking login activity: ' + error.message);
+  }
+}
+
+/* ================================
+   Admin Functions
+================================= */
 export async function getAllUsers(req, res) {
   try {
     const { page = 1, limit = 10, role, search, membershipStatus } = req.query;
@@ -152,7 +178,6 @@ export async function getAllUsers(req, res) {
   }
 }
 
-// Create user (Admin)
 export async function createUser(req, res) {
   try {
     const { name, email, password, role, phone, address, firstName, lastName } = req.body;
@@ -194,7 +219,6 @@ export async function createUser(req, res) {
   }
 }
 
-// Update user (Admin)
 export async function updateUser(req, res) {
   try {
     const { id } = req.params;
@@ -219,12 +243,10 @@ export async function updateUser(req, res) {
   }
 }
 
-// Delete user (Admin)
 export async function deleteUser(req, res) {
   try {
     const { id } = req.params;
 
-    // Prevent self-deletion
     if (id === req.user._id.toString()) {
       return res.status(400).json({ message: 'Cannot delete your own account' });
     }
@@ -241,7 +263,6 @@ export async function deleteUser(req, res) {
   }
 }
 
-// Get user roles (Admin)
 export async function getUserRoles(req, res) {
   try {
     const roles = await User.distinct('role');
@@ -251,7 +272,6 @@ export async function getUserRoles(req, res) {
   }
 }
 
-// Get membership statuses (Admin)
 export async function getMembershipStatuses(req, res) {
   try {
     const statuses = await User.distinct('membershipStatus');

@@ -6,7 +6,7 @@ const Loader = ({
   color = "#FF7E45", 
   text = "Loading...",
   fullScreen = false,
-  timeout = 0, // Timeout in milliseconds (0 = no timeout)
+  timeout = 5000,
   onTimeout, // Callback function when timeout occurs
   timeoutMessage = "Taking longer than expected...", // Message to show after timeout
   showTimeoutMessage = true // Whether to show timeout message
@@ -167,7 +167,7 @@ const Loader = ({
 
 // Page Loader Component with Timeout
 export const PageLoader = ({ 
-  timeout = 10000, // 10 seconds default timeout
+  timeout = 3000, // 10 seconds default timeout
   onTimeout,
   customMessage 
 }) => {
@@ -219,7 +219,7 @@ export const PageLoader = ({
 export const ContentLoader = ({ 
   type = "card", 
   count = 1,
-  timeout = 0,
+  timeout = 2000,
   onTimeout 
 }) => {
   const [hasTimedOut, setHasTimedOut] = useState(false);

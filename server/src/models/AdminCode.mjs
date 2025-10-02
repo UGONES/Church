@@ -1,104 +1,136 @@
-// models/AdminCode.js - UPDATED
+// models/AdminCode.mjs
 import { Schema, model } from 'mongoose';
 import { randomBytes } from 'crypto';
 
-const adminCodeSchema = new Schema({
-  code: {
-    type: String,
-    required: true,
-    unique: true,
-    uppercase: true
-  },
-  description: {
-    type: String,
-    required: true
-  },
-  createdBy: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  assignedTo: {
-    type: Schema.Types.ObjectId,
-    ref: 'User'
-  },
-  role: {
-    type: String,
-    enum: ['admin', 'moderator'],
-    default: 'admin'
-  },
-  isUsed: {
-    type: Boolean,
-    default: false
-  },
-  usedAt: Date,
-  expiresAt: {
-    type: Date,
-    default: function() {
-      return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+/**
+ * Admin / Role Code model
+ * - code: uppercase string used to elevate a user to admin/moderator
+ * - role: 'admin' | 'moderator'
+ * - usageCount & maxUsage allow multi-use codes
+ * - assignedTo optional to record who consumed a code
+ *
+ * Notes:
+ * - Codes are generated server-side (16 hex uppercase by default).
+ * - For stronger security, you could store a hash of the code instead of the plaintext code.
+ */
+
+const adminCodeSchema = new Schema(
+  {
+    code: {
+      type: String,
+      required: true,
+      unique: true,
+      uppercase: true,
+      trim: true
+    },
+    description: {
+      type: String,
+      default: ''
+    },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    assignedTo: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    role: {
+       type: String,
+       enum: ['admin', 'moderator'],
+       default: 'admin'
+    },
+    isUsed: {
+       type: Boolean,
+       default: false,
+       index: true
+    },
+    usedAt: {
+       type: Date,
+       default: null
+    },
+    expiresAt: {
+       type: Date,
+       default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    },
+    usageCount: {
+       type: Number,
+       default: 0
+    },
+    maxUsage: {
+       type: Number,
+       default: 1
     }
   },
-  usageCount: {
-    type: Number,
-    default: 0
-  },
-  maxUsage: {
-    type: Number,
-    default: 1 // Default to single use
-  }
-}, {
-  timestamps: true
-});
+  { timestamps: true }
+);
 
-// Index for efficient lookup
+// Indexes for efficient lookup
 adminCodeSchema.index({ code: 1, isUsed: 1, expiresAt: 1 });
+adminCodeSchema.index({ createdBy: 1 });
 
-// Pre-save hook to generate code
-adminCodeSchema.pre('save', function(next) {
+// Auto-generate code on create if not provided
+adminCodeSchema.pre('validate', function (next) {
   if (this.isNew && !this.code) {
+    // 16 hex chars -> 8 bytes -> uppercased
     this.code = randomBytes(8).toString('hex').toUpperCase();
   }
   next();
 });
 
-// Static methods
-adminCodeSchema.statics.validateCode = async function(code) {
-  const adminCode = await this.findOne({ 
-    code, 
-    isUsed: false,
+/**
+ * Validate a code: returns the adminCode document if valid and usable.
+ * Caller should perform an atomic update (useCode) to increment usage.
+ */
+adminCodeSchema.statics.findValidByCode = function (code) {
+  if (!code || typeof code !== 'string') return Promise.resolve(null);
+  const normalized = code.trim().toUpperCase();
+  return this.findOne({
+    code: normalized,
     expiresAt: { $gt: new Date() },
-    $expr: { $lt: ['$usageCount', '$maxUsage'] } // Check if usage count is less than max usage
-  });
-  
-  return !!adminCode;
+    $expr: { $lt: ['$usageCount', '$maxUsage'] }
+  }).lean();
 };
 
-adminCodeSchema.statics.useCode = async function(code, userId) {
+/**
+ * Atomically "use" a code for a given userId.
+ * Returns the updated document or null if not usable.
+ */
+adminCodeSchema.statics.useCode = function (code, userId) {
+  const normalized = (code || '').trim().toUpperCase();
   return this.findOneAndUpdate(
-    { 
-      code, 
-      isUsed: false, 
+    {
+      code: normalized,
       expiresAt: { $gt: new Date() },
       $expr: { $lt: ['$usageCount', '$maxUsage'] }
     },
-    { 
+    {
       $inc: { usageCount: 1 },
-      $set: { 
+      $set: {
         assignedTo: userId,
-        usedAt: new Date(),
-        isUsed: { $gte: ['$usageCount', '$maxUsage'] } // Set isUsed if usageCount reaches maxUsage
-      }
+        usedAt: new Date()
+      },
+      // isUsed becomes true if usageCount + 1 >= maxUsage
+      $setOnInsert: {}
     },
     { new: true }
-  );
+  ).then((doc) => {
+    // If usageCount reached maxUsage, mark isUsed
+    if (doc && doc.usageCount >= doc.maxUsage && !doc.isUsed) {
+      doc.isUsed = true;
+      return doc.save();
+    }
+    return doc;
+  });
 };
 
-// Instance methods
-adminCodeSchema.methods.isExpired = function() {
-  return this.expiresAt && this.expiresAt < new Date();
+adminCodeSchema.methods.isExpired = function () {
+  return !!this.expiresAt && this.expiresAt < new Date();
 };
 
-adminCodeSchema.methods.canBeUsed = function() {
+adminCodeSchema.methods.canBeUsed = function () {
   return !this.isUsed && !this.isExpired() && this.usageCount < this.maxUsage;
 };
 

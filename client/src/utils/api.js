@@ -1,154 +1,191 @@
-import axios from 'axios';
-import { getAuthToken, removeAuthToken } from './auth';
+// utils/api.js
+import axios from "axios";
+import { getAuthToken, removeAuthToken, refreshToken } from "./auth";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-// Track pending requests to prevent duplicates
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+// Track pending requests for deduplication
 const pendingRequests = new Map();
 
 // Create axios instance
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 10000, // 10 seconds timeout
+  headers: { "Content-Type": "application/json" },
+  timeout: 30000,
+  withCredentials: true, // set true if backend uses cookies
 });
 
-// Add request timing interceptor (for performance monitoring)
+// Key generator to deduplicate
+const getRequestKey = (config) => {
+  const { method, url, params, data } = config;
+  const normalizedUrl = url?.split("?")[0] || "";
+  const safeData =
+    data && typeof data === "object" ? JSON.stringify(data) : "";
+  const safeParams =
+    params && typeof params === "object" ? JSON.stringify(params) : "";
+  return `${method?.toUpperCase()}-${normalizedUrl}-${safeParams}-${safeData}`;
+};
+
+// REQUEST INTERCEPTOR
 axiosInstance.interceptors.request.use(
   (config) => {
-        const url = config.url || "";
+    const requestKey = getRequestKey(config);
 
-    // Safely handle params & data
-    const safeData =
-      config.data && Object.keys(config.data).length > 0
-        ? JSON.stringify(config.data)
-        : "";
-
-    const safeParams =
-      config.params && Object.keys(config.params).length > 0
-        ? JSON.stringify(config.params)
-        : "";
-
-    // Unique key considers method + url + params + data
-    const requestKey = `${config.method}-${url}${safeParams ? `-${safeParams}` : ""}${safeData ? `-${safeData}` : ""}`;
-
+    // cancel duplicate
     if (pendingRequests.has(requestKey)) {
-      console.log("⚠️ Cancelling duplicate request:", requestKey);
-      return Promise.reject(new axios.Cancel("Duplicate request cancelled"));
+      const cancelSource = pendingRequests.get(requestKey);
+      cancelSource.cancel("Duplicate request cancelled");
+      pendingRequests.delete(requestKey);
     }
 
-    pendingRequests.set(requestKey, true);
+    const cancelSource = axios.CancelToken.source();
+    config.cancelToken = cancelSource.token;
+
     config.metadata = {
       startTime: Date.now(),
       requestKey,
     };
-    return config;
-  }
-);
 
+    pendingRequests.set(requestKey, cancelSource);
 
-// Add request interceptor for authentication
-axiosInstance.interceptors.request.use(
-  (config) => {
+    // attach token
     const token = getAuthToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    if (import.meta.env.DEV) {
+      console.debug(
+        `🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`,
+        { params: config.params, data: config.data }
+      );
+    }
+
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Add response interceptor with enhanced error handling
+// Prevent retry on login/refresh routes
+const isAuthRoute = (url) =>
+  url.includes("/auth/login") || url.includes("/auth/refresh");
+
+// RESPONSE INTERCEPTOR
 axiosInstance.interceptors.response.use(
   (response) => {
-    // Remove from pending requests
     const requestKey = response.config.metadata?.requestKey;
-    if (requestKey) {
+    if (requestKey && pendingRequests.has(requestKey)) {
       pendingRequests.delete(requestKey);
     }
-    
-    // Add duration tracking
+
     if (response.config.metadata) {
-      response.config.metadata.endTime = Date.now();
-      response.duration = response.config.metadata.endTime - response.config.metadata.startTime;
-      
-      // Optional: log request duration for performance monitoring
-      console.debug(`API Request: ${response.config.url} took ${response.duration}ms`);
-    }
-    
-    return response;
-  },
-  async (error) => {
-    // Remove from pending requests
-    const requestKey = error.config?.metadata?.requestKey;
-    if (requestKey) {
-      pendingRequests.delete(requestKey);
-    }
-    
-    // Handle 401 unauthorized errors
-    if (error.response?.status === 401) {
-      removeAuthToken();
-      window.location.href = '/login';
-      return Promise.reject(error);
-    }
-    
-    // Handle duplicate request cancellation
-    if (axios.isCancel(error)) {
-      console.log('Request cancelled:', error.message);
-      return Promise.reject(error);
-    }
-    
-    // Retry logic for network errors (no response received)
-    if (!error.response && error.config && !axios.isCancel(error)) {
-      error.config.retry = error.config.retry || 0;
-      
-      // Retry up to 3 times for network errors
-      if (error.config.retry < 3) {
-        error.config.retry += 1;
-        
-        // Add exponential backoff delay: 1s, 2s, 4s
-        const delay = Math.pow(2, error.config.retry - 1) * 1000;
-        
-        console.warn(`Retrying request ${error.config.url} (attempt ${error.config.retry}) after ${delay}ms`);
-        
-        return new Promise((resolve) => 
-          setTimeout(() => resolve(axiosInstance(error.config)), delay)
+      const duration = Date.now() - response.config.metadata.startTime;
+      if (import.meta.env.DEV) {
+        console.debug(
+          `✅ API Response: ${response.config.url} (${response.status}) took ${duration}ms`
         );
       }
     }
-    
-    // For other errors, add additional context if available
-    if (error.response) {
-      // Enhance error object with more context
-      error.apiError = {
-        url: error.config?.url,
-        method: error.config?.method,
-        status: error.response.status,
-        statusText: error.response.statusText,
-        data: error.response.data
-      };
+
+    return response;
+  },
+  async (error) => {
+    const { config } = error;
+    const requestKey = config?.metadata?.requestKey;
+    if (requestKey && pendingRequests.has(requestKey)) {
+      pendingRequests.delete(requestKey);
     }
-    
+
+    if (axios.isCancel(error)) {
+      return Promise.resolve({ data: null, cancelled: true });
+    }
+
+    // Handle 401 - try refresh if not login/refresh route
+    if (
+      error.response?.status === 401 &&
+      !config._retry &&
+      !isAuthRoute(config.url)
+    ) {
+      config._retry = true;
+      try {
+        const newToken = await refreshToken();
+        if (newToken) {
+          config.headers.Authorization = `Bearer ${newToken}`;
+          return axiosInstance(config);
+        }
+      } catch (refreshError) {
+        window.location.href = "/login";
+        removeAuthToken();
+      }
+    }
+
+    // For login/refresh failures → no retry, just reject
+    if (isAuthRoute(config?.url)) {
+      return Promise.reject(error);
+    }
+
+    // Retry logic for temporary server/network errors
+    if (!error.response || [502, 503, 504, 429].includes(error.response?.status)) {
+      const retryCount = config.metadata?.retryCount || 0;
+      if (retryCount < 2) {
+        config.metadata.retryCount = retryCount + 1;
+        const delay = Math.pow(2, retryCount) * 500;
+        return new Promise((resolve) =>
+          setTimeout(() => resolve(axiosInstance(config)), delay)
+        );
+      }
+    }
+
+    console.error("💥 API Error:", {
+      url: config?.url,
+      method: config?.method,
+      status: error.response?.status,
+      message: error.message,
+    });
+
     return Promise.reject(error);
   }
 );
 
-// Export with the same interface as original
-export const apiClient = {
-  get: (endpoint, config) => axiosInstance.get(endpoint, config),
-  post: (endpoint, data, config) => axiosInstance.post(endpoint, data, config),
-  put: (endpoint, data, config) => axiosInstance.put(endpoint, data, config),
-  delete: (endpoint, config) => axiosInstance.delete(endpoint, config),
-  
-  // Optional: Add additional utility methods
-  withTimeout: (timeout) => {
-    const instanceWithTimeout = axiosInstance.create();
-    instanceWithTimeout.defaults.timeout = timeout;
-    return instanceWithTimeout;
+export const isApiError = (error) => axios.isAxiosError(error);
+
+export const getErrorMessage = (
+  error,
+  defaultMessage = "An unexpected error occurred"
+) => {
+  if (!error) return defaultMessage;
+  if (axios.isAxiosError(error)) {
+    if (error.response?.data?.message) return error.response.data.message;
+    if (error.response?.status === 404) return "Resource not found";
+    if (error.response?.status === 500)
+      return "Internal server error. Please try again later.";
+    if (error.code === "NETWORK_ERROR" || !error.response)
+      return "Network error. Check your connection.";
   }
+  return error.message || defaultMessage;
 };
+
+export const apiClient = {
+  get: (endpoint, config = {}) => axiosInstance.get(endpoint, config),
+  post: (endpoint, data, config = {}) =>
+    axiosInstance.post(endpoint, data, config),
+  put: (endpoint, data, config = {}) =>
+    axiosInstance.put(endpoint, data, config),
+  patch: (endpoint, data, config = {}) =>
+    axiosInstance.patch(endpoint, data, config),
+  delete: (endpoint, config = {}) => axiosInstance.delete(endpoint, config),
+};
+
+export const cancelAllPendingRequests = (
+  message = "Component unmounted"
+) => {
+  pendingRequests.forEach((cancelSource) => {
+    cancelSource.cancel(message);
+  });
+  pendingRequests.clear();
+};
+
+export const getPendingRequestsCount = () => pendingRequests.size;
+
+export default axiosInstance;

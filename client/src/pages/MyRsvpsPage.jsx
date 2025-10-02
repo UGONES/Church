@@ -1,127 +1,211 @@
 import React, { useState, useEffect } from "react";
-import { apiClient } from "../utils/api";
 import Loader, { ContentLoader } from "../components/Loader";
-import { useAlert } from '../utils/Alert';
+import { useAlert } from "../utils/Alert";
+import useAuth from "../hooks/useAuth";
+import { eventService } from "../services/apiService";
 
-const MyRSVPsPage = ({ user }) => {
+const MyRSVPsPage = () => {
+  const { user, loading: authLoading } = useAuth();
   const alert = useAlert();
+
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [pastEvents, setPastEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const API_ENDPOINTS = {
-    UPCOMING_RSVPS: "/rsvps/upcoming",
-    PAST_RSVPS: "/rsvps/past",
-    CANCEL_RSVP: "/rsvps/cancel/",
-    ADD_TO_CALENDAR: "/calendar/add/",
-    EVENT_RECORDINGS: "/events/recordings/",
-    EVENT_MATERIALS: "/events/materials/",
-  };
-
   useEffect(() => {
-    document.title = "SMC: - RSVPs | St. Micheal`s & All Angels Church | Ifite-Awka";
-    
-    // Check if user is authenticated
-    if (!user) {
+    document.title =
+      "SMC: - RSVPs | St. Michael's & All Angels Church | Ifite-Awka";
+
+    if (!user || !user.id) {
       setLoading(false);
       return;
     }
-    
+
     fetchRSVPs();
   }, [user]);
 
-  const fetchRSVPs = async () => {
+ const fetchRSVPs = async () => {
     try {
       setLoading(true);
       setError(null);
+
       const [upcomingResponse, pastResponse] = await Promise.allSettled([
-        apiClient.get(API_ENDPOINTS.UPCOMING_RSVPS),
-        apiClient.get(API_ENDPOINTS.PAST_RSVPS)
+        eventService.getUserRsvps(),
+        eventService.getUserPastRsvps(),
       ]);
+
+      // Process upcoming events
       if (upcomingResponse.status === 'fulfilled') {
-        setUpcomingEvents(upcomingResponse.value || []);
+        const upcomingData = upcomingResponse.value.data || upcomingResponse.value;
+        const upcoming = (Array.isArray(upcomingData) ? upcomingData : [])
+          .filter(event => new Date(event.date || event.startTime) > new Date())
+          .map(event => ({
+            ...event,
+            id: event._id || event.id,
+            title: event.title || 'Untitled Event',
+            date: event.date || event.startTime,
+            location: event.location || 'TBA',
+            status: event.rsvpStatus || 'Confirmed',
+          }));
+        setUpcomingEvents(upcoming);
       } else {
         console.error("Error fetching upcoming events:", upcomingResponse.reason);
-        alert.error("Failed to load upcoming events.");
       }
+
+      // Process past events
       if (pastResponse.status === 'fulfilled') {
-        setPastEvents(pastResponse.value || []);
+        const pastData = pastResponse.value.data || pastResponse.value;
+        const past = (Array.isArray(pastData) ? pastData : [])
+          .filter(event => new Date(event.date || event.startTime) <= new Date())
+          .map(event => ({
+            ...event,
+            id: event._id || event.id,
+            title: event.title || 'Untitled Event',
+            date: event.date || event.startTime,
+            location: event.location || 'TBA',
+            attendanceStatus: event.attendanceStatus || 'Attended',
+            recordingAvailable: event.recordingUrl || false,
+            materialsAvailable: event.materialsUrl || false,
+          }));
+        setPastEvents(past);
       } else {
         console.error("Error fetching past events:", pastResponse.reason);
-        alert.error("Failed to load past events.");
+        // Fallback: filter upcoming events for past ones
+        if (upcomingResponse.status === 'fulfilled') {
+          const upcomingData = upcomingResponse.value.data || upcomingResponse.value;
+          const past = (Array.isArray(upcomingData) ? upcomingData : [])
+            .filter(event => new Date(event.date || event.startTime) <= new Date())
+            .map(event => ({
+              ...event,
+              id: event._id || event.id,
+              title: event.title || 'Untitled Event',
+              date: event.date || event.startTime,
+              location: event.location || 'TBA',
+              attendanceStatus: event.attendanceStatus || 'Attended',
+            }));
+          setPastEvents(past);
+        }
       }
-      if (upcomingResponse.status === 'rejected' && pastResponse.status === 'rejected') {
-        throw new Error("Failed to load events. Please check your connection.");
-      }
+
     } catch (err) {
       console.error("Error fetching RSVPs:", err);
-      setError(err.message || "Failed to load your events. Please try again.");
-      alert.error(err.message || "Failed to load your events. Please try again.");
+      const errorMsg = err.response?.data?.message || "Failed to load your events";
+      setError(errorMsg);
+      alert.error(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
+  // Fixed RSVP cancellation
   const handleCancelRSVP = async (eventId, eventTitle) => {
-    alert.info(`Are you sure you want to cancel your RSVP for "${eventTitle}"?`, {
-      confirm: async () => {
-        try {
-          setActionLoading(true);
-          const response = await apiClient.post(`${API_ENDPOINTS.CANCEL_RSVP}${eventId}`);
-          if (response.success) {
-            fetchRSVPs();
-            alert.success('RSVP cancelled successfully!');
-          } else {
-            throw new Error(response.message || "Failed to cancel RSVP");
-          }
-        } catch (err) {
-          console.error("Error canceling RSVP:", err);
-          setError(err.message || "Failed to cancel RSVP. Please try again.");
-          alert.error(err.message || "Failed to cancel RSVP. Please try again.");
-        } finally {
-          setActionLoading(false);
-        }
-      }
-    });
-  };
+    if (!window.confirm(`Are you sure you want to cancel your RSVP for "${eventTitle}"?`)) {
+      return;
+    }
 
-  const handleAddToCalendar = async (eventId, eventTitle) => {
     try {
       setActionLoading(true);
-      const response = await apiClient.post(`${API_ENDPOINTS.ADD_TO_CALENDAR}${eventId}`);
-      if (response.success) {
-        alert.success(`"${eventTitle}" has been added to your calendar successfully!`);
+      const response = await eventService.cancelRsvp(eventId);
+      
+      if (response.data?.success || response.success) {
+        await fetchRSVPs(); // Refresh the list
+        alert.success("RSVP cancelled successfully!");
       } else {
-        throw new Error(response.message || "Failed to add to calendar");
+        throw new Error(response.data?.message || "Failed to cancel RSVP");
       }
     } catch (err) {
-      console.error("Error adding to calendar:", err);
-      setError(err.message || "Failed to add event to calendar. Please try again.");
-      alert.error(err.message || "Failed to add event to calendar. Please try again.");
+      console.error("Error canceling RSVP:", err);
+      const errorMsg = err.response?.data?.message || "Failed to cancel RSVP";
+      setError(errorMsg);
+      alert.error(errorMsg);
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleViewRecording = async (eventId) => {
+  // Fixed calendar integration
+  const handleAddToCalendar = async (eventId, eventTitle) => {
     try {
-      window.open(`${API_ENDPOINTS.EVENT_RECORDINGS}${eventId}`, '_blank');
+      setActionLoading(true);
+      
+      // This would typically integrate with a calendar service
+      // For now, we'll create a simple .ics file download
+      const event = [...upcomingEvents, ...pastEvents].find(e => e.id === eventId);
+      if (event) {
+        const icsContent = generateICSEvent(event);
+        downloadICSFile(icsContent, eventTitle);
+        alert.success(`"${eventTitle}" added to your calendar!`);
+      }
     } catch (err) {
-      console.error("Error accessing recording:", err);
-      setError("Failed to access recording. Please try again.");
-      alert.error("Failed to access recording. Please try again.");
+      console.error("Error adding to calendar:", err);
+      alert.error("Failed to add event to calendar");
+    } finally {
+      setActionLoading(false);
     }
   };
 
+   // Helper function to generate ICS content
+  const generateICSEvent = (event) => {
+    const startDate = new Date(event.date || event.startTime).toISOString().replace(/-|:|\.\d+/g, '');
+    const endDate = new Date(new Date(event.date || event.startTime).getTime() + 2 * 60 * 60 * 1000) // 2 hours later
+      .toISOString().replace(/-|:|\.\d+/g, '');
+    
+    return [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      `DTSTART:${startDate}`,
+      `DTEND:${endDate}`,
+      `SUMMARY:${event.title}`,
+      `DESCRIPTION:${event.description || 'Church event'}`,
+      `LOCATION:${event.location || 'Church location'}`,
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\n');
+  };
+
+    // Helper function to download ICS file
+  const downloadICSFile = (content, filename) => {
+    const blob = new Blob([content], { type: 'text/calendar' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename.replace(/\s+/g, '_')}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
+  // Fixed recording access
+  const handleViewRecording = async (eventId) => {
+    try {
+      const event = pastEvents.find(e => e.id === eventId);
+      if (event?.recordingUrl) {
+        window.open(event.recordingUrl, '_blank');
+      } else {
+        alert.info("Recording not available for this event");
+      }
+    } catch (err) {
+      console.error("Error accessing recording:", err);
+      alert.error("Failed to access recording");
+    }
+  };
+
+  // Fixed materials download
   const handleDownloadMaterials = async (eventId) => {
     try {
-      window.open(`${API_ENDPOINTS.EVENT_MATERIALS}${eventId}`, '_blank');
+      const event = pastEvents.find(e => e.id === eventId);
+      if (event?.materialsUrl) {
+        window.open(event.materialsUrl, '_blank');
+      } else {
+        alert.info("Materials not available for this event");
+      }
     } catch (err) {
       console.error("Error downloading materials:", err);
-      setError("Failed to download materials. Please try again.");
-      alert.error("Failed to download materials. Please try again.");
+      alert.error("Failed to download materials");
     }
   };
 
@@ -129,30 +213,45 @@ const MyRSVPsPage = ({ user }) => {
     try {
       const date = new Date(dateString);
       return {
-        day: date.getDate().toString().padStart(2, '0'),
-        month: date.toLocaleString('default', { month: 'short' }).toUpperCase(),
-        time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        day: date.getDate().toString().padStart(2, "0"),
+        month: date.toLocaleString("default", { month: "short" }).toUpperCase(),
+        time: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        fullDate: date.toLocaleDateString("en-US", { 
+          year: "numeric", 
+          month: "short", 
+          day: "numeric" 
+        })
       };
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return {
-        day: '--',
-        month: '---',
-        time: '--:--'
-      };
+    } catch {
+      return { day: "--", month: "---", time: "--:--", fullDate: "Unknown date" };
     }
   };
 
-  // Show login prompt if user is not authenticated
-  if (!user) {
+  // Loading state
+  if (authLoading || loading) {
+    return (
+      <div className="page">
+        <div className="container mx-auto px-4 py-12">
+          <ContentLoader type="card" count={3} />
+        </div>
+      </div>
+    );
+  }
+
+  // Not logged in
+  if (!user || !user.id) {
     return (
       <div className="page">
         <div className="container mx-auto px-4 py-12">
           <div className="max-w-md mx-auto text-center">
             <div className="bg-white rounded-lg shadow-md p-8">
               <h2 className="text-2xl font-bold mb-4">Please Log In</h2>
-              <p className="text-gray-600 mb-6">You need to be logged in to view your RSVPs.</p>
-              <a href="/login" className="btn btn-primary">Log In</a>
+              <p className="text-gray-600 mb-6">
+                You need to be logged in to view your RSVPs.
+              </p>
+              <a href="/login" className="btn btn-primary">
+                Log In
+              </a>
             </div>
           </div>
         </div>
@@ -160,21 +259,7 @@ const MyRSVPsPage = ({ user }) => {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="page">
-        <div className="container mx-auto px-4 py-12">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6">My RSVPs & Events</h1>
-            <div className="space-y-8">
-              <ContentLoader type="card" count={3} />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  // Error state
   if (error) {
     return (
       <div className="page">
@@ -186,12 +271,12 @@ const MyRSVPsPage = ({ user }) => {
                 <h2 className="text-xl font-semibold text-red-800">Error Loading Events</h2>
               </div>
               <p className="text-red-600 mb-4">{error}</p>
-              <button 
+              <button
                 onClick={fetchRSVPs}
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
                 disabled={loading}
               >
-                {loading ? 'Loading...' : 'Try Again'}
+                {loading ? "Loading..." : "Try Again"}
               </button>
             </div>
           </div>
@@ -200,16 +285,16 @@ const MyRSVPsPage = ({ user }) => {
     );
   }
 
+  // Main page
   return (
     <div className="page">
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold mb-6">My RSVPs & Events</h1>
 
-          {/* Upcoming Events */}
+          {/* Upcoming */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-xl font-bold mb-4">Upcoming Events</h2>
-
             {upcomingEvents.length === 0 ? (
               <div className="text-center py-8">
                 <i className="fas fa-calendar-plus text-4xl text-gray-300 mb-3"></i>
@@ -230,21 +315,29 @@ const MyRSVPsPage = ({ user }) => {
                       <div className="flex flex-col md:flex-row">
                         <div className="md:w-1/4 bg-gray-100 flex items-center justify-center p-4 md:p-6">
                           <div className="text-center">
-                            <div className="text-2xl font-bold">{formattedDate.day}</div>
-                            <div className="text-sm text-gray-600">{formattedDate.month}</div>
-                            <div className="text-sm mt-2">{formattedDate.time}</div>
+                            <div className="text-2xl font-bold">
+                              {formattedDate.day}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {formattedDate.month}
+                            </div>
+                            <div className="text-sm mt-2">
+                              {formattedDate.time}
+                            </div>
                           </div>
                         </div>
                         <div className="md:w-3/4 p-4 md:p-6">
                           <div className="flex justify-between items-start mb-2">
                             <h3 className="font-bold text-lg">{event.title}</h3>
-                            <span className={`text-xs px-2 py-1 rounded ${
-                              event.status === 'Confirmed' 
-                                ? 'bg-green-100 text-green-800' 
-                                : event.status === 'Pending'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
+                            <span
+                              className={`text-xs px-2 py-1 rounded ${
+                                event.status === "confirmed" || event.status === "Comfirmed"
+                                  ? "bg-green-100 text-green-800"
+                                  : event.status === "Pending"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
                               {event.status || "Confirmed"}
                             </span>
                           </div>
@@ -279,14 +372,15 @@ const MyRSVPsPage = ({ user }) => {
             )}
           </div>
 
-          {/* Past Events */}
+          {/* Past */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold mb-4">Past Events</h2>
-
             {pastEvents.length === 0 ? (
               <div className="text-center py-8">
                 <i className="fas fa-history text-4xl text-gray-300 mb-3"></i>
-                <p className="text-gray-500">You haven't attended any events yet.</p>
+                <p className="text-gray-500">
+                  You haven't attended any events yet.
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -297,38 +391,55 @@ const MyRSVPsPage = ({ user }) => {
                       <div className="flex flex-col md:flex-row">
                         <div className="md:w-1/4 bg-gray-100 flex items-center justify-center p-4 md:p-6">
                           <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-500">{formattedDate.day}</div>
-                            <div className="text-sm text-gray-500">{formattedDate.month}</div>
-                            <div className="text-sm mt-2 text-gray-500">{formattedDate.time}</div>
+                            <div className="text-2xl font-bold text-gray-500">
+                              {formattedDate.day}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {formattedDate.month}
+                            </div>
+                            <div className="text-sm mt-2 text-gray-500">
+                              {formattedDate.time}
+                            </div>
                           </div>
                         </div>
                         <div className="md:w-3/4 p-4 md:p-6">
                           <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-bold text-lg text-gray-700">{event.title}</h3>
+                            <h3 className="font-bold text-lg text-gray-700">
+                              {event.title}
+                            </h3>
                             <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">
                               {event.attendanceStatus || "Attended"}
                             </span>
                           </div>
-                          <p className="text-gray-500 mb-4">{event.description}</p>
+                          <p className="text-gray-500 mb-4">
+                            {event.description}
+                          </p>
                           <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-3 md:space-y-0">
                             <div className="text-sm text-gray-500">
-                              <i className="fas fa-map-marker-alt mr-1"></i> {event.location || 'Unknown location'}
+                              <i className="fas fa-map-marker-alt mr-1"></i>
+                               {event.location || 'Unknown location'}
                             </div>
                             <div className="flex space-x-3">
                               {event.recordingAvailable && (
                                 <button
-                                  onClick={() => handleViewRecording(event.id || event._id)}
+                                  onClick={() =>
+                                    handleViewRecording(event.id || event._id)
+                                  }
                                   className="text-[#FF7E45] hover:text-[#F4B942] text-sm inline-flex items-center"
                                 >
-                                  <i className="fas fa-play-circle mr-1"></i> Watch Recording
+                                  <i className="fas fa-play-circle mr-1"></i>{" "}
+                                  Watch Recording
                                 </button>
                               )}
                               {event.materialsAvailable && (
                                 <button
-                                  onClick={() => handleDownloadMaterials(event.id || event._id)}
+                                  onClick={() =>
+                                    handleDownloadMaterials(event.id || event._id)
+                                  }
                                   className="text-[#FF7E45] hover:text-[#F4B942] text-sm inline-flex items-center"
                                 >
-                                  <i className="fas fa-download mr-1"></i> Materials
+                                  <i className="fas fa-download mr-1"></i>{" "}
+                                  Materials
                                 </button>
                               )}
                             </div>
@@ -340,26 +451,18 @@ const MyRSVPsPage = ({ user }) => {
                 })}
               </div>
             )}
-
-            {/* View More Button - Only show if there are more past events */}
-            {pastEvents.length > 5 && (
-              <div className="mt-6 text-center">
-                <button 
-                  className="btn btn-outline"
-                  onClick={() => {/* Implement pagination or view more logic */}}
-                >
-                  View More Past Events
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
-      
-      {/* Global loader for actions */}
+
       {actionLoading && (
         <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
-          <Loader type="spinner" size="medium" color="#FF7E45" text="Processing..." />
+          <Loader
+           type="spinner" 
+           size="medium" 
+           color="#FF7E45" 
+           text="Processing..." 
+          />
         </div>
       )}
     </div>

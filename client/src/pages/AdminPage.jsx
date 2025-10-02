@@ -1,12 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiClient } from '../utils/api';
+import {
+  adminService,
+  userService,
+  eventService,
+  sermonService,
+  donationService,
+  testimonialService,
+  prayerService,
+  blogService,
+  utilityService
+} from '../services/apiService';
 import Loader from '../components/Loader';
 import { useAlert } from '../utils/Alert';
 import { useForm } from '../hooks/useForm';
-import  useAuth  from '../hooks/useAuth';
-import { ADMIN_ENDPOINTS } from '../constants/API';
-import { useAdmin } from '../hooks/useAdmin'; // Import your useAdmin hook
+import useAuth from '../hooks/useAuth';
 
 /*====================================== Reusable Components ======================================*/
 
@@ -85,15 +93,15 @@ const DataTable = ({ columns, data, onEdit, onDelete, emptyMessage, actions = tr
                 ))}
                 {actions && (
                   <td className="py-3 px-4">
-                    <button 
-                      onClick={() => onEdit(item)} 
+                    <button
+                      onClick={() => onEdit(item)}
                       className="text-gray-500 hover:text-[#FF7E45] mr-2"
                       aria-label={`Edit ${item.title || item.name}`}
                     >
                       <i className="fas fa-edit"></i>
                     </button>
-                    <button 
-                      onClick={() => onDelete(item)} 
+                    <button
+                      onClick={() => onDelete(item)}
                       className="text-gray-500 hover:text-red-500"
                       aria-label={`Delete ${item.title || item.name}`}
                     >
@@ -128,7 +136,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div 
+      <div
         className={`bg-white rounded-lg w-full ${sizeClasses[size]} max-h-[90vh] overflow-y-auto`}
         role="dialog"
         aria-modal="true"
@@ -136,7 +144,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
       >
         <div className="flex justify-between items-center p-6 border-b">
           <h2 id="modal-title" className="text-xl font-bold">{title}</h2>
-          <button 
+          <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
             aria-label="Close modal"
@@ -211,7 +219,7 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
@@ -235,9 +243,9 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
   };
 
   const userColumns = [
-    { 
-      key: 'user', 
-      title: 'User', 
+    {
+      key: 'user',
+      title: 'User',
       render: (user) => (
         <div className="flex items-center">
           <div className="h-10 w-10 flex-shrink-0 bg-gray-300 rounded-full flex items-center justify-center">
@@ -251,31 +259,29 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
       )
     },
     { key: 'email', title: 'Email' },
-    { 
-      key: 'role', 
-      title: 'Role', 
+    {
+      key: 'role',
+      title: 'Role',
       render: (user) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-          user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+        <span className={`px-2 py-1 text-xs font-medium rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
           user.role === 'moderator' ? 'bg-blue-100 text-blue-800' :
-          user.role === 'staff' ? 'bg-green-100 text-green-800' :
-          'bg-gray-100 text-gray-800'
-        }`}>
+            user.role === 'staff' ? 'bg-green-100 text-green-800' :
+              'bg-gray-100 text-gray-800'
+          }`}>
           {user.role}
         </span>
       )
     },
-    { 
-      key: 'status', 
-      title: 'Status', 
+    {
+      key: 'status',
+      title: 'Status',
       render: (user) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-          user.status === 'active' 
-            ? 'bg-green-100 text-green-800' 
-            : user.status === 'inactive'
+        <span className={`px-2 py-1 text-xs font-medium rounded-full ${user.status === 'active'
+          ? 'bg-green-100 text-green-800'
+          : user.status === 'inactive'
             ? 'bg-yellow-100 text-yellow-800'
             : 'bg-red-100 text-red-800'
-        }`}>
+          }`}>
           {user.status}
         </span>
       )
@@ -343,13 +349,13 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
       </div>
 
       {/* Create/Edit User Modal */}
-      <Modal 
-        isOpen={showCreateModal} 
+      <Modal
+        isOpen={showCreateModal}
         onClose={() => {
           setShowCreateModal(false);
           setSelectedUser(null);
           resetForm();
-        }} 
+        }}
         title={selectedUser ? 'Edit User' : 'Create New User'}
         size="lg"
       >
@@ -458,13 +464,13 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => {
                 setShowCreateModal(false);
                 setSelectedUser(null);
                 resetForm();
-              }} 
+              }}
               className="btn btn-outline"
             >
               Cancel
@@ -538,7 +544,7 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
     fetchCategories();
   }, []);
 
-  const filteredMinistries = ministries.filter(ministry => {  
+  const filteredMinistries = ministries.filter(ministry => {
     const matchesSearch = ministry.name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || ministry.status === statusFilter;
     const matchesCategory = categoryFilter === 'all' || ministry.category === categoryFilter;
@@ -582,7 +588,7 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
   };
 
   const ministryColumns = [
-    { 
+    {
       key: 'name',
       title: 'Ministry Name',
       render: (ministry) => (
@@ -593,38 +599,37 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
           <div className="ml-4">
             <div className="text-sm font-medium text-gray-900">{ministry.name}</div>
             <div className="text-sm text-gray-500">Created: {new Date(ministry.createdAt).toLocaleDateString()}</div>
-          </div>        
+          </div>
         </div>
-      ) 
+      )
     },
-    { 
-      key: 'leader', 
-      title: 'Leader', 
+    {
+      key: 'leader',
+      title: 'Leader',
       render: (ministry) => {
         const leaderUser = users.find(u => u._id === ministry.leader);
         return leaderUser ? leaderUser.name : 'Not assigned';
       }
-    }, 
+    },
     { key: 'category', title: 'Category' },
-    { 
-      key: 'status', 
-      title: 'Status', 
+    {
+      key: 'status',
+      title: 'Status',
       render: (ministry) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-          ministry.status === 'active' 
-            ? 'bg-green-100 text-green-800' 
-            : ministry.status === 'inactive'
+        <span className={`px-2 py-1 text-xs font-medium rounded-full ${ministry.status === 'active'
+          ? 'bg-green-100 text-green-800'
+          : ministry.status === 'inactive'
             ? 'bg-yellow-100 text-yellow-800'
             : 'bg-red-100 text-red-800'
-        }`}>
+          }`}>
           {ministry.status}
         </span>
       )
-    },  
+    },
   ];
 
   // Filter users who can be leaders (staff, moderators, admins)
-  const potentialLeaders = users.filter(user => 
+  const potentialLeaders = users.filter(user =>
     ['admin', 'moderator', 'staff', 'volunteer'].includes(user.role) && user.status === 'active'
   );
 
@@ -633,14 +638,14 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <h2 className="text-2xl font-bold">Ministries Management</h2>
         <div className="flex flex-wrap gap-2">
-          <input  
+          <input
             type="text"
-            placeholder="Search ministries..."  
+            placeholder="Search ministries..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="form-input flex-1 min-w-[200px]"
           />
-          <select 
+          <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
             className="form-input"
@@ -653,7 +658,7 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="form-input"  
+            className="form-input"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -665,17 +670,17 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
               setSelectedMinistry(null);
               resetForm();
               setShowCreateModal(true);
-            }}    
+            }}
             className="btn btn-primary"
           >
             <i className="fas fa-plus mr-2"></i> New Ministry
           </button>
         </div>
-      </div>    
-      
+      </div>
+
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <DataTable
-          columns={ministryColumns}     
+          columns={ministryColumns}
           data={filteredMinistries}
           onEdit={(ministry) => {
             setSelectedMinistry(ministry);
@@ -687,13 +692,13 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
       </div>
 
       {/* Create/Edit Ministry Modal */}
-      <Modal 
-        isOpen={showCreateModal} 
+      <Modal
+        isOpen={showCreateModal}
         onClose={() => {
           setShowCreateModal(false);
           setSelectedMinistry(null);
           resetForm();
-        }} 
+        }}
         title={selectedMinistry ? 'Edit Ministry' : 'Create New Ministry'}
         size="lg"
       >
@@ -890,13 +895,13 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => {
                 setShowCreateModal(false);
                 setSelectedMinistry(null);
                 resetForm();
-              }} 
+              }}
               className="btn btn-outline"
             >
               Cancel
@@ -908,7 +913,7 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
         </form>
       </Modal>
     </div>
-  );    
+  );
 };
 
 // Testimonials Management Component
@@ -945,11 +950,11 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
     }
   }, [selectedTestimonial, setValues]);
 
-  const filteredTestimonials = testimonials.filter(testimonial => {  
+  const filteredTestimonials = testimonials.filter(testimonial => {
     const matchesSearch = testimonial.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         testimonial.content?.toLowerCase().includes(searchTerm.toLowerCase());
+      testimonial.content?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || testimonial.status === statusFilter;
-    return matchesSearch && matchesStatus;  
+    return matchesSearch && matchesStatus;
   });
 
   const handleSubmit = async (e) => {
@@ -970,8 +975,8 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
   };
 
   const testimonialColumns = [
-    { 
-      key: 'author',    
+    {
+      key: 'author',
       title: 'Author',
       render: (testimonial) => (
         <div className="flex items-center">
@@ -981,29 +986,28 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
           <div className="ml-4">
             <div className="text-sm font-medium text-gray-900">{testimonial.author}</div>
             <div className="text-sm text-gray-500">Created: {new Date(testimonial.createdAt).toLocaleDateString()}</div>
-          </div>        
+          </div>
         </div>
       )
     },
-    { 
-      key: 'content', 
-      title: 'Content', 
+    {
+      key: 'content',
+      title: 'Content',
       render: (testimonial) => (
         <p className="text-sm text-gray-700 line-clamp-2">{testimonial.content}</p>
-      )   
+      )
     },
     {
-      key: 'status',  
+      key: 'status',
       title: 'Status',
       render: (testimonial) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${ 
-          testimonial.status === 'published'  
-            ? 'bg-green-100 text-green-800'
-            : testimonial.status === 'pending'
+        <span className={`px-2 py-1 text-xs font-medium rounded-full ${testimonial.status === 'published'
+          ? 'bg-green-100 text-green-800'
+          : testimonial.status === 'pending'
             ? 'bg-yellow-100 text-yellow-800'
             : 'bg-red-100 text-red-800'
-        }`}>
-          {testimonial.status}    
+          }`}>
+          {testimonial.status}
         </span>
       )
     },
@@ -1011,71 +1015,70 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
       key: 'featured',
       title: 'Featured',
       render: (testimonial) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-          testimonial.featured ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-        }`}>
+        <span className={`px-2 py-1 text-xs font-medium rounded-full ${testimonial.featured ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+          }`}>
           {testimonial.featured ? 'Yes' : 'No'}
         </span>
       )
     }
-  ];  
+  ];
 
   return (
-    <div>   
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">      
+    <div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <h2 className="text-2xl font-bold">Testimonials Management</h2>
-        <div className="flex flex-wrap gap-2">      
+        <div className="flex flex-wrap gap-2">
           <input
             type="text"
-            placeholder="Search testimonials..."    
+            placeholder="Search testimonials..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="form-input flex-1 min-w-[200px]"
-          />      
+          />
           <select
-            value={statusFilter}    
+            value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="form-input"  
-          >    
-            <option value="all">All Status</option> 
+            className="form-input"
+          >
+            <option value="all">All Status</option>
             <option value="published">Published</option>
-            <option value="pending">Pending</option>    
+            <option value="pending">Pending</option>
             <option value="rejected">Rejected</option>
-          </select>   
+          </select>
           <button
             onClick={() => {
               setSelectedTestimonial(null);
               resetForm();
               setShowCreateModal(true);
-            }}    
+            }}
             className="btn btn-primary"
           >
             <i className="fas fa-plus mr-2"></i> New Testimonial
-          </button>       
+          </button>
         </div>
       </div>
-      
+
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <DataTable  
+        <DataTable
           columns={testimonialColumns}
           data={filteredTestimonials}
           onEdit={(testimonial) => {
             setSelectedTestimonial(testimonial);
             setShowCreateModal(true);
-          }}      
+          }}
           onDelete={(testimonial) => onDeleteTestimonial(testimonial._id)}
           emptyMessage="No testimonials found matching your criteria"
         />
-      </div>      
+      </div>
 
       {/* Create/Edit Testimonial Modal */}
-      <Modal 
-        isOpen={showCreateModal} 
+      <Modal
+        isOpen={showCreateModal}
         onClose={() => {
           setShowCreateModal(false);
           setSelectedTestimonial(null);
           resetForm();
-        }} 
+        }}
         title={selectedTestimonial ? 'Edit Testimonial' : 'Create New Testimonial'}
         size="lg"
       >
@@ -1190,13 +1193,13 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => {
                 setShowCreateModal(false);
                 setSelectedTestimonial(null);
                 resetForm();
-              }} 
+              }}
               className="btn btn-outline"
             >
               Cancel
@@ -1207,9 +1210,9 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
           </div>
         </form>
       </Modal>
-    </div>  
-  );  
-};    
+    </div>
+  );
+};
 
 // Blog Management Component
 const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => {
@@ -1267,12 +1270,12 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
         console.error('Error fetching blog categories:', error);
       }
     };
-    
+
     // Fetch potential authors (users with appropriate roles)
     const fetchAuthors = async () => {
       try {
         const response = await apiClient.get(API_ENDPOINTS.USERS.BASE);
-        const authorUsers = response.users.filter(user => 
+        const authorUsers = response.users.filter(user =>
           ['admin', 'moderator', 'staff'].includes(user.role) && user.status === 'active'
         );
         setAuthors(authorUsers);
@@ -1280,14 +1283,14 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
         console.error('Error fetching authors:', error);
       }
     };
-    
+
     fetchCategories();
     fetchAuthors();
   }, []);
 
   const filteredPosts = posts.filter(post => {
     const matchesSearch = post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         post.content?.toLowerCase().includes(searchTerm.toLowerCase());
+      post.content?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || post.status === statusFilter;
     const matchesCategory = categoryFilter === 'all' || post.category === categoryFilter;
     const matchesAuthor = authorFilter === 'all' || post.author === authorFilter;
@@ -1340,20 +1343,19 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
           <div className="text-sm text-gray-500">By {post.authorName} on {new Date(post.publishedAt || post.createdAt).toLocaleDateString()}</div>
         </div>
       )
-    },  
+    },
     { key: 'category', title: 'Category' },
     {
       key: 'status',
-      title: 'Status',    
+      title: 'Status',
       render: (post) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${ 
-          post.status === 'published'
-            ? 'bg-green-100 text-green-800'
-            : post.status === 'draft'   
+        <span className={`px-2 py-1 text-xs font-medium rounded-full ${post.status === 'published'
+          ? 'bg-green-100 text-green-800'
+          : post.status === 'draft'
             ? 'bg-yellow-100 text-yellow-800'
             : 'bg-red-100 text-red-800'
-        }`}>
-          {post.status}   
+          }`}>
+          {post.status}
         </span>
       )
     },
@@ -1361,9 +1363,8 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
       key: 'featured',
       title: 'Featured',
       render: (post) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-          post.featured ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-        }`}>
+        <span className={`px-2 py-1 text-xs font-medium rounded-full ${post.featured ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+          }`}>
           {post.featured ? 'Yes' : 'No'}
         </span>
       )
@@ -1375,7 +1376,7 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <h2 className="text-2xl font-bold">Blog Management</h2>
         <div className="flex flex-wrap gap-2">
-          <input  
+          <input
             type="text"
             placeholder="Search posts..."
             value={searchTerm}
@@ -1385,9 +1386,9 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="form-input"  
+            className="form-input"
           >
-            <option value="all">All Categories</option>     
+            <option value="all">All Categories</option>
             {blogCategories.map(category => (
               <option key={category} value={category}>{category}</option>
             ))}
@@ -1395,19 +1396,19 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="form-input"  
+            className="form-input"
           >
-            <option value="all">All Status</option>     
+            <option value="all">All Status</option>
             <option value="published">Published</option>
-            <option value="draft">Draft</option>    
+            <option value="draft">Draft</option>
             <option value="archived">Archived</option>
           </select>
           <select
             value={authorFilter}
             onChange={(e) => setAuthorFilter(e.target.value)}
-            className="form-input"  
+            className="form-input"
           >
-            <option value="all">All Authors</option>     
+            <option value="all">All Authors</option>
             {authors.map(author => (
               <option key={author._id} value={author._id}>{author.name}</option>
             ))}
@@ -1419,33 +1420,33 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
               setShowCreateModal(true);
             }}
             className="btn btn-primary"
-          >   
+          >
             <i className="fas fa-plus mr-2"></i> New Post
-          </button>   
+          </button>
         </div>
-      </div>  
-      
+      </div>
+
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <DataTable      
+        <DataTable
           columns={postColumns}
           data={filteredPosts}
           onEdit={(post) => {
             setSelectedPost(post);
             setShowCreateModal(true);
-          }}      
+          }}
           onDelete={(post) => onDeletePost(post._id)}
-          emptyMessage="No blog posts found matching your criteria"   
+          emptyMessage="No blog posts found matching your criteria"
         />
-      </div>  
+      </div>
 
       {/* Create/Edit Blog Post Modal */}
-      <Modal 
-        isOpen={showCreateModal} 
+      <Modal
+        isOpen={showCreateModal}
         onClose={() => {
           setShowCreateModal(false);
           setSelectedPost(null);
           resetForm();
-        }} 
+        }}
         title={selectedPost ? 'Edit Blog Post' : 'Create New Blog Post'}
         size="xl"
       >
@@ -1630,13 +1631,13 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => {
                 setShowCreateModal(false);
                 setSelectedPost(null);
                 resetForm();
-              }} 
+              }}
               className="btn btn-outline"
             >
               Cancel
@@ -1647,7 +1648,7 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
           </div>
         </form>
       </Modal>
-    </div>  
+    </div>
   );
 };
 
@@ -1660,7 +1661,7 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
   const filteredDonations = donations.filter(donation => {
     const matchesStatus = statusFilter === 'all' || donation.status === statusFilter;
     const matchesMethod = methodFilter === 'all' || donation.paymentMethod === methodFilter;
-    
+
     let matchesDate = true;
     if (dateFilter === 'today') {
       const today = new Date().toDateString();
@@ -1678,7 +1679,7 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
       yearAgo.setFullYear(yearAgo.getFullYear() - 1);
       matchesDate = new Date(donation.createdAt) >= yearAgo;
     }
-    
+
     return matchesStatus && matchesMethod && matchesDate;
   });
 
@@ -1690,9 +1691,9 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
   };
 
   const donationColumns = [
-    { 
-      key: 'donor', 
-      title: 'Donor', 
+    {
+      key: 'donor',
+      title: 'Donor',
       render: (donation) => (
         <div>
           <div className="text-sm font-medium text-gray-900">{donation.donorName || 'Anonymous'}</div>
@@ -1700,29 +1701,29 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
         </div>
       )
     },
-    { 
-      key: 'amount', 
-      title: 'Amount', 
+    {
+      key: 'amount',
+      title: 'Amount',
       render: (donation) => formatCurrency(donation.amount)
     },
-    { 
-      key: 'date', 
-      title: 'Date', 
+    {
+      key: 'date',
+      title: 'Date',
       render: (donation) => new Date(donation.createdAt).toLocaleDateString()
     },
-    { 
-      key: 'method', 
-      title: 'Method', 
+    {
+      key: 'method',
+      title: 'Method',
       render: (donation) => donation.paymentMethod ? donation.paymentMethod.charAt(0).toUpperCase() + donation.paymentMethod.slice(1) : 'Unknown'
     },
-    { 
-      key: 'type', 
-      title: 'Type', 
+    {
+      key: 'type',
+      title: 'Type',
       render: (donation) => donation.recurring ? 'Recurring' : 'One-time'
     },
-    { 
-      key: 'status', 
-      title: 'Status', 
+    {
+      key: 'status',
+      title: 'Status',
       render: (donation) => (
         <select
           value={donation.status}
@@ -1804,8 +1805,8 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
         <DataTable
           columns={donationColumns}
           data={filteredDonations}
-          onEdit={() => {}}
-          onDelete={() => {}}
+          onEdit={() => { }}
+          onDelete={() => { }}
           emptyMessage="No donations found matching your criteria"
         />
       </div>
@@ -1822,16 +1823,16 @@ const PrayerRequestsManagement = ({ prayerRequests, onUpdatePrayerRequest, onDel
   const filteredPrayerRequests = prayerRequests.filter(request => {
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
     const matchesCategory = categoryFilter === 'all' || request.category === categoryFilter;
-    const matchesPrivacy = privacyFilter === 'all' || 
-      (privacyFilter === 'public' && request.isPublic) || 
+    const matchesPrivacy = privacyFilter === 'all' ||
+      (privacyFilter === 'public' && request.isPublic) ||
       (privacyFilter === 'private' && !request.isPublic);
     return matchesStatus && matchesCategory && matchesPrivacy;
   });
 
   const prayerColumns = [
-    { 
-      key: 'name', 
-      title: 'Name', 
+    {
+      key: 'name',
+      title: 'Name',
       render: (request) => (
         <div>
           <div className="text-sm font-medium text-gray-900">{request.name || 'Anonymous'}</div>
@@ -1839,29 +1840,28 @@ const PrayerRequestsManagement = ({ prayerRequests, onUpdatePrayerRequest, onDel
         </div>
       )
     },
-    { 
-      key: 'request', 
-      title: 'Request', 
+    {
+      key: 'request',
+      title: 'Request',
       render: (request) => (
         <div className="text-sm text-gray-900 line-clamp-2">{request.request}</div>
       )
     },
     { key: 'category', title: 'Category' },
-    { 
-      key: 'privacy', 
-      title: 'Privacy', 
+    {
+      key: 'privacy',
+      title: 'Privacy',
       render: (request) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-          request.isPublic ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-        }`}>
+        <span className={`px-2 py-1 text-xs font-medium rounded-full ${request.isPublic ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+          }`}>
           {request.isPublic ? 'Public' : 'Private'}
         </span>
       )
     },
     { key: 'prayerCount', title: 'Prayers' },
-    { 
-      key: 'status', 
-      title: 'Status', 
+    {
+      key: 'status',
+      title: 'Status',
       render: (request) => (
         <select
           value={request.status}
@@ -1922,7 +1922,7 @@ const PrayerRequestsManagement = ({ prayerRequests, onUpdatePrayerRequest, onDel
         <DataTable
           columns={prayerColumns}
           data={filteredPrayerRequests}
-          onEdit={() => {}}
+          onEdit={() => { }}
           onDelete={(request) => onDeletePrayerRequest(request._id)}
           emptyMessage="No prayer requests found matching your criteria"
         />
@@ -2002,7 +2002,7 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
   if (!isOpen) return null;
 
   // Filter users who can be leaders (staff, moderators, admins, volunteers)
-  const potentialLeaders = users.filter(user => 
+  const potentialLeaders = users.filter(user =>
     ['admin', 'moderator', 'staff', 'volunteer'].includes(user.role) && user.status === 'active'
   );
 
@@ -2286,7 +2286,7 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
   if (!isOpen) return null;
 
   // Filter users who can be speakers (staff, moderators, admins, volunteers)
-  const potentialSpeakers = users.filter(user => 
+  const potentialSpeakers = users.filter(user =>
     ['admin', 'moderator', 'staff', 'volunteer'].includes(user.role) && user.status === 'active'
   );
 
@@ -2432,7 +2432,7 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
 
         <div className="border-t pt-4">
           <h3 className="font-medium mb-3">Media Options</h3>
-          
+
           <div className="flex items-center mb-3">
             <input
               type="checkbox"
@@ -2540,14 +2540,14 @@ const LiveStreamControl = ({ isLive, onStartLive, onStopLive, liveStats }) => {
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
       <h3 className="text-xl font-bold mb-4">Live Stream Control</h3>
-      
+
       {isLive ? (
         <div className="space-y-4">
           <div className="flex items-center">
             <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></div>
             <span className="font-medium text-red-600">Live Stream Active</span>
           </div>
-          
+
           {liveStats && (
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
@@ -2560,14 +2560,14 @@ const LiveStreamControl = ({ isLive, onStartLive, onStopLive, liveStats }) => {
               </div>
             </div>
           )}
-          
+
           <button
             onClick={onStopLive}
             className="btn btn-danger"
           >
             <i className="fas fa-stop mr-2"></i> End Live Stream
           </button>
-          
+
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-sm text-blue-700">
               <i className="fas fa-info-circle mr-1"></i>
@@ -2581,14 +2581,14 @@ const LiveStreamControl = ({ isLive, onStartLive, onStopLive, liveStats }) => {
             <div className="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
             <span className="font-medium text-gray-600">No Active Live Stream</span>
           </div>
-          
+
           <button
             onClick={onStartLive}
             className="btn btn-primary"
           >
             <i className="fas fa-broadcast-tower mr-2"></i> Start Live Stream
           </button>
-          
+
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
             <p className="text-sm text-yellow-700">
               <i className="fas fa-exclamation-triangle mr-1"></i>
@@ -3016,7 +3016,7 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               <input
                 type="text"
                 value={values.emailSettings.auth?.user || ''}
-                onChange={(e) => updateEmailSettings('auth', {...values.emailSettings.auth, user: e.target.value})}
+                onChange={(e) => updateEmailSettings('auth', { ...values.emailSettings.auth, user: e.target.value })}
                 className="form-input"
               />
             </div>
@@ -3025,7 +3025,7 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               <input
                 type="password"
                 value={values.emailSettings.auth?.pass || ''}
-                onChange={(e) => updateEmailSettings('auth', {...values.emailSettings.auth, pass: e.target.value})}
+                onChange={(e) => updateEmailSettings('auth', { ...values.emailSettings.auth, pass: e.target.value })}
                 className="form-input"
               />
             </div>
@@ -3040,189 +3040,189 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               <label htmlFor="secureSMTP" className="ml-2 text-sm font-medium">
                 Use SSL/TLS
               </label>
-              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Module Settings */}
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Module Settings</h3>
+
+          {/* Sermon Settings */}
+          <div className="mb-4">
+            <h4 className="font-medium mb-2">Sermon Settings</h4>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={values.sermonSettings.autoPublish || false}
+                onChange={(e) => updateSermonSettings('autoPublish', e.target.checked)}
+                className="form-checkbox h-4 w-4 text-[#FF7E45]"
+                id="autoPublishSermons"
+              />
+              <label htmlFor="autoPublishSermons" className="ml-2 text-sm font-medium">
+                Auto-publish new sermons
+              </label>
             </div>
           </div>
 
-          {/* Module Settings */}
+          {/* Blog Settings */}
+          <div className="mb-4">
+            <h4 className="font-medium mb-2">Blog Settings</h4>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={values.blogSettings.enableComments || false}
+                onChange={(e) => updateBlogSettings('enableComments', e.target.checked)}
+                className="form-checkbox h-4 w-4 text-[#FF7E45]"
+                id="enableBlogComments"
+              />
+              <label htmlFor="enableBlogComments" className="ml-2 text-sm font-medium">
+                Enable blog comments
+              </label>
+            </div>
+            <div className="flex items-center mt-2">
+              <input
+                type="checkbox"
+                checked={values.blogSettings.requireApproval || false}
+                onChange={(e) => updateBlogSettings('requireApproval', e.target.checked)}
+                className="form-checkbox h-4 w-4 text-[#FF7E45]"
+                id="requireBlogApproval"
+              />
+              <label htmlFor="requireBlogApproval" className="ml-2 text-sm font-medium">
+                Require blog post approval
+              </label>
+            </div>
+          </div>
+
+          {/* Ministry Settings */}
+          <div className="mb-4">
+            <h4 className="font-medium mb-2">Ministry Settings</h4>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={values.ministrySettings.enableVolunteerSignup || false}
+                onChange={(e) => updateMinistrySettings('enableVolunteerSignup', e.target.checked)}
+                className="form-checkbox h-4 w-4 text-[#FF7E45]"
+                id="enableVolunteerSignup"
+              />
+              <label htmlFor="enableVolunteerSignup" className="ml-2 text-sm font-medium">
+                Enable volunteer signup
+              </label>
+            </div>
+            <div className="flex items-center mt-2">
+              <input
+                type="checkbox"
+                checked={values.ministrySettings.showLeaders || true}
+                onChange={(e) => updateMinistrySettings('showLeaders', e.target.checked)}
+                className="form-checkbox h-4 w-4 text-[#FF7E45]"
+                id="showMinistryLeaders"
+              />
+              <label htmlFor="showMinistryLeaders" className="ml-2 text-sm font-medium">
+                Show ministry leaders publicly
+              </label>
+            </div>
+          </div>
+
+          {/* Event Settings */}
+          <div className="mb-4">
+            <h4 className="font-medium mb-2">Event Settings</h4>
+            <div className="flex items-center mb-2">
+              <input
+                type="checkbox"
+                checked={values.eventSettings.requireApproval || false}
+                onChange={(e) => updateEventSettings('requireApproval', e.target.checked)}
+                className="form-checkbox h-4 w-4 text-[#FF7E45]"
+                id="requireEventApproval"
+              />
+              <label htmlFor="requireEventApproval" className="ml-2 text-sm font-medium">
+                Require event approval
+              </label>
+            </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={values.eventSettings.allowPublicRSVP || true}
+                onChange={(e) => updateEventSettings('allowPublicRSVP', e.target.checked)}
+                className="form-checkbox h-4 w-4 text-[#FF7E45]"
+                id="allowPublicRSVP"
+              />
+              <label htmlFor="allowPublicRSVP" className="ml-2 text-sm font-medium">
+                Allow public RSVP
+              </label>
+            </div>
+          </div>
+
+          {/* Prayer Request Settings */}
+          <div className="mb-4">
+            <h4 className="font-medium mb-2">Prayer Request Settings</h4>
+            <div className="flex items-center mb-2">
+              <input
+                type="checkbox"
+                checked={values.prayerRequestSettings.requireApproval || true}
+                onChange={(e) => updatePrayerRequestSettings('requireApproval', e.target.checked)}
+                className="form-checkbox h-4 w-4 text-[#FF7E45]"
+                id="requirePrayerApproval"
+              />
+              <label htmlFor="requirePrayerApproval" className="ml-2 text-sm font-medium">
+                Require prayer request approval
+              </label>
+            </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={values.prayerRequestSettings.allowAnonymous || true}
+                onChange={(e) => updatePrayerRequestSettings('allowAnonymous', e.target.checked)}
+                className="form-checkbox h-4 w-4 text-[#FF7E45]"
+                id="allowAnonymousPrayer"
+              />
+              <label htmlFor="allowAnonymousPrayer" className="ml-2 text-sm font-medium">
+                Allow anonymous prayer requests
+              </label>
+            </div>
+          </div>
+
+          {/* Testimonial Settings */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Module Settings</h3>
-            
-            {/* Sermon Settings */}
-            <div className="mb-4">
-              <h4 className="font-medium mb-2">Sermon Settings</h4>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={values.sermonSettings.autoPublish || false}
-                  onChange={(e) => updateSermonSettings('autoPublish', e.target.checked)}
-                  className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                  id="autoPublishSermons"
-                />
-                <label htmlFor="autoPublishSermons" className="ml-2 text-sm font-medium">
-                  Auto-publish new sermons
-                </label>
-              </div>
+            <h4 className="font-medium mb-2">Testimonial Settings</h4>
+            <div className="flex items-center mb-2">
+              <input
+                type="checkbox"
+                checked={values.testimonialSettings.requireApproval || true}
+                onChange={(e) => updateTestimonialSettings('requireApproval', e.target.checked)}
+                className="form-checkbox h-4 w-4 text-[#FF7E45]"
+                id="requireTestimonialApproval"
+              />
+              <label htmlFor="requireTestimonialApproval" className="ml-2 text-sm font-medium">
+                Require testimonial approval
+              </label>
             </div>
-
-            {/* Blog Settings */}
-            <div className="mb-4">
-              <h4 className="font-medium mb-2">Blog Settings</h4>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={values.blogSettings.enableComments || false}
-                  onChange={(e) => updateBlogSettings('enableComments', e.target.checked)}
-                  className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                  id="enableBlogComments"
-                />
-                <label htmlFor="enableBlogComments" className="ml-2 text-sm font-medium">
-                  Enable blog comments
-                </label>
-              </div>
-              <div className="flex items-center mt-2">
-                <input
-                  type="checkbox"
-                  checked={values.blogSettings.requireApproval || false}
-                  onChange={(e) => updateBlogSettings('requireApproval', e.target.checked)}
-                  className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                  id="requireBlogApproval"
-                />
-                <label htmlFor="requireBlogApproval" className="ml-2 text-sm font-medium">
-                  Require blog post approval
-                </label>
-              </div>
-            </div>
-
-            {/* Ministry Settings */}
-            <div className="mb-4">
-              <h4 className="font-medium mb-2">Ministry Settings</h4>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={values.ministrySettings.enableVolunteerSignup || false}
-                  onChange={(e) => updateMinistrySettings('enableVolunteerSignup', e.target.checked)}
-                  className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                  id="enableVolunteerSignup"
-                />
-                <label htmlFor="enableVolunteerSignup" className="ml-2 text-sm font-medium">
-                  Enable volunteer signup
-                </label>
-              </div>
-              <div className="flex items-center mt-2">
-                <input
-                  type="checkbox"
-                  checked={values.ministrySettings.showLeaders || true}
-                  onChange={(e) => updateMinistrySettings('showLeaders', e.target.checked)}
-                  className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                  id="showMinistryLeaders"
-                />
-                <label htmlFor="showMinistryLeaders" className="ml-2 text-sm font-medium">
-                  Show ministry leaders publicly
-                </label>
-              </div>
-            </div>
-
-            {/* Event Settings */}
-            <div className="mb-4">
-              <h4 className="font-medium mb-2">Event Settings</h4>
-              <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  checked={values.eventSettings.requireApproval || false}
-                  onChange={(e) => updateEventSettings('requireApproval', e.target.checked)}
-                  className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                  id="requireEventApproval"
-                />
-                <label htmlFor="requireEventApproval" className="ml-2 text-sm font-medium">
-                  Require event approval
-                </label>
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={values.eventSettings.allowPublicRSVP || true}
-                  onChange={(e) => updateEventSettings('allowPublicRSVP', e.target.checked)}
-                  className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                  id="allowPublicRSVP"
-                />
-                <label htmlFor="allowPublicRSVP" className="ml-2 text-sm font-medium">
-                  Allow public RSVP
-                </label>
-              </div>
-            </div>
-
-            {/* Prayer Request Settings */}
-            <div className="mb-4">
-              <h4 className="font-medium mb-2">Prayer Request Settings</h4>
-              <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  checked={values.prayerRequestSettings.requireApproval || true}
-                  onChange={(e) => updatePrayerRequestSettings('requireApproval', e.target.checked)}
-                  className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                  id="requirePrayerApproval"
-                />
-                <label htmlFor="requirePrayerApproval" className="ml-2 text-sm font-medium">
-                  Require prayer request approval
-                </label>
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={values.prayerRequestSettings.allowAnonymous || true}
-                  onChange={(e) => updatePrayerRequestSettings('allowAnonymous', e.target.checked)}
-                  className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                  id="allowAnonymousPrayer"
-                />
-                <label htmlFor="allowAnonymousPrayer" className="ml-2 text-sm font-medium">
-                  Allow anonymous prayer requests
-                </label>
-              </div>
-            </div>
-
-            {/* Testimonial Settings */}
-            <div>
-              <h4 className="font-medium mb-2">Testimonial Settings</h4>
-              <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  checked={values.testimonialSettings.requireApproval || true}
-                  onChange={(e) => updateTestimonialSettings('requireApproval', e.target.checked)}
-                  className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                  id="requireTestimonialApproval"
-                />
-                <label htmlFor="requireTestimonialApproval" className="ml-2 text-sm font-medium">
-                  Require testimonial approval
-                </label>
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={values.testimonialSettings.allowVideo || true}
-                  onChange={(e) => updateTestimonialSettings('allowVideo', e.target.checked)}
-                  className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                  id="allowVideoTestimonials"
-                />
-                <label htmlFor="allowVideoTestimonials" className="ml-2 text-sm font-medium">
-                  Allow video testimonials
-                </label>
-              </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={values.testimonialSettings.allowVideo || true}
+                onChange={(e) => updateTestimonialSettings('allowVideo', e.target.checked)}
+                className="form-checkbox h-4 w-4 text-[#FF7E45]"
+                id="allowVideoTestimonials"
+              />
+              <label htmlFor="allowVideoTestimonials" className="ml-2 text-sm font-medium">
+                Allow video testimonials
+              </label>
             </div>
           </div>
+        </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
-            <button type="button" onClick={() => setValues(settings)} className="btn btn-outline">
-              Reset
-            </button>
-            <button type="submit" className="btn btn-primary">
-              Save Settings
-            </button>
-          </div>
-        </form>
-      </div>
-    );
-  };
+        <div className="flex justify-end space-x-2 pt-4">
+          <button type="button" onClick={() => setValues(settings)} className="btn btn-outline">
+            Reset
+          </button>
+          <button type="submit" className="btn btn-primary">
+            Save Settings
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
 
 // Main AdminPage Component
 const AdminPage = () => {
@@ -3250,117 +3250,82 @@ const AdminPage = () => {
   const [deleteItem, setDeleteItem] = useState(null);
   const [liveStreamStatus, setLiveStreamStatus] = useState(false);
   const [liveStats, setLiveStats] = useState(null);
-  const [isUserAdmin, setIsUserAdmin] = useState(false);
-  const [accessChecked, setAccessChecked] = useState(false);
-  
-  const { user } = useAuth();
+
+  const { user, loading: authLoading } = useAuth();
   const alert = useAlert();
   const navigate = useNavigate();
 
   useEffect(() => {
     document.title = "SMC: - Admin | St. Micheal`s & All Angels Church | Ifite-Awka";
-    checkAdminAccess();
-  }, []);
 
-  const checkAdminAccess = () => {
-  // Ensure user is logged in
-  if (!user) {
-    alert.error("Please log in to access admin features");
-    navigate("/login");
-    return false;
-  }
+    if (user && (user.role === 'admin' || user.role === 'moderator')) {
+      fetchDashboardData();
+      fetchSettings();
+      checkLiveStreamStatus();
+    }
+  }, [user]);
 
-  // Normalize role
-  const role = (user?.role || "guest").toLowerCase();
-
-  // Allow only admins and moderators
-  if (role !== "admin" && role !== "moderator") {
-    alert.error("Admin or Moderator privileges required");
-    navigate("/login");
-    return false;
-  }
-
-  // Mark access as checked
-  setIsUserAdmin(true);
-  setAccessChecked(true);
-
-  // Load dashboard data
-  fetchDashboardData();
-  checkLiveStreamStatus();
-  fetchSettings();
-
-  // Start periodic live stream check
-  const liveStreamInterval = setInterval(checkLiveStreamStatus, 30000);
-
-  // Cleanup interval when component unmounts
-  return () => clearInterval(liveStreamInterval);
-};
-
-
+  // Fixed data fetching to match server response structure
   const fetchDashboardData = async () => {
+    if (!user || !user.id) return;
+
     try {
       setIsLoading(true);
       setError(null);
 
-      // Axios automatically throws errors for non-2xx responses
-      // So we use try/catch instead of Promise.allSettled
-      try {
-        const [
-          statsResponse, 
-          activityResponse, 
-          usersResponse,
-          donationsResponse,
-          prayerResponse,
-          blogResponse,
-          ministriesResponse,
-          testimonialsResponse,
-          eventsResponse,
-          sermonsResponse
-        ] = await Promise.all([
-          apiClient.get(ADMIN_ENDPOINTS.DASHBOARD.STATS),
-          apiClient.get(ADMIN_ENDPOINTS.DASHBOARD.ACTIVITY),
-          apiClient.get(ADMIN_ENDPOINTS.USERS.BASE),
-          apiClient.get(ADMIN_ENDPOINTS.DONATIONS.BASE),
-          apiClient.get(ADMIN_ENDPOINTS.PRAYER_REQUESTS.BASE),
-          apiClient.get(ADMIN_ENDPOINTS.BLOG.BASE),
-          apiClient.get(ADMIN_ENDPOINTS.MINISTRIES.BASE),
-          apiClient.get(ADMIN_ENDPOINTS.TESTIMONIALS.BASE),
-          apiClient.get(ADMIN_ENDPOINTS.EVENTS.BASE),
-          apiClient.get(ADMIN_ENDPOINTS.SERMONS.BASE)
-        ]);
+      // Use Promise.allSettled to handle partial failures gracefully
+      const [
+        statsResponse,
+        activityResponse,
+        usersResponse,
+        ministriesResponse,
+        testimonialsResponse,
+        blogResponse,
+        eventsResponse,
+        sermonsResponse,
+        donationsResponse,
+        prayerResponse,
+        settingsResponse
+      ] = await Promise.allSettled([
+        utilityService.getDashboardStats(), // ✅ now points to /api/analytics/admin/dashboard/stats
+        utilityService.getRecentActivity(), // ✅ now points to /api/analytics/admin/activity/recent
+        userService.getAllUsers({ limit: 100 }),
+        adminService.getMinistries(),
+        adminService.getTestimonials(),
+        adminService.getBlogPosts(), // ✅ now points to /api/blogs/admin/all
+        eventService.getAll({ limit: 50 }),
+        sermonService.getAll({ limit: 50 }),
+        donationService.getAll({ limit: 100 }),
+        prayerService.getAll({ limit: 100 }),
+        adminService.getSettings()
+      ]);
 
-        setStats(statsResponse);
-        setRecentActivity(activityResponse);
-        setUsers(usersResponse.users || usersResponse);
-        setDonations(donationsResponse.donations || donationsResponse);
-        setPrayerRequests(prayerResponse.prayers || prayerResponse);
-        setBlogPosts(blogResponse.posts || blogResponse);
-        setMinistries(ministriesResponse.ministries || ministriesResponse);
-        setTestimonials(testimonialsResponse.testimonials || testimonialsResponse);
-        setUpcomingEvents(eventsResponse.events || eventsResponse);
-        setSermons(sermonsResponse.sermons || sermonsResponse);
+      // Process responses with proper error handling
+      setStats(statsResponse.status === 'fulfilled' ? statsResponse.value.data || statsResponse.value : {});
+      setRecentActivity(activityResponse.status === 'fulfilled' ? (Array.isArray(activityResponse.value.data) ? activityResponse.value.data : []) : []);
+      setUsers(usersResponse.status === 'fulfilled' ? (Array.isArray(usersResponse.value.users) ? usersResponse.value.users : []) : []);
+      setMinistries(ministriesResponse.status === 'fulfilled' ? (Array.isArray(ministriesResponse.value.ministries) ? ministriesResponse.value.ministries : []) : []);
+      setTestimonials(testimonialsResponse.status === 'fulfilled' ? (Array.isArray(testimonialsResponse.value.testimonials) ? testimonialsResponse.value.testimonials : []) : []);
+      setBlogPosts(blogResponse.status === 'fulfilled' ? (Array.isArray(blogResponse.value.posts) ? blogResponse.value.posts : []) : []);
+      setUpcomingEvents(eventsResponse.status === 'fulfilled' ? (Array.isArray(eventsResponse.value.events) ? eventsResponse.value.events : []) : []);
+      setSermons(sermonsResponse.status === 'fulfilled' ? (Array.isArray(sermonsResponse.value.sermons) ? sermonsResponse.value.sermons : []) : []);
+      setDonations(donationsResponse.status === 'fulfilled' ? (Array.isArray(donationsResponse.value.donations) ? donationsResponse.value.donations : []) : []);
+      setPrayerRequests(prayerResponse.status === 'fulfilled' ? (Array.isArray(prayerResponse.value.prayers) ? prayerResponse.value.prayers : []) : []);
+      setSettings(settingsResponse.status === 'fulfilled' ? settingsResponse.value.settings || settingsResponse.value.data || {} : {});
 
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        // Axios error response is available in error.response
-        const errorMessage = error.response?.data?.message || 'Failed to load dashboard data. Please try again.';
-        setError(errorMessage);
-        alert.error(errorMessage);
-      }
-
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      setError('An unexpected error occurred');
-      alert.error('An unexpected error occurred');
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to load dashboard data';
+      setError(errorMessage);
+      alert.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
-
   // Settings Handlers
   const fetchSettings = async () => {
     try {
-      const response = await apiClient.get(ADMIN_ENDPOINTS.SETTINGS.BASE);
+      const response = await adminService.getSettings();
       setSettings(response.settings || response);
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -3371,10 +3336,15 @@ const AdminPage = () => {
 
   const handleUpdateSettings = async (settingsData) => {
     try {
-      const response = await apiClient.put(ADMIN_ENDPOINTS.SETTINGS.UPDATE, settingsData);
-      setSettings(response.settings || response);
-      alert.success('Settings updated successfully');
-      return { success: true, message: 'Settings updated successfully' };
+      const response = await adminService.updateSettings(settingsData);
+      const updatedSettings = response.data?.settings || response.settings;
+
+      if (updatedSettings) {
+        setSettings(updatedSettings);
+        return { success: true, message: 'Settings updated successfully' };
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
       console.error('Error updating settings:', error);
       const errorMessage = error.response?.data?.message || 'Failed to update settings';
@@ -3385,7 +3355,7 @@ const AdminPage = () => {
 
   const handleResetSettings = async () => {
     try {
-      const response = await apiClient.post(ADMIN_ENDPOINTS.SETTINGS.RESET);
+      const response = await adminService.resetSettings();
       setSettings(response.settings || response);
       alert.success('Settings reset successfully');
       return { success: true, message: 'Settings reset successfully' };
@@ -3400,18 +3370,21 @@ const AdminPage = () => {
   // Live Stream Handlers
   const checkLiveStreamStatus = async () => {
     try {
-      const response = await apiClient.get(ADMIN_ENDPOINTS.SERMONS.LIVE);
+      const response = await sermonService.getLiveStatus();
       setLiveStreamStatus(response.isLive || false);
-      setLiveStats(response.stats || null);
+      setLiveStats(response.status || null);
     } catch (error) {
-      console.error('Error checking live stream status:', error);
-      setLiveStreamStatus(false);
+      console.error('Error getting live stream status:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to get live stream status';
+      alert.error(errorMessage);
+
+      return { success: false, message: errorMessage };
     }
   };
 
   const handleStartLiveStream = async () => {
     try {
-      const response = await apiClient.post(ADMIN_ENDPOINTS.SERMONS.LIVE_START);
+      const response = await sermonService.startLiveStream();
       setLiveStreamStatus(true);
       alert.success('Live stream started successfully');
       return { success: true, message: 'Live stream started successfully' };
@@ -3425,7 +3398,7 @@ const AdminPage = () => {
 
   const handleStopLiveStream = async () => {
     try {
-      const response = await apiClient.post(ADMIN_ENDPOINTS.SERMONS.LIVE_STOP);
+      const response = await sermonService.stopLiveStream();
       setLiveStreamStatus(false);
       setLiveStats(null);
       alert.success('Live stream ended successfully');
@@ -3441,36 +3414,51 @@ const AdminPage = () => {
   // User Management Handlers
   const handleCreateUser = async (userData) => {
     try {
-      const response = await apiClient.post(ADMIN_ENDPOINTS.USERS.CREATE, userData);
-      setUsers(prev => [...prev, response.user]);
-      return { success: true, message: 'User created successfully' };
+      const response = await userService.createUser(userData);
+      const newUser = response.data?.user || response.user;
+
+      if (newUser) {
+        setUsers(prev => [...prev, newUser]);
+        return { success: true, message: 'User created successfully' };
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
       console.error('Error creating user:', error);
       const errorMessage = error.response?.data?.message || 'Failed to create user';
+      alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
   };
 
   const handleUpdateUser = async (userId, userData) => {
     try {
-      const response = await apiClient.put(ADMIN_ENDPOINTS.USERS.UPDATE(userId), userData);
-      setUsers(prev => prev.map(user => user._id === userId ? response.user : user));
-      return { success: true, message: 'User updated successfully' };
+      const response = await userService.updateUser(userId, userData);
+      const updatedUser = response.data?.user || response.user;
+
+      if (updatedUser) {
+        setUsers(prev => prev.map(user => user._id === userId ? updatedUser : user));
+        return { success: true, message: 'User updated successfully' };
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
       console.error('Error updating user:', error);
       const errorMessage = error.response?.data?.message || 'Failed to update user';
+      alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
   };
 
   const handleDeleteUser = async (userId) => {
     try {
-      await apiClient.delete(ADMIN_ENDPOINTS.USERS.DELETE(userId));
+      await userService.deleteUser(userId);
       setUsers(prev => prev.filter(user => user._id !== userId));
       return { success: true, message: 'User deleted successfully' };
     } catch (error) {
       console.error('Error deleting user:', error);
       const errorMessage = error.response?.data?.message || 'Failed to delete user';
+      alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
   };
@@ -3478,205 +3466,289 @@ const AdminPage = () => {
   // Ministry Management Handlers
   const handleCreateMinistry = async (ministryData) => {
     try {
-      const response = await apiClient.post(ADMIN_ENDPOINTS.MINISTRIES.CREATE, ministryData);
-      setMinistries(prev => [...prev, response.ministry]);
-      return { success: true, message: 'Ministry created successfully' };
+      const response = await adminService.createMinistry(ministryData);
+      const newMinistry = response.data?.ministry || response.ministry;
+
+      if (newMinistry) {
+        setMinistries(prev => [...prev, newMinistry]);
+        return { success: true, message: 'Ministry created successfully' };
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
       console.error('Error creating ministry:', error);
-      return { success: false, message: error.message || 'Failed to create ministry' };
+      const errorMessage = error.response?.data?.message || 'Failed to create ministry';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   const handleUpdateMinistry = async (ministryId, ministryData) => {
     try {
-      const response = await apiClient.put(ADMIN_ENDPOINTS.MINISTRIES.UPDATE(ministryId), ministryData);
-      setMinistries(prev => prev.map(ministry => ministry._id === ministryId ? response.ministry : ministry));
-      return { success: true, message: 'Ministry updated successfully' };
+      const response = await adminService.updateMinistry(ministryId, ministryData);
+      const updatedMinistry = response.data?.ministry || response.ministry;
+
+      if (updatedMinistry) {
+        setMinistries(prev => prev.map(ministry => ministry._id === ministryId ? updatedMinistry : ministry));
+        return { success: true, message: 'Ministry updated successfully' };
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
       console.error('Error updating ministry:', error);
-      return { success: false, message: error.message || 'Failed to update ministry' };
+      const errorMessage = error.response?.data?.message || 'Failed to update ministry';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   const handleDeleteMinistry = async (ministryId) => {
     try {
-      await apiClient.delete(ADMIN_ENDPOINTS.MINISTRIES.DELETE(ministryId));
+      await adminService.deleteMinistry(ministryId);
       setMinistries(prev => prev.filter(ministry => ministry._id !== ministryId));
       return { success: true, message: 'Ministry deleted successfully' };
     } catch (error) {
       console.error('Error deleting ministry:', error);
-      return { success: false, message: error.message || 'Failed to delete ministry' };
+      const errorMessage = error.response?.data?.message || 'Failed to delete ministry';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   // Testimonial Management Handlers
   const handleCreateTestimonial = async (testimonialData) => {
     try {
-      const response = await apiClient.post(ADMIN_ENDPOINTS.TESTIMONIALS.CREATE, testimonialData);
-      setTestimonials(prev => [...prev, response.testimonial]);
+      const response = await testimonialService.createTestimonial(testimonialData);
+      setTestimonials(prev => [...prev, response.data?.testimonial || response.testimonial]);
       return { success: true, message: 'Testimonial created successfully' };
     } catch (error) {
       console.error('Error creating testimonial:', error);
-      return { success: false, message: error.message || 'Failed to create testimonial' };
+      const errorMessage = error.response?.data?.message || 'Failed to create testimonial';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   const handleUpdateTestimonial = async (testimonialId, testimonialData) => {
     try {
-      const response = await apiClient.put(ADMIN_ENDPOINTS.TESTIMONIALS.UPDATE(testimonialId), testimonialData);
-      setTestimonials(prev => prev.map(testimonial => testimonial._id === testimonialId ? response.testimonial : testimonial));
+      const response = await testimonialService.updateTestimonial(testimonialId, testimonialData);
+      setTestimonials(prev => prev.map(testimonial => testimonial._id === testimonialId ? response.data?.testimonial || response.testimonial : testimonial));
       return { success: true, message: 'Testimonial updated successfully' };
     } catch (error) {
       console.error('Error updating testimonial:', error);
-      return { success: false, message: error.message || 'Failed to update testimonial' };
+      const errorMessage = error.response?.data?.message || 'Failed to update testimonial';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   const handleDeleteTestimonial = async (testimonialId) => {
     try {
-      await apiClient.delete(ADMIN_ENDPOINTS.TESTIMONIALS.DELETE(testimonialId));
+      await testimonialService.deleteTestimonial(testimonialId);
       setTestimonials(prev => prev.filter(testimonial => testimonial._id !== testimonialId));
       return { success: true, message: 'Testimonial deleted successfully' };
     } catch (error) {
       console.error('Error deleting testimonial:', error);
-      return { success: false, message: error.message || 'Failed to delete testimonial' };
+      const errorMessage = error.response?.data?.message || 'Failed to delete testimonial';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   // Blog Management Handlers
   const handleCreateBlogPost = async (blogData) => {
     try {
-      const response = await apiClient.post(ADMIN_ENDPOINTS.BLOG.CREATE, blogData);
-      setBlogPosts(prev => [...prev, response.post]);
+      const response = await blogService.createBlogPost(blogData);
+      setBlogPosts(prev => [...prev, response.data?.post || response.post]);
       return { success: true, message: 'Blog post created successfully' };
     } catch (error) {
       console.error('Error creating blog post:', error);
-      return { success: false, message: error.message || 'Failed to create blog post' };
+      const errorMessage = error.response?.data?.message || 'Failed to create blog post';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   const handleUpdateBlogPost = async (blogId, blogData) => {
     try {
-      const response = await apiClient.put(ADMIN_ENDPOINTS.BLOG.UPDATE(blogId), blogData);
-      setBlogPosts(prev => prev.map(post => post._id === blogId ? response.post : post));
+      const response = await blogService.updateBlogPost(blogId, blogData);
+      setBlogPosts(prev => prev.map(post => post._id === blogId ? response.data?.post || response.post : post));
       return { success: true, message: 'Blog post updated successfully' };
     } catch (error) {
       console.error('Error updating blog post:', error);
-      return { success: false, message: error.message || 'Failed to update blog post' };
+      const errorMessage = error.response?.data?.message || 'Failed to update blog post';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   const handleDeleteBlogPost = async (blogId) => {
     try {
-      await apiClient.delete(ADMIN_ENDPOINTS.BLOG.DELETE(blogId));
+      await blogService.deleteBlogPost(blogId);
       setBlogPosts(prev => prev.filter(post => post._id !== blogId));
       return { success: true, message: 'Blog post deleted successfully' };
     } catch (error) {
       console.error('Error deleting blog post:', error);
-      return { success: false, message: error.message || 'Failed to delete blog post' };
+      const errorMessage = error.response?.data?.message || 'Failed to delete blog post';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   // Event Management Handlers
   const handleCreateEvent = async (eventData) => {
     try {
-      const response = await apiClient.post(ADMIN_ENDPOINTS.EVENTS.CREATE, eventData);
-      setUpcomingEvents(prev => [...prev, response.event]);
-      return { success: true, message: 'Event created successfully' };
+      const response = await eventService.create(eventData);
+      const newEvent = response.data?.event || response.event;
+
+      if (newEvent) {
+        setUpcomingEvents(prev => [...prev, newEvent]);
+        return { success: true, message: 'Event created successfully' };
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
       console.error('Error creating event:', error);
-      return { success: false, message: error.message || 'Failed to create event' };
+      const errorMessage = error.response?.data?.message || 'Failed to create event';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   const handleUpdateEvent = async (eventId, eventData) => {
     try {
-      const response = await apiClient.put(ADMIN_ENDPOINTS.EVENTS.UPDATE(eventId), eventData);
-      setUpcomingEvents(prev => prev.map(event => event._id === eventId ? response.event : event));
-      return { success: true, message: 'Event updated successfully' };
+      const response = await eventService.update(eventId, eventData);;
+      const updatedEvent = response.data?.event || response.event;
+
+      if (updatedEvent) {
+        setUpcomingEvents(prev => prev.map(event => event._id === eventId ? updatedEvent : event));
+        return { success: true, message: 'Event updated successfully' };
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
       console.error('Error updating event:', error);
-      return { success: false, message: error.message || 'Failed to update event' };
+      const errorMessage = error.response?.data?.message || 'Failed to update event';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   const handleDeleteEvent = async (eventId) => {
     try {
-      await apiClient.delete(ADMIN_ENDPOINTS.EVENTS.DELETE(eventId));
+      await eventService.delete(eventId);
       setUpcomingEvents(prev => prev.filter(event => event._id !== eventId));
       return { success: true, message: 'Event deleted successfully' };
     } catch (error) {
       console.error('Error deleting event:', error);
-      return { success: false, message: error.message || 'Failed to delete event' };
+      const errorMessage = error.response?.data?.message || 'Failed to delete event';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   // Sermon Management Handlers
   const handleCreateSermon = async (sermonData) => {
     try {
-      const response = await apiClient.post(ADMIN_ENDPOINTS.SERMONS.CREATE, sermonData);
-      setSermons(prev => [...prev, response.sermon]);
-      return { success: true, message: 'Sermon created successfully' };
+      const response = await sermonService.create(sermonData);
+      const newSermon = response.data?.sermon || response.sermon;
+
+      if (newSermon) {
+        setSermons(prev => [...prev, newSermon]);
+        return { success: true, message: 'Sermon created successfully' };
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
       console.error('Error creating sermon:', error);
-      return { success: false, message: error.message || 'Failed to create sermon' };
+      const errorMessage = error.response?.data?.message || 'Failed to create sermon';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   const handleUpdateSermon = async (sermonId, sermonData) => {
     try {
-      const response = await apiClient.put(ADMIN_ENDPOINTS.SERMONS.UPDATE(sermonId), sermonData);
-      setSermons(prev => prev.map(sermon => sermon._id === sermonId ? response.sermon : sermon));
-      return { success: true, message: 'Sermon updated successfully' };
+      const response = await sermonService.update(sermonId, sermonData);
+      const updatedSermon = response.data?.sermon || response.sermon;
+
+      if (updatedSermon) {
+        setSermons(prev => prev.map(sermon => sermon._id === sermonId ? updatedSermon : sermon));
+        return { success: true, message: 'Sermon updated successfully' };
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
       console.error('Error updating sermon:', error);
-      return { success: false, message: error.message || 'Failed to update sermon' };
+      const errorMessage = error.response?.data?.message || 'Failed to update sermon';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   const handleDeleteSermon = async (sermonId) => {
     try {
-      await apiClient.delete(ADMIN_ENDPOINTS.SERMONS.DELETE(sermonId));
+      await sermonService.delete(sermonId);
       setSermons(prev => prev.filter(sermon => sermon._id !== sermonId));
       return { success: true, message: 'Sermon deleted successfully' };
     } catch (error) {
       console.error('Error deleting sermon:', error);
-      return { success: false, message: error.message || 'Failed to delete sermon' };
+      const errorMessage = error.response?.data?.message || 'Failed to delete sermon';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   // Donation Management Handlers
   const handleUpdateDonation = async (donationId, donationData) => {
     try {
-      const response = await apiClient.put(ADMIN_ENDPOINTS.DONATIONS.UPDATE(donationId), donationData);
-      setDonations(prev => prev.map(donation => donation._id === donationId ? response.donation : donation));
-      return { success: true, message: 'Donation updated successfully' };
+      const response = await donationService.updateDonation(donationId, donationData);
+      const updatedDonation = response.data?.donation || response.donation;
+
+      if (updatedDonation) {
+        setDonations(prev => prev.map(donation => donation._id === donationId ? updatedDonation : donation));
+        return { success: true, message: 'Donation updated successfully' };
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
-      console.error('Error updating donation:', error);
-      return { success: false, message: error.message || 'Failed to update donation' };
+      console.error('Error updating donations:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to update donations';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   // Prayer Request Management Handlers
   const handleUpdatePrayerRequest = async (prayerId, prayerData) => {
     try {
-      const response = await apiClient.put(ADMIN_ENDPOINTS.PRAYER_REQUESTS.UPDATE(prayerId), prayerData);
-      setPrayerRequests(prev => prev.map(prayer => prayer._id === prayerId ? response.prayer : prayer));
-      return { success: true, message: 'Prayer request updated successfully' };
+      const response = await prayerService.updatePrayerRequest(prayerId, prayerData);
+      const updatedPrayer = response.data?.prayer || response.prayer;
+
+      if (updatedPrayer) {
+        setPrayerRequests(prev => prev.map(prayer => prayer._id === prayerId ? updatedPrayer : prayer));
+        return { success: true, message: 'Prayer request updated successfully' };
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
       console.error('Error updating prayer request:', error);
-      return { success: false, message: error.message || 'Failed to update prayer request' };
+      const errorMessage = error.response?.data?.message || 'Failed to update prayer request';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   const handleDeletePrayerRequest = async (prayerId) => {
     try {
-      await apiClient.delete(ADMIN_ENDPOINTS.PRAYER_REQUESTS.DELETE(prayerId));
+      await prayerService.deletePrayerRequest(prayerId);
       setPrayerRequests(prev => prev.filter(prayer => prayer._id !== prayerId));
       return { success: true, message: 'Prayer request deleted successfully' };
     } catch (error) {
       console.error('Error deleting prayer request:', error);
-      return { success: false, message: error.message || 'Failed to delete prayer request' };
+      const errorMessage = error.response?.data?.message || 'Failed to delete prayer request';
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
@@ -3827,19 +3899,36 @@ const AdminPage = () => {
     });
   };
 
-  if (isLoading) {
-    return <Loader type="spinner" text="Loading admin dashboard..." fullScreen />;
-  }
-
-   if (!accessChecked) {
+  if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader type="spinner" text="Checking admin access..." fullScreen />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i className="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Authentication Required</h2>
+          <p className="text-gray-600 mb-4">Please log in to access the admin panel.</p>
+          <button
+            onClick={() => navigate('/login')}
+            className="btn btn-primary"
+          >
+            Go to Login
+          </button>
+        </div>
       </div>
     );
   }
 
-  if (!isUserAdmin) {
+  if (authLoading) {
+    return <Loader type="spinner" text="Checking admin access..." fullScreen />;
+  }
+
+  if (isLoading) {
+    return <Loader type="spinner" text="Loading admin dashboard..." fullScreen />;
+  }
+
+
+  if (user.role !== 'admin' && user.role !== 'moderator') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
@@ -3902,9 +3991,9 @@ const AdminPage = () => {
     { key: 'time', title: 'Time', render: (event) => formatTime(event.startTime) },
     { key: 'location', title: 'Location' },
     { key: 'rsvps', title: 'RSVPs', render: (event) => event.rsvpCount || 0 },
-    { 
-      key: 'status', 
-      title: 'Status', 
+    {
+      key: 'status',
+      title: 'Status',
       render: (event) => (
         <span className={`text-xs px-2 py-1 rounded ${event.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
           {event.status || 'Unknown'}
@@ -3918,9 +4007,9 @@ const AdminPage = () => {
     { key: 'speaker', title: 'Speaker', render: (sermon) => sermon.speakerName || sermon.speaker },
     { key: 'date', title: 'Date', render: (sermon) => formatDate(sermon.date) },
     { key: 'scripture', title: 'Scripture' },
-    { 
-      key: 'type', 
-      title: 'Type', 
+    {
+      key: 'type',
+      title: 'Type',
       render: (sermon) => (
         <span className={`text-xs px-2 py-1 rounded ${sermon.isLive ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
           {sermon.isLive ? 'Live' : 'Recorded'}
@@ -4011,7 +4100,7 @@ const AdminPage = () => {
                       <div className="flex items-center">
                         <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></div>
                         <span className="font-medium text-red-700">Live Stream is Active</span>
-                        <button 
+                        <button
                           onClick={() => setActiveTab('live')}
                           className="ml-auto text-red-600 hover:text-red-800 text-sm font-medium"
                         >
@@ -4051,7 +4140,7 @@ const AdminPage = () => {
                       <p className="text-3xl font-bold">{stats.prayerRequests || 0}</p>
                       <p className="text-sm text-gray-500">Pending: {stats.pendingPrayers || 0}</p>
                     </div>
-                    
+
                     <div className="bg-white rounded-lg shadow-md p-6">
                       <div className="flex items-center justify-between mb-4">
                         <h4 className="font-semibold">Events</h4>
@@ -4062,7 +4151,7 @@ const AdminPage = () => {
                       <p className="text-3xl font-bold">{stats.upcomingEvents || 0}</p>
                       <p className="text-sm text-gray-500">This week: {stats.thisWeekEvents || 0}</p>
                     </div>
-                    
+
                     <div className="bg-white rounded-lg shadow-md p-6">
                       <div className="flex items-center justify-between mb-4">
                         <h4 className="font-semibold">Sermons</h4>
@@ -4088,7 +4177,7 @@ const AdminPage = () => {
                       </div>
                       <DataTable
                         columns={eventColumns}
-                        data={upcomingEvents.slice(0, 5)}
+                        data={(upcomingEvents || []).slice(0, 5)}
                         onEdit={openEventModal}
                         onDelete={(event) => openDeleteModal(event, 'event')}
                         emptyMessage="No upcoming events"
@@ -4107,7 +4196,7 @@ const AdminPage = () => {
                       </div>
                       <DataTable
                         columns={sermonColumns}
-                        data={sermons.slice(0, 5)}
+                        data={(sermons || []).slice(0, 5)}
                         onEdit={openSermonModal}
                         onDelete={(sermon) => openDeleteModal(sermon, 'sermon')}
                         emptyMessage="No sermons available"
@@ -4118,16 +4207,16 @@ const AdminPage = () => {
               )}
 
               {activeTab === 'users' && (
-                <UsersManagement 
-                  users={users} 
+                <UsersManagement
+                  users={users}
                   onUpdateUser={handleUpdateUser}
-                  onDeleteUser={(user) => openDeleteModal(user, 'user')}
+                  onDeleteUser={(user) => openDeleteModal(user, 'user', 'moderator')}
                   onCreateUser={handleCreateUser}
                 />
               )}
 
               {activeTab === 'ministries' && (
-                <MinistriesManagement 
+                <MinistriesManagement
                   ministries={ministries}
                   users={users}
                   onUpdateMinistry={handleUpdateMinistry}
@@ -4137,7 +4226,7 @@ const AdminPage = () => {
               )}
 
               {activeTab === 'testimonials' && (
-                <TestimonialsManagement 
+                <TestimonialsManagement
                   testimonials={testimonials}
                   onUpdateTestimonial={handleUpdateTestimonial}
                   onDeleteTestimonial={(testimonial) => openDeleteModal(testimonial, 'testimonial')}
@@ -4146,7 +4235,7 @@ const AdminPage = () => {
               )}
 
               {activeTab === 'blog' && (
-                <BlogManagement 
+                <BlogManagement
                   posts={blogPosts}
                   onUpdatePost={handleUpdateBlogPost}
                   onDeletePost={(post) => openDeleteModal(post, 'blog')}
@@ -4158,7 +4247,7 @@ const AdminPage = () => {
                 <div>
                   <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold">Events Management</h2>
-                    <button 
+                    <button
                       className="btn btn-primary"
                       onClick={() => openEventModal()}
                     >
@@ -4181,7 +4270,7 @@ const AdminPage = () => {
                 <div>
                   <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold">Sermons Management</h2>
-                    <button 
+                    <button
                       className="btn btn-primary"
                       onClick={() => openSermonModal()}
                     >
@@ -4201,14 +4290,14 @@ const AdminPage = () => {
               )}
 
               {activeTab === 'donations' && (
-                <DonationsManagement 
+                <DonationsManagement
                   donations={donations}
                   onUpdateDonation={handleUpdateDonation}
                 />
               )}
 
               {activeTab === 'prayer' && (
-                <PrayerRequestsManagement 
+                <PrayerRequestsManagement
                   prayerRequests={prayerRequests}
                   onUpdatePrayerRequest={handleUpdatePrayerRequest}
                   onDeletePrayerRequest={(prayer) => openDeleteModal(prayer, 'prayer')}
@@ -4234,7 +4323,7 @@ const AdminPage = () => {
                     <p className="text-gray-600 mb-4">
                       Create a sermon record for your live stream to make it available in the archive later.
                     </p>
-                    <button 
+                    <button
                       className="btn btn-primary"
                       onClick={() => openSermonModal({
                         isLive: true,
@@ -4248,17 +4337,18 @@ const AdminPage = () => {
                 </div>
               )}
 
-             <div>
-              <button>
-                 {activeTab === 'settings' && (
-                <SettingsForm 
-                  settings={settings}
-                  onUpdateSettings={handleUpdateSettings}
-                  onResetSettings={handleResetSettings}
-                />
-              )}
+              <div>
+                <button>
+                  {activeTab === 'settings' && (
+                    <SettingsForm
+                      setActiveTab={isSettingsModalOpen}
+                      settings={settings}
+                      onUpdateSettings={handleUpdateSettings}
+                      onResetSettings={handleResetSettings}
+                    />
+                  )}
                 </button>
-                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -4280,13 +4370,13 @@ const AdminPage = () => {
         users={users}
       />
 
-      <Modal 
-        isOpen={isSettingsModalOpen} 
-        onClose={closeSettingsModal} 
+      <Modal
+        isOpen={isSettingsModalOpen}
+        onClose={closeSettingsModal}
         title="System Settings"
         size="xl"
       >
-        <SettingsForm 
+        <SettingsForm
           settings={settings}
           onUpdateSettings={handleUpdateSettings}
           onResetSettings={handleResetSettings}

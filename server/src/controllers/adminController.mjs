@@ -1,224 +1,133 @@
-import User from '../models/User.mjs';
+// controllers/adminController.mjs
 import AdminCode from '../models/AdminCode.mjs';
-import Analytics from '../models/Analyitics.mjs';
+import User from '../models/User.mjs';
+import Analytics from '../models/Analyitics.mjs'; // optional - ensure file exists or handle gracefully
 import { validationResult } from 'express-validator';
+import tokenUtils from '../utils/generateToken.mjs';
 
-// Generate admin code
 export async function generateAdminCode(req, res) {
-    try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
 
-        const { description, role = 'admin', maxUsage = 1, expiresInDays = 30 } = req.body;
+    const { description, role = 'admin', maxUsage = 1, expiresInDays = 30 } = req.body;
+    const code = tokenUtils.generateAdminCode();
 
-        const adminCode = new AdminCode({
-            description,
-            role,
-            maxUsage,
-            expiresAt: new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000),
-            createdBy: req.user._id
-        });
+    const adminCode = new AdminCode({
+      code,
+      description,
+      role,
+      maxUsage,
+      expiresAt: new Date(Date.now() + (Number(expiresInDays) || 30) * 24 * 60 * 60 * 1000),
+      createdBy: req.user && req.user.id ? req.user.id : req.user._id
+    });
 
-        await adminCode.save();
+    await adminCode.save();
 
-        res.status(201).json({
-            message: 'Admin code generated successfully',
-            code: adminCode.code
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
+    return res.status(201).json({ success: true, message: 'Admin code generated', code: adminCode.code });
+  } catch (err) {
+    console.error('Generate admin code error', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
 }
 
-// Get all admin codes
 export async function getAdminCodes(req, res) {
-    try {
-        const { page = 1, limit = 10, used } = req.query;
-
-        const query = {};
-        if (used !== undefined) {
-            query.isUsed = used === 'true';
-        }
-
-        const adminCodes = await AdminCode.find(query)
-            .populate('createdBy', 'name email')
-            .populate('assignedTo', 'name email')
-            .sort({ createdAt: -1 })
-            .limit(limit * 1)
-            .skip((page - 1) * limit);
-
-        const total = await AdminCode.countDocuments(query);
-
-        res.json({
-            adminCodes,
-            totalPages: Math.ceil(total / limit),
-            currentPage: page,
-            total
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
+  try {
+    const { page = 1, limit = 20, used } = req.query;
+    const query = {};
+    if (used !== undefined) query.isUsed = used === 'true';
+    const docs = await AdminCode.find(query).populate('createdBy', 'name email').populate('assignedTo', 'name email').sort({ createdAt: -1 }).limit(Number(limit)).skip((Number(page) - 1) * Number(limit));
+    const total = await AdminCode.countDocuments(query);
+    return res.json({ success: true, adminCodes: docs, total, totalPages: Math.ceil(total / Number(limit)), currentPage: Number(page) });
+  } catch (err) {
+    console.error('Get admin codes error', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
 }
 
-// Get all users
 export async function getUsers(req, res) {
-    try {
-        const { page = 1, limit = 10, role, search } = req.query;
-
-        const query = {};
-        if (role) query.role = role;
-        if (search) {
-            query.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { email: { $regex: search, $options: 'i' } }
-            ];
-        }
-
-        const users = await User.find(query)
-            .select('-password -verificationToken -resetPasswordToken')
-            .sort({ createdAt: -1 })
-            .limit(limit * 1)
-            .skip((page - 1) * limit);
-
-        const total = await User.countDocuments(query);
-
-        res.json({
-            users,
-            totalPages: Math.ceil(total / limit),
-            currentPage: page,
-            total
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
+  try {
+    const { page = 1, limit = 20, role, search } = req.query;
+    const q = {};
+    if (role) q.role = role;
+    if (search) q.$or = [{ name: { $regex: search, $options: 'i' } }, { email: { $regex: search, $options: 'i' } }];
+    const users = await User.find(q).select('-password -verificationToken -resetPasswordToken -adminCode').sort({ createdAt: -1 }).limit(Number(limit)).skip((Number(page) - 1) * Number(limit));
+    const total = await User.countDocuments(q);
+    return res.json({ success: true, users, total, totalPages: Math.ceil(total / Number(limit)), currentPage: Number(page) });
+  } catch (err) {
+    console.error('Get users error', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
 }
 
-// Update user role
 export async function updateUserRole(req, res) {
-    try {
-        const { userId } = req.params;
-        const { role } = req.body;
+  try {
+    const { userId } = req.params;
+    const { role } = req.body;
+    if (!['user', 'moderator', 'admin'].includes(role)) return res.status(400).json({ success: false, message: 'Invalid role' });
 
-        if (!['user', 'moderator', 'admin'].includes(role)) {
-            return res.status(400).json({ message: 'Invalid role' });
-        }
-
-        // Prevent self-demotion
-        if (userId === req.user._id.toString() && role !== 'admin') {
-            return res.status(400).json({ message: 'Cannot change your own role from admin' });
-        }
-
-        const user = await User.findByIdAndUpdate(
-            userId,
-            { role },
-            { new: true }
-        ).select('-password -verificationToken -resetPasswordToken');
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        res.json({ message: 'User role updated successfully', user });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+    // Prevent self-demotion unless explicitly allowed
+    if (req.user && req.user.id === userId && req.user.role === 'admin' && role !== 'admin') {
+      return res.status(400).json({ success: false, message: 'Cannot demote yourself' });
     }
+
+    const updated = await User.findByIdAndUpdate(userId, { role }, { new: true }).select('-password -verificationToken -resetPasswordToken -adminCode');
+    if (!updated) return res.status(404).json({ success: false, message: 'User not found' });
+    return res.json({ success: true, message: 'Role updated', user: updated.getPublicProfile ? updated.getPublicProfile() : updated });
+  } catch (err) {
+    console.error('Update user role error', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
 }
 
-// Deactivate user
 export async function deactivateUser(req, res) {
-    try {
-        const { userId } = req.params;
-
-        // Prevent self-deactivation
-        if (userId === req.user._id.toString()) {
-            return res.status(400).json({ message: 'Cannot deactivate your own account' });
-        }
-
-        const user = await User.findByIdAndUpdate(
-            userId,
-            { isActive: false },
-            { new: true }
-        ).select('-password -verificationToken -resetPasswordToken');
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        res.json({ message: 'User deactivated successfully', user });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
+  try {
+    const { userId } = req.params;
+    if (req.user && req.user.id === userId) return res.status(400).json({ success: false, message: 'Cannot deactivate yourself' });
+    const user = await User.findByIdAndUpdate(userId, { isActive: false }, { new: true }).select('-password -verificationToken -resetPasswordToken');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    return res.json({ success: true, message: 'User deactivated', user });
+  } catch (err) {
+    console.error('Deactivate user error', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
 }
 
-// Activate user
 export async function activateUser(req, res) {
-    try {
-        const { userId } = req.params;
-
-        const user = await User.findByIdAndUpdate(
-            userId,
-            { isActive: true },
-            { new: true }
-        ).select('-password -verificationToken -resetPasswordToken');
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        res.json({ message: 'User activated successfully', user });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
+  try {
+    const { userId } = req.params;
+    const user = await User.findByIdAndUpdate(userId, { isActive: true }, { new: true }).select('-password -verificationToken -resetPasswordToken');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    return res.json({ success: true, message: 'User activated', user });
+  } catch (err) {
+    console.error('Activate user error', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
 }
 
-// Get dashboard statistics
 export async function getDashboardStats(req, res) {
+  try {
+    const totalUsers = await User.countDocuments();
+    const totalAdmins = await User.countDocuments({ role: 'admin' });
+    const totalModerators = await User.countDocuments({ role: 'moderator' });
+    const activeUsers = await User.countDocuments({ isActive: true });
+    const newUsersThisWeek = await User.countDocuments({ createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } });
+
+    // Analytics model may not exist; handle gracefully
+    let recentActivity = [];
     try {
-        const [
-            totalUsers,
-            totalAdmins,
-            totalModerators,
-            activeUsers,
-            newUsersThisWeek,
-            totalDonations,
-            totalPrayerRequests,
-            totalTestimonials
-        ] = await Promise.all([
-            User.countDocuments(),
-            User.countDocuments({ role: 'admin' }),
-            User.countDocuments({ role: 'moderator' }),
-            User.countDocuments({ isActive: true }),
-            User.countDocuments({
-                createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-            }),
-            // Add counts for other models as needed
-            Promise.resolve(0), // Placeholder for donations
-            Promise.resolve(0), // Placeholder for prayer requests
-            Promise.resolve(0)  // Placeholder for testimonials
-        ]);
-
-        // Get recent activity
-        const recentActivity = await Analytics.find()
-            .populate('userId', 'name email')
-            .sort({ createdAt: -1 })
-            .limit(10);
-
-        res.json({
-            stats: {
-                totalUsers,
-                totalAdmins,
-                totalModerators,
-                activeUsers,
-                newUsersThisWeek,
-                totalDonations,
-                totalPrayerRequests,
-                totalTestimonials
-            },
-            recentActivity
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+      recentActivity = await Analytics.find().populate('userId', 'name email').sort({ createdAt: -1 }).limit(10);
+    } catch (e) {
+      recentActivity = [];
     }
+
+    return res.json({
+      success: true,
+      stats: { totalUsers, totalAdmins, totalModerators, activeUsers, newUsersThisWeek },
+      recentActivity
+    });
+  } catch (err) {
+    console.error('Get dashboard stats error', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
 }

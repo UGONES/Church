@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer';
 
 // Create transporter with better error handling
 const createTransporter = () => {
-  return nodemailer.createTransport({
+  const config = {
     host: process.env.EMAIL_HOST,
     port: parseInt(process.env.EMAIL_PORT),
     secure: process.env.EMAIL_SECURE === 'true',
@@ -14,8 +14,18 @@ const createTransporter = () => {
     greetingTimeout: 30000,
     socketTimeout: 30000,
     logger: process.env.NODE_ENV === 'development',
-    debug: process.env.NODE_ENV === 'development'
-  });
+    debug: process.env.NODE_ENV === 'development',
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100
+  };
+
+  // Validate required environment variables
+  if (!config.host || !config.auth.user || !config.auth.pass) {
+    throw new Error('Email configuration incomplete. Check EMAIL_HOST, EMAIL_USER, and EMAIL_PASS.');
+  }
+
+  return nodemailer.createTransport(config);
 };
 
 // Verify connection (call this once on server startup)
@@ -37,22 +47,23 @@ export const verifyEmailConnection = async () => {
 export async function sendVerificationEmail(email, token) {
   try {
     const transporter = createTransporter();
-    
-    // FIX: Ensure URL has no line breaks
-    const verificationUrl = `${process.env.CLIENT_URL}/verify-email/${token}`;
-    
+
+    // URL encoding for security
+    const encodedToken = encodeURIComponent(token);
+    const verificationUrl = `${process.env.CLIENT_URL}/verify-email/${encodedToken}`;
+
     console.log('Generated verification URL:', verificationUrl);
 
     const mailOptions = {
       from: {
-        name: process.env.EMAIL_FROM_NAME,
+        name: process.env.EMAIL_FROM_NAME || "St. Micheal`s & All Angels Church",
         address: process.env.EMAIL_FROM_ADDRESS
       },
       to: email,
-      subject: "Verify Your Email Address - St. Michael's Church",
+      subject: "Verify Your Email Address - St. Micheal`s & All Angels Church",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #FF7E45;">Welcome to St. Michael's Church!</h2>
+          <h2 style="color: #FF7E45;">Welcome to St. Micheal's & All Angels Church!</h2>
           <p>Thank you for registering. Please verify your email address to complete your account setup.</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${verificationUrl}" 
@@ -73,7 +84,7 @@ export async function sendVerificationEmail(email, token) {
         </div>
       `,
       // FIX: Remove line break in text version
-      text: `Welcome to St. Michael's Church! Please verify your email by visiting: ${verificationUrl}\n\nIf you didn't create this account, please ignore this email.`
+      text: `Welcome toSt. Micheal's & All Angels Church! Please verify your email by visiting: ${verificationUrl}\n\nIf you didn't create this account, please ignore this email.`
     };
 
     const result = await transporter.sendMail(mailOptions);
@@ -81,7 +92,7 @@ export async function sendVerificationEmail(email, token) {
     return result;
   } catch (error) {
     console.error('❌ Failed to send verification email:', error);
-    throw new Error('Failed to send verification email');
+    throw new Error('Failed to send verification email. Please try again.');
   }
 }
 
@@ -93,11 +104,11 @@ export async function sendPasswordResetEmail(email, token) {
 
     const mailOptions = {
       from: {
-        name: process.env.EMAIL_FROM_NAME,
+        name: process.env.EMAIL_FROM_NAME || "St. Micheal`s & All Angels Church",
         address: process.env.EMAIL_FROM_ADDRESS
       },
       to: email,
-      subject: "Password Reset Request - St. Michael's Church",
+      subject: "Password Reset Request - St. Micheal`s & All Angels Church",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #FF7E45;">Password Reset Request</h2>
@@ -140,11 +151,11 @@ export async function sendPasswordChangeEmail(email) {
 
     const mailOptions = {
       from: {
-        name: process.env.EMAIL_FROM_NAME,
+        name: process.env.EMAIL_FROM_NAME ||"St. Micheal`s & All Angels Church",
         address: process.env.EMAIL_FROM_ADDRESS
       },
       to: email,
-      subject: 'Password Change Notification - St. Michael\'s Church',
+      subject: 'Password Change Notification - St. Micheal`s & All Angels Church',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #FF7E45;">Password Change Notification</h2>
@@ -178,14 +189,14 @@ export async function sendPasswordChangeEmail(email) {
 export async function sendAdminCodeEmail(email, code, description) {
   try {
     const transporter = createTransporter();
-    
+
     const mailOptions = {
       from: {
-        name: process.env.EMAIL_FROM_NAME,
+        name: process.env.EMAIL_FROM_NAME || "St. Micheal`s & All Angels Church",
         address: process.env.EMAIL_FROM_ADDRESS
       },
       to: email,
-      subject: 'Admin Registration Code - St. Michael\'s Church',
+      subject: 'Admin Registration Code - St. Micheal`s & All Angels Church',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #FF7E45;">Admin Registration Code</h2>
@@ -213,14 +224,14 @@ export async function sendAdminCodeEmail(email, code, description) {
 export async function sendDonationReceipt(email, donation) {
   try {
     const transporter = createTransporter();
-    
+
     const mailOptions = {
       from: {
-        name: process.env.EMAIL_FROM_NAME,
+        name: process.env.EMAIL_FROM_NAME || "St. Micheal`s & All Angels Church",
         address: process.env.EMAIL_FROM_ADDRESS
       },
       to: email,
-      subject: 'Donation Receipt - St. Michael\'s Church',
+      subject: 'Donation Receipt - St. Micheal`s & All Angels Church',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #FF7E45;">Thank You for Your Donation</h2>
@@ -254,14 +265,14 @@ export async function sendDonationReceipt(email, donation) {
 export async function sendVolunteerConfirmation(email, ministryName) {
   try {
     const transporter = createTransporter();
-    
+
     const mailOptions = {
       from: {
-        name: process.env.EMAIL_FROM_NAME,
+        name: process.env.EMAIL_FROM_NAME || "St. Micheal`s & All Angels Church",
         address: process.env.EMAIL_FROM_ADDRESS
       },
       to: email,
-      subject: 'Volunteer Application Received - St. Michael\'s Church',
+      subject: 'Volunteer Application Received - St. Micheal`s & All Angels Church',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #FF7E45;">Volunteer Application Received</h2>
@@ -288,14 +299,14 @@ export async function sendVolunteerConfirmation(email, ministryName) {
 export async function sendVolunteerStatusUpdate(email, ministryName, status) {
   try {
     const transporter = createTransporter();
-    
+
     const mailOptions = {
       from: {
-        name: process.env.EMAIL_FROM_NAME,
+        name: process.env.EMAIL_FROM_NAME|| "St. Micheal`s & All Angels Church",
         address: process.env.EMAIL_FROM_ADDRESS
       },
       to: email,
-      subject: `Volunteer Application Update - St. Michael's Church`,
+      subject: `Volunteer Application Update - St. Micheal's & All Angels Church`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #FF7E45;">Volunteer Application Update</h2>

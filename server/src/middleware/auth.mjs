@@ -1,78 +1,136 @@
-import jwt from 'jsonwebtoken';
-const { verify } = jwt;
-import User from '../models/User.mjs'; // FIXED: Import User, not findById
+// middleware/auth.mjs
+import { verifyAuthToken } from '../utils/generateToken.mjs';
+import User from '../models/User.mjs';
 import Session from '../models/Session.mjs';
+import AuthAttempt from '../models/AuthAttempt.mjs';
 
-const auth = async (req, res, next) => {
+/**
+ * Strict auth middleware
+ * - requires header: Authorization: Bearer <token>
+ * - verifies token signature & expiry
+ * - checks session active & not expired
+ * - attaches req.user, req.token, req.session
+ */
+
+export const auth = async (req, res, next) => {
+  const MAX_LOGIN_ATTEMPTS = 5;
+  const LOCKOUT_TIME = 15 * 60 * 1000; // 15 minutes
+
+
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      return res.status(401).json({ message: 'Access denied. No token provided.' });
+    const authHeader = req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'Access denied. No valid token provided.'
+      });
     }
 
-    const decoded = verify(token, process.env.JWT_SECRET);
-    
-    // Check if session is still valid
-    const session = await Session.findOne({ 
-      token, 
-      userId: decoded.userId, 
-      isActive: true,
-      expiresAt: { $gt: new Date() }
-    });
-    
+    const token = authHeader.replace('Bearer ', '').trim();
+    if (!token) return res.status(401).json({ success: false, message: 'Empty token' });
+
+    let decoded;
+    try {
+      decoded = verifyAuthToken(token);
+    } catch (err) {
+      return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+    }
+
+    // Check for brute force attempts
+    const recentAttempts = await AuthAttempt.countDocuments({ ipAddress: req.ip, createdAt: { $gte: new Date(Date.now() - LOCKOUT_TIME) }, success: false });
+
+    if (recentAttempts >= MAX_LOGIN_ATTEMPTS) {
+      return res.status(429).json({ success: false, message: 'Too many failed attempts. Please try again later.' });
+    }
+
+    const session = await Session.findOne({ token, userId: decoded.userId, isActive: true, expiresAt: { $gt: new Date() } }).lean();
     if (!session) {
-      return res.status(401).json({ message: 'Session expired or invalid.' });
+      await AuthAttempt.logAttempt({
+        email: decoded?.email || req.user?.email || 'system@internal',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        attemptType: 'session_validation', // make sure schema supports this
+        success: false,
+        reason: 'Invalid or expired session'
+      });
+      return res.status(401).json({ success: false, message: 'Session expired or invalid' });
+    }
+    const user = await User.findById(decoded.userId).select('-password -verificationToken -resetPasswordToken -adminCode -__v').lean();
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User not found' });
     }
 
-    // FIXED: Use User.findById() instead of findById()
-    const user = await User.findById(decoded.userId);
-    if (!user || !user.isActive) {
-      return res.status(401).json({ message: 'User not found or inactive.' });
+    if (!user.isActive) {
+      return res.status(403).json({ success: false, message: 'Account deactivated' });
+    }
+
+    if (user.authMethod === 'local' && !user.emailVerified) {
+      return res.status(403).json({ success: false, code: 'EMAIL_NOT_VERIFIED', message: 'Please verify your email first', email: user.email });
     }
 
     req.user = user;
     req.token = token;
     req.session = session;
-    
-    // Update session activity
-    session.updateActivity();
-    
-    next();
-  } catch (error) {
-    res.status(401).json({ message: 'Invalid token.' });
-  }
-};
 
-const optionalAuth = async (req, res, next) => {
+    // update lastActivity async (do not block)
+    Session.updateOne({ _id: session._id }, { $set: { lastActivity: new Date() } }).catch(() => { });
+
+    // Log successful attempt
+    await AuthAttempt.logAttempt({ email: user.email, ipAddress: req.ip, userAgent: req.get('User-Agent'), attemptType: 'session_validation', success: true });
+
+
+    next();
+  } catch (err) {
+    console.error('Auth middleware error:', err);
+    res.status(401).json({ success: false, message: 'Authentication failed' });
+
+    await AuthAttempt.logAttempt({
+      email: req.user?.email || 'system@internal',
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+      attemptType: 'session_validation',
+      success: false,
+      reason: 'Server error during authentication'
+    }).catch(() => { });
+
+    return res.status(500).json({
+      success: false,
+      message: 'Authentication failed due to server error'
+    });
+  };
+}
+
+/**
+ * Optional auth: attach user if token valid; otherwise continue silently
+ */
+export const optionalAuth = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    
-    if (token) {
-      const decoded = verify(token, process.env.JWT_SECRET);
-      // FIXED: Use User.findById() instead of findById()
-      const user = await User.findById(decoded.userId).select('-password -__v');
-      
-      if (user && user.isActive) {
-        req.user = user;
-        
-        // Update session activity if exists
-        const session = await Session.findOne({ 
-          token, 
-          userId: decoded.userId, 
-          isActive: true 
-        });
-        if (session) {
-          session.updateActivity();
-        }
+    const authHeader = req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return next();
+
+    const token = authHeader.replace('Bearer ', '').trim();
+    if (!token) return next();
+
+    let decoded;
+    try {
+      decoded = verifyAuthToken(token);
+    } catch {
+      return next();
+    }
+
+    const user = await User.findById(decoded.userId).select('-password -__v').lean();
+    if (user && user.isActive) {
+      req.user = user;
+      req.token = token;
+      const session = await Session.findOne({ token, userId: decoded.userId, isActive: true }).lean();
+      if (session) {
+        req.session = session;
+        Session.updateOne({ _id: session._id }, { $set: { lastActivity: new Date() } }).catch(() => { });
       }
     }
-    
     next();
-  } catch (error) {
-    next(); // Continue without authentication
+  } catch (err) {
+    console.error('Optional auth error:', err);
+    next();
   }
 };
-
-// At the end of the file:
-export { auth, optionalAuth };

@@ -5,7 +5,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import listPlugin from "@fullcalendar/list";
 import interactionPlugin from "@fullcalendar/interaction";
 import { eventService } from '../services/apiService'; // Fixed import path
-import Loader from '../components/Loader';
+import PageLoader from '../components/Loader';
 import { useAlert } from '../utils/Alert';
 import { Event } from '../models/Events'; // Fixed import name
 
@@ -283,7 +283,7 @@ const EventsPage = ({ user }) => {
   };
 
   if (isLoading) {
-    return <Loader type="spinner" text="Loading events..." fullScreen={true} />;
+    return <PageLoader type="spinner" text="Loading events..." fullScreen={true} />;
   }
 
   return (

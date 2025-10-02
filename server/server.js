@@ -4,7 +4,15 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname in ES Module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, './src/.env') });
 
 // Import routes - ES Module syntax
 import authRoutes from './src/routes/auth.mjs';
@@ -50,6 +58,14 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
+app.use((req, res, next) => {
+  console.log("🛠 Middleware hit:", req.method, req.url);
+  next();
+});
+app.use((req, res, next) => {
+  console.log("📥 Incoming request:", req.method, req.url);
+  next();
+});
 
 
 // Database connection
@@ -99,11 +115,12 @@ app.use('*', (req, res) => {
   });
 });
 
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({
-    status: 'OK',
-    message: 'Server is running',
+    status: '✅ OK',
+    message: '🚀 Server is running',
     timestamp: new Date().toISOString()
   });
 });

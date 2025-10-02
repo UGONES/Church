@@ -4,8 +4,10 @@ import Loader from '../components/Loader';
 import { useAlert } from '../utils/Alert';
 import { Ministry } from '../models/Ministry';
 import { Volunteer } from '../models/Volunteer';
+import {useAuth} from "../hooks/useAuth";
 
-const MinistriesPage = ({ user }) => {
+const MinistriesPage = () => {
+  const { user, loading: authLoading } = useAuth();
   const alert = useAlert();
   const [activeMinistry, setActiveMinistry] = useState(null);
   const [ministries, setMinistries] = useState([]);
@@ -244,7 +246,7 @@ const MinistriesPage = ({ user }) => {
     (ministry) => (ministry.id === activeMinistry || ministry._id === activeMinistry)
   );
 
-  if (isLoading) {
+  if (isLoading || authLoading) {
     return <Loader type="spinner" text="Loading ministries..." />;
   }
 

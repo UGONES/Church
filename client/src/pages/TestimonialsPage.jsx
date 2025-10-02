@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { testimonialService } from '../services/apiService';
-import Loader from '../components/Loader';
+import Loader, { ContentLoader } from '../components/Loader';
 import { useAlert } from '../utils/Alert';
 import { Testimonial } from '../models/Testimonial';
 import useAuth from '../hooks/useAuth';
@@ -34,26 +34,35 @@ const TestimonialsPage = () => {
           testimonialService.getCategories()
         ]);
 
-        // Handle testimonials response
-        if (testimonialsResponse.status === 'fulfilled' && testimonialsResponse.value.data) {
-          const testimonialsData = testimonialsResponse.value.data.testimonials || testimonialsResponse.value.data;
-          setTestimonials(Array.isArray(testimonialsData) ? testimonialsData.map(t => new Testimonial(t)) : []);
+        // ✅ FIXED: Handle testimonials response consistently
+        if (testimonialsResponse.status === 'fulfilled') {
+          const response = testimonialsResponse.value;
+          // Handle both direct array and { data: array } responses
+          const testimonialsData = Array.isArray(response) ? response :
+            (response.data || []);
+          setTestimonials(testimonialsData.map(t => new Testimonial(t)));
         } else {
           console.error('Failed to fetch testimonials:', testimonialsResponse.reason);
           setTestimonials([]);
         }
 
-        // Handle videos response
-        if (videosResponse.status === 'fulfilled' && videosResponse.value.data) {
-          setVideoTestimonials(Array.isArray(videosResponse.value.data) ? videosResponse.value.data : []);
+        // ✅ FIXED: Handle videos response consistently
+        if (videosResponse.status === 'fulfilled') {
+          const response = videosResponse.value;
+          const videosData = Array.isArray(response) ? response :
+            (response.data || []);
+          setVideoTestimonials(videosData);
         } else {
           console.error('Failed to fetch video testimonials:', videosResponse.reason);
           setVideoTestimonials([]);
         }
 
-        // Handle categories response
-        if (categoriesResponse.status === 'fulfilled' && categoriesResponse.value.data) {
-          setCategories(Array.isArray(categoriesResponse.value.data) ? categoriesResponse.value.data : []);
+        // ✅ FIXED: Handle categories response consistently
+        if (categoriesResponse.status === 'fulfilled') {
+          const response = categoriesResponse.value;
+          const categoriesData = Array.isArray(response) ? response :
+            (response.data || []);
+          setCategories(categoriesData);
         } else {
           console.error('Failed to fetch categories:', categoriesResponse.reason);
           setCategories([]);
@@ -67,12 +76,10 @@ const TestimonialsPage = () => {
               testimonialService.getStats()
             ]);
 
-            if (allResponse.status === 'fulfilled') {
-              console.log('All testimonials:', allResponse.value.data);
-            }
-
-            if (statsResponse.status === 'fulfilled' && statsResponse.value.data) {
-              setTestimonialStats(statsResponse.value.data);
+            // ✅ FIXED: Handle admin responses consistently
+            if (statsResponse.status === 'fulfilled') {
+              const response = statsResponse.value;
+              setTestimonialStats(response.data || response);
             }
           } catch (adminError) {
             console.error('Error fetching admin data:', adminError);
@@ -92,25 +99,26 @@ const TestimonialsPage = () => {
     fetchData();
   }, [isAdmin, alert]);
 
-  // ✅ Refetch function for after submissions/updates
+  // ✅ FIXED: Refetch function with consistent response handling
   const refetchTestimonials = async () => {
     try {
       const response = await testimonialService.getAll();
-      if (response.data) {
-        const testimonialsData = response.data.testimonials || response.data;
-        setTestimonials(Array.isArray(testimonialsData) ? testimonialsData.map(t => new Testimonial(t)) : []);
-      }
+      // Handle both direct array and { data: array } responses
+      const testimonialsData = Array.isArray(response) ? response :
+        (response.data || []);
+      setTestimonials(testimonialsData.map(t => new Testimonial(t)));
     } catch (error) {
       console.error('Error refetching testimonials:', error);
     }
   };
 
-  // ✅ Submit testimonial
+  // ✅ FIXED: Submit testimonial with proper response handling
   const handleSubmitTestimonial = async (formData) => {
     try {
       setError(null);
       const response = await testimonialService.submit(formData);
-      
+
+      // Handle success response consistently
       if (response.status === 201 || response.data) {
         setSubmissionSuccess(true);
         setShowSubmitForm(false);
@@ -125,7 +133,7 @@ const TestimonialsPage = () => {
     }
   };
 
-  // ✅ Admin update testimonial
+  // ✅ FIXED: Admin update testimonial with consistent response handling
   const handleUpdateTestimonial = async (testimonialId, updates) => {
     try {
       const response = await testimonialService.update(testimonialId, updates);
@@ -137,7 +145,7 @@ const TestimonialsPage = () => {
     }
   };
 
-  // ✅ Admin delete testimonial
+  // ✅ FIXED: Admin delete testimonial with consistent response handling
   const handleDeleteTestimonial = async (testimonialId) => {
     try {
       const response = await testimonialService.delete(testimonialId);
@@ -155,7 +163,7 @@ const TestimonialsPage = () => {
   };
 
   if (isLoading) {
-    return <Loader type="spinner" text="Loading testimonials..." />;
+    return <ContentLoader type="spinner" text="Loading testimonials..." />;
   }
 
   return (
@@ -200,8 +208,8 @@ const TestimonialsPage = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <p className="text-red-600">{error}</p>
-            <button 
-              onClick={() => window.location.reload()} 
+            <button
+              onClick={() => window.location.reload()}
               className="text-blue-600 underline mt-2"
             >
               Try Again
@@ -369,7 +377,7 @@ const ShareStorySection = ({ onSubmit }) => (
   </section>
 );
 
-// Testimonial Form Modal Component
+// Testimonial Form Modal Component (UNCHANGED - no endpoint issues here)
 const TestimonialFormModal = ({ onClose, onSubmit, error, categories }) => {
   const [formData, setFormData] = useState({
     name: '',

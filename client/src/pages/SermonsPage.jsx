@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { sermonService } from '../services/apiService';
-import Loader from '../components/Loader';
+import Loader, { ContentLoader } from '../components/Loader';
 import { useAlert } from '../utils/Alert';
 import { Sermon } from '../models/Sermon';
+import useAuth from '../hooks/useAuth';
 
-const SermonsPage = ({ user }) => {
+const SermonsPage = () => {
     const alert = useAlert();
+    const { user } = useAuth();
     const [selectedSermon, setSelectedSermon] = useState(null);
     const [showSermonModal, setShowSermonModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -47,7 +49,9 @@ const SermonsPage = ({ user }) => {
             setIsLoading(true);
             setError(null);
             const response = await sermonService.getAll();
-            setSermons(response.map(sermon => new Sermon(sermon)));
+            // ✅ normalize array
+            const data = Array.isArray(response) ? response : response?.data || [];
+            setSermons(data.map(sermon => new Sermon(sermon)));
         } catch (error) {
             console.error('Error fetching sermons:', error);
             setError('Failed to load sermons. Please try again later.');
@@ -71,7 +75,9 @@ const SermonsPage = ({ user }) => {
     const fetchCategories = async () => {
         try {
             const response = await sermonService.getCategories();
-            setCategories(response);
+            // ✅ normalize array
+            const data = Array.isArray(response) ? response : response?.data || [];
+            setCategories(data);
         } catch (error) {
             console.error('Error fetching categories:', error);
             setCategories([]);
@@ -214,7 +220,7 @@ const SermonsPage = ({ user }) => {
     };
 
     if (isLoading) {
-        return <Loader type="spinner" text="Loading sermons..." />;
+        return <ContentLoader type="spinner" text="Loading sermons..." />;
     }
 
     return (
@@ -272,15 +278,19 @@ const SermonsPage = ({ user }) => {
                         >
                             All Sermons
                         </button>
-                        {categories.map(category => (
+                        {Array.isArray(categories) && categories.map(category => (
                             <button
                                 key={category}
-                                className={`px-4 py-2 rounded-full transition-colors ${sermonFilter === category ? 'bg-[#FF7E45] text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                                className={`px-4 py-2 rounded-full transition-colors ${sermonFilter === category
+                                        ? 'bg-[#FF7E45] text-white'
+                                        : 'bg-gray-100 hover:bg-gray-200'
+                                    }`}
                                 onClick={() => setSermonFilter(category)}
                             >
                                 {category.charAt(0).toUpperCase() + category.slice(1)}
                             </button>
                         ))}
+
                     </div>
 
                     {isLoading ? (
