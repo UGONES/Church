@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "../utils/api";
-import { authService, donationService, eventService, volunteerService } from "../services/apiService";
+import {
+  authService,
+  donationService,
+  eventService,
+  volunteerService,
+} from "../services/apiService";
 import Loader from "../components/Loader";
 import { useAlert } from "../utils/Alert";
 import useAuth from "../hooks/useAuth";
@@ -42,19 +47,31 @@ const UserPage = () => {
 
       // Donations
       if (donationsResponse.status === "fulfilled") {
-        const raw = donationsResponse.value?.data?.donations || donationsResponse.value?.data || donationsResponse.value || [];
+        const raw =
+          donationsResponse.value?.data?.donations ||
+          donationsResponse.value?.data ||
+          donationsResponse.value ||
+          [];
         setRecentDonations(safeArray(raw).slice(0, 3));
       }
 
       // Events
       if (eventsResponse.status === "fulfilled") {
-        const raw = eventsResponse.value?.data?.events || eventsResponse.value?.data || eventsResponse.value || [];
+        const raw =
+          eventsResponse.value?.data?.events ||
+          eventsResponse.value?.data ||
+          eventsResponse.value ||
+          [];
         setUpcomingEvents(safeArray(raw));
       }
 
       // Volunteers
       if (volunteersResponse.status === "fulfilled") {
-        const raw = volunteersResponse.value?.data?.applications || volunteersResponse.value?.data || volunteersResponse.value || [];
+        const raw =
+          volunteersResponse.value?.data?.applications ||
+          volunteersResponse.value?.data ||
+          volunteersResponse.value ||
+          [];
         setVolunteerApplications(safeArray(raw));
       }
     } catch (err) {
@@ -83,10 +100,10 @@ const UserPage = () => {
   const formatDate = (dateString) =>
     dateString
       ? new Date(dateString).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })
       : "N/A";
 
   const getVolunteerStatusBadge = (status) => {
@@ -100,8 +117,9 @@ const UserPage = () => {
 
     return (
       <span
-        className={`px-2 py-1 rounded-full text-xs ${statusColors[status] || "bg-gray-100 text-gray-800"
-          }`}
+        className={`px-2 py-1 rounded-full text-xs ${
+          statusColors[status] || "bg-gray-100 text-gray-800"
+        }`}
       >
         {status?.charAt(0).toUpperCase() + status?.slice(1)}
       </span>
@@ -138,12 +156,12 @@ const UserPage = () => {
 
   return (
     <div className="page">
-       <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8">
         {/* Error Message */}
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center">
-              <i className="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+              <i className="fas fa-exclamation-triangle text-red-500 mr-2" />
               <p className="text-red-600">{error}</p>
             </div>
             <button
@@ -158,14 +176,15 @@ const UserPage = () => {
         {/* Welcome Section */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h1 className="text-2xl font-bold mb-2">
-            Welcome back, {currentUser?.firstName || currentUser?.name || "User"}!
+            Welcome back,{" "}
+            {currentUser?.firstName || currentUser?.name || "User"}!
           </h1>
           <p className="text-gray-600">
             {userRole === "admin"
               ? "Administrator Dashboard"
               : userRole === "moderator"
-              ? "Moderator Dashboard"
-              : "Member Dashboard"}
+                ? "Moderator Dashboard"
+                : "Member Dashboard"}
           </p>
         </div>
 
@@ -184,7 +203,9 @@ const UserPage = () => {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Volunteer Applications</span>
-                <span className="font-bold">{volunteerApplications.length}</span>
+                <span className="font-bold">
+                  {volunteerApplications.length}
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Member Since</span>
@@ -205,25 +226,29 @@ const UserPage = () => {
                 href={`/profile/${user.id}`}
                 className="block btn btn-outline w-full text-center"
               >
-                <i className="fas fa-user mr-2"></i>Edit Profile
+                <i className="fas fa-user mr-2" />
+                Edit Profile
               </a>
               <a
                 href="/events"
                 className="block btn btn-outline w-full text-center"
               >
-                <i className="fas fa-calendar mr-2"></i>View Events
+                <i className="fas fa-calendar mr-2" />
+                View Events
               </a>
               <a
                 href="/ministries"
                 className="block btn btn-outline w-full text-center"
               >
-                <i className="fas fa-hands-helping mr-2"></i>Volunteer
+                <i className="fas fa-hands-helping mr-2" />
+                Volunteer
               </a>
               <a
                 href="/donate"
                 className="block btn btn-primary w-full text-center"
               >
-                <i className="fas fa-donate mr-2"></i>Make a Donation
+                <i className="fas fa-donate mr-2" />
+                Make a Donation
               </a>
 
               {(userRole === "admin" || userRole === "moderator") && (
@@ -231,7 +256,8 @@ const UserPage = () => {
                   href={`/admin/${user.id}/dashboard`}
                   className="block btn btn-outline w-full text-center bg-blue-50 border-blue-200"
                 >
-                  <i className="fas fa-cog mr-2"></i>Admin Panel
+                  <i className="fas fa-cog mr-2" />
+                  Admin Panel
                 </a>
               )}
             </div>
@@ -260,7 +286,9 @@ const UserPage = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-600 text-center py-4">No recent activity</p>
+              <p className="text-gray-600 text-center py-4">
+                No recent activity
+              </p>
             )}
           </div>
         </div>
@@ -335,7 +363,7 @@ const UserPage = () => {
             </div>
           ) : (
             <div className="text-center py-6">
-              <i className="fas fa-calendar-plus text-3xl text-gray-300 mb-3"></i>
+              <i className="fas fa-calendar-plus text-3xl text-gray-300 mb-3" />
               <p className="text-gray-600 mb-4">No upcoming events</p>
               <a href="/events" className="btn btn-outline">
                 Browse Events

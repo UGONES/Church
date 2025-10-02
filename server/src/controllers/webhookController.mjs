@@ -1,38 +1,38 @@
-import Stripe from 'stripe';
-import Donation from '../models/Donation.mjs';
-import User from '../models/User.mjs';
-import { sendDonationReceipt } from '../utils/emailService.mjs';
+import Stripe from "stripe";
+import Donation from "../models/Donation.mjs";
+import User from "../models/User.mjs";
+import { sendDonationReceipt } from "../utils/emailService.mjs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Handle Stripe webhooks
 export async function handleStripeWebhook(req, res) {
-  const sig = req.headers['stripe-signature'];
+  const sig = req.headers["stripe-signature"];
   let event;
 
   try {
     event = stripe.webhooks.constructEvent(
       req.body,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET
+      process.env.STRIPE_WEBHOOK_SECRET,
     );
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error("Webhook signature verification failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   // Handle the event types
   switch (event.type) {
-    case 'payment_intent.succeeded':
+    case "payment_intent.succeeded":
       await handlePaymentIntentSucceeded(event.data.object);
       break;
-    case 'payment_intent.payment_failed':
+    case "payment_intent.payment_failed":
       await handlePaymentIntentFailed(event.data.object);
       break;
-    case 'customer.subscription.created':
+    case "customer.subscription.created":
       await handleSubscriptionCreated(event.data.object);
       break;
-    case 'customer.subscription.deleted':
+    case "customer.subscription.deleted":
       await handleSubscriptionDeleted(event.data.object);
       break;
     default:
@@ -46,11 +46,11 @@ export async function handleStripeWebhook(req, res) {
 const handlePaymentIntentSucceeded = async (paymentIntent) => {
   try {
     const donation = await Donation.findOne({
-      stripePaymentIntentId: paymentIntent.id
+      stripePaymentIntentId: paymentIntent.id,
     });
 
     if (donation) {
-      donation.status = 'completed';
+      donation.status = "completed";
       donation.receiptSent = true;
       donation.receiptSentAt = new Date();
       await donation.save();
@@ -62,7 +62,7 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
       }
     }
   } catch (error) {
-    console.error('Error handling successful payment:', error);
+    console.error("Error handling successful payment:", error);
   }
 };
 
@@ -71,10 +71,10 @@ const handlePaymentIntentFailed = async (paymentIntent) => {
   try {
     await Donation.findOneAndUpdate(
       { stripePaymentIntentId: paymentIntent.id },
-      { status: 'failed' }
+      { status: "failed" },
     );
   } catch (error) {
-    console.error('Error handling failed payment:', error);
+    console.error("Error handling failed payment:", error);
   }
 };
 
@@ -82,9 +82,9 @@ const handlePaymentIntentFailed = async (paymentIntent) => {
 const handleSubscriptionCreated = async (subscription) => {
   try {
     // Add recurring donation logic here
-    console.log('Subscription created:', subscription.id);
+    console.log("Subscription created:", subscription.id);
   } catch (error) {
-    console.error('Error handling subscription creation:', error);
+    console.error("Error handling subscription creation:", error);
   }
 };
 
@@ -92,8 +92,8 @@ const handleSubscriptionCreated = async (subscription) => {
 const handleSubscriptionDeleted = async (subscription) => {
   try {
     // Add cancellation logic here
-    console.log('Subscription cancelled:', subscription.id);
+    console.log("Subscription cancelled:", subscription.id);
   } catch (error) {
-    console.error('Error handling subscription cancellation:', error);
+    console.error("Error handling subscription cancellation:", error);
   }
 };

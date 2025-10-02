@@ -6,9 +6,9 @@ export class Volunteer {
     this.ministryId = data.ministryId || null;
     this.interests = data.interests || [];
     this.availability = data.availability || [];
-    this.experience = data.experience || '';
-    this.message = data.message || '';
-    this.status = data.status || 'pending';
+    this.experience = data.experience || "";
+    this.message = data.message || "";
+    this.status = data.status || "pending";
     this.createdAt = data.createdAt || new Date();
   }
 }

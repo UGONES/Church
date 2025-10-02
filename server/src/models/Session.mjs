@@ -1,5 +1,5 @@
 // models/Session.mjs
-import { Schema, model } from 'mongoose';
+import { Schema, model } from "mongoose";
 
 /**
  * Session model
@@ -13,70 +13,70 @@ const sessionSchema = new Schema(
   {
     userId: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
-      index: true
+      index: true,
     },
     token: {
       type: String,
       required: true,
       unique: true,
       index: true,
-      trim: true
+      trim: true,
     },
     userAgent: {
       type: String,
-      default: 'unknown'
+      default: "unknown",
     },
     ipAddress: {
       type: String,
-      default: '0.0.0.0'
+      default: "0.0.0.0",
     },
     deviceType: {
       type: String,
-      enum: ['desktop', 'mobile', 'tablet', 'unknown'],
-      default: 'unknown'
+      enum: ["desktop", "mobile", "tablet", "unknown"],
+      default: "unknown",
     },
     browser: {
       type: String,
-      default: 'unknown'
+      default: "unknown",
     },
     os: {
       type: String,
-      default: 'unknown'
+      default: "unknown",
     },
     location: {
       country: {
         type: String,
-        default: 'unknown'
+        default: "unknown",
       },
       region: {
         type: String,
-        default: 'unknown'
+        default: "unknown",
       },
       city: {
         type: String,
-        default: 'unknown'
-      }
+        default: "unknown",
+      },
     },
     isActive: {
       type: Boolean,
       default: true,
-      index: true
+      index: true,
     },
     expiresAt: {
       type: Date,
       required: true,
       default: () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      index: true
+      index: true,
     },
     lastActivity: {
       type: Date,
       default: Date.now,
-      index: true
-    }
+      index: true,
+    },
   },
-  { timestamps: true, minimize: true }
+  { timestamps: true, minimize: true },
 );
 
 sessionSchema.methods.isExpired = function () {
@@ -96,15 +96,18 @@ sessionSchema.methods.updateActivity = async function () {
 sessionSchema.statics.saveOrUpdateSession = async function ({
   token,
   userId,
-  userAgent = 'unknown',
-  ipAddress = '0.0.0.0',
-  deviceType = 'unknown',
-  browser = 'unknown',
-  os = 'unknown',
+  userAgent = "unknown",
+  ipAddress = "0.0.0.0",
+  deviceType = "unknown",
+  browser = "unknown",
+  os = "unknown",
   location = {},
-  expiresAt
+  expiresAt,
 }) {
-  const safeExpiresAt = expiresAt instanceof Date ? expiresAt : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const safeExpiresAt =
+    expiresAt instanceof Date
+      ? expiresAt
+      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
   const update = {
     $set: {
@@ -115,20 +118,26 @@ sessionSchema.statics.saveOrUpdateSession = async function ({
       browser,
       os,
       location: {
-        country: location.country || 'unknown',
-        region: location.region || 'unknown',
-        city: location.city || 'unknown'
+        country: location.country || "unknown",
+        region: location.region || "unknown",
+        city: location.city || "unknown",
       },
       isActive: true,
       lastActivity: new Date(),
-      expiresAt: safeExpiresAt
-    }
+      expiresAt: safeExpiresAt,
+    },
   };
 
-  return this.findOneAndUpdate({ token }, update, { upsert: true, new: true, setDefaultsOnInsert: true }).lean().exec();
+  return this.findOneAndUpdate({ token }, update, {
+    upsert: true,
+    new: true,
+    setDefaultsOnInsert: true,
+  })
+    .lean()
+    .exec();
 };
 
 sessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 sessionSchema.index({ userId: 1, isActive: 1 });
 
-export default model('Session', sessionSchema);
+export default model("Session", sessionSchema);
