@@ -1,5 +1,5 @@
 // models/AuthAttempt.mjs
-import { Schema, model } from 'mongoose';
+import { Schema, model } from "mongoose";
 
 const authAttemptSchema = new Schema(
   {
@@ -8,67 +8,78 @@ const authAttemptSchema = new Schema(
       required: true,
       lowercase: true,
       trim: true,
-      index: true
+      index: true,
     },
     ipAddress: {
       type: String,
       required: true,
-      index: true
+      index: true,
     },
     userAgent: {
       type: String,
-      default: ''
+      default: "",
     },
     attemptType: {
       type: String,
-      enum: ["login", "register", "social_login", "password_reset", "change_password", "session_validation"],
+      enum: [
+        "login",
+        "register",
+        "social_login",
+        "password_reset",
+        "change_password",
+        "session_validation",
+      ],
       required: true,
-      index: true
+      index: true,
     },
     provider: {
       type: String,
-      enum: ['google', 'facebook', null],
-      default: null
+      enum: ["google", "facebook", null],
+      default: null,
     },
     success: {
       type: Boolean,
       required: true,
-      index: true
+      index: true,
     },
     reason: {
       type: String,
-      default: ''
+      default: "",
     },
     metadata: {
       type: Map,
       of: Schema.Types.Mixed,
-      default: {}
-    }
+      default: {},
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Static helpers
-authAttemptSchema.statics.getRecentAttempts = function (email, ipAddress, minutes = 15) {
+authAttemptSchema.statics.getRecentAttempts = function (
+  email,
+  ipAddress,
+  minutes = 15,
+) {
   const timeAgo = new Date(Date.now() - minutes * 60 * 1000);
   return this.countDocuments({
     $or: [{ email }, { ipAddress }],
     createdAt: { $gte: timeAgo },
-    success: false
+    success: false,
   });
 };
 
 authAttemptSchema.statics.logAttempt = function (data = {}) {
   // sanitize minimal fields
   return this.create({
-    email: (data.email || '').toLowerCase(),
-    ipAddress: data.ipAddress || '0.0.0.0',
-    userAgent: data.userAgent || '',
-    attemptType: data.attemptType || 'login',
+    email: (data.email || "").toLowerCase(),
+    ipAddress: data.ipAddress || "0.0.0.0",
+    userAgent: data.userAgent || "",
+    attemptType: data.attemptType || "login",
     provider: data.provider || null,
     success: !!data.success,
-    reason: data.reason || '',
-    metadata: data.metadata || {}
+    reason: data.reason || "",
+    metadata: data.metadata || {},
   });
 };
 
@@ -77,4 +88,4 @@ authAttemptSchema.statics.cleanOldRecords = function (days = 30) {
   return this.deleteMany({ createdAt: { $lt: cutoff } });
 };
 
-export default model('AuthAttempt', authAttemptSchema);
+export default model("AuthAttempt", authAttemptSchema);

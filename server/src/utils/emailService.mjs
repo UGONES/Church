@@ -1,28 +1,30 @@
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 
 // Create transporter with better error handling
 const createTransporter = () => {
   const config = {
     host: process.env.EMAIL_HOST,
     port: parseInt(process.env.EMAIL_PORT),
-    secure: process.env.EMAIL_SECURE === 'true',
+    secure: process.env.EMAIL_SECURE === "true",
     auth: {
       user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
+      pass: process.env.EMAIL_PASS,
     },
     connectionTimeout: 30000, // 30 seconds
     greetingTimeout: 30000,
     socketTimeout: 30000,
-    logger: process.env.NODE_ENV === 'development',
-    debug: process.env.NODE_ENV === 'development',
+    logger: process.env.NODE_ENV === "development",
+    debug: process.env.NODE_ENV === "development",
     pool: true,
     maxConnections: 5,
-    maxMessages: 100
+    maxMessages: 100,
   };
 
   // Validate required environment variables
   if (!config.host || !config.auth.user || !config.auth.pass) {
-    throw new Error('Email configuration incomplete. Check EMAIL_HOST, EMAIL_USER, and EMAIL_PASS.');
+    throw new Error(
+      "Email configuration incomplete. Check EMAIL_HOST, EMAIL_USER, and EMAIL_PASS.",
+    );
   }
 
   return nodemailer.createTransport(config);
@@ -33,10 +35,10 @@ export const verifyEmailConnection = async () => {
   try {
     const transporter = createTransporter();
     await transporter.verify();
-    console.log('✅ Email server connection verified');
+    console.log("✅ Email server connection verified");
     return true;
   } catch (error) {
-    console.error('❌ Email connection failed:', error.message);
+    console.error("❌ Email connection failed:", error.message);
     return false;
   }
 };
@@ -52,12 +54,13 @@ export async function sendVerificationEmail(email, token) {
     const encodedToken = encodeURIComponent(token);
     const verificationUrl = `${process.env.CLIENT_URL}/verify-email/${encodedToken}`;
 
-    console.log('Generated verification URL:', verificationUrl);
+    console.log("Generated verification URL:", verificationUrl);
 
     const mailOptions = {
       from: {
-        name: process.env.EMAIL_FROM_NAME || "St. Micheal`s & All Angels Church",
-        address: process.env.EMAIL_FROM_ADDRESS
+        name:
+          process.env.EMAIL_FROM_NAME || "St. Micheal`s & All Angels Church",
+        address: process.env.EMAIL_FROM_ADDRESS,
       },
       to: email,
       subject: "Verify Your Email Address - St. Micheal`s & All Angels Church",
@@ -84,15 +87,15 @@ export async function sendVerificationEmail(email, token) {
         </div>
       `,
       // FIX: Remove line break in text version
-      text: `Welcome toSt. Micheal's & All Angels Church! Please verify your email by visiting: ${verificationUrl}\n\nIf you didn't create this account, please ignore this email.`
+      text: `Welcome toSt. Micheal's & All Angels Church! Please verify your email by visiting: ${verificationUrl}\n\nIf you didn't create this account, please ignore this email.`,
     };
 
     const result = await transporter.sendMail(mailOptions);
-    console.log('✅ Verification email sent to:', email);
+    console.log("✅ Verification email sent to:", email);
     return result;
   } catch (error) {
-    console.error('❌ Failed to send verification email:', error);
-    throw new Error('Failed to send verification email. Please try again.');
+    console.error("❌ Failed to send verification email:", error);
+    throw new Error("Failed to send verification email. Please try again.");
   }
 }
 
@@ -104,8 +107,9 @@ export async function sendPasswordResetEmail(email, token) {
 
     const mailOptions = {
       from: {
-        name: process.env.EMAIL_FROM_NAME || "St. Micheal`s & All Angels Church",
-        address: process.env.EMAIL_FROM_ADDRESS
+        name:
+          process.env.EMAIL_FROM_NAME || "St. Micheal`s & All Angels Church",
+        address: process.env.EMAIL_FROM_ADDRESS,
       },
       to: email,
       subject: "Password Reset Request - St. Micheal`s & All Angels Church",
@@ -129,15 +133,15 @@ export async function sendPasswordResetEmail(email, token) {
           </p>
         </div>
       `,
-      text: `You requested a password reset. Reset here: ${resetUrl}\n\nThis link will expire in 1 hour.\nIf you didn't request this reset, please ignore this email.`
+      text: `You requested a password reset. Reset here: ${resetUrl}\n\nThis link will expire in 1 hour.\nIf you didn't request this reset, please ignore this email.`,
     };
 
     const result = await transporter.sendMail(mailOptions);
-    console.log('✅ Password reset email sent to:', email);
+    console.log("✅ Password reset email sent to:", email);
     return result;
   } catch (error) {
-    console.error('❌ Failed to send password reset email:', error);
-    throw new Error('Failed to send password reset email');
+    console.error("❌ Failed to send password reset email:", error);
+    throw new Error("Failed to send password reset email");
   }
 }
 
@@ -151,11 +155,13 @@ export async function sendPasswordChangeEmail(email) {
 
     const mailOptions = {
       from: {
-        name: process.env.EMAIL_FROM_NAME ||"St. Micheal`s & All Angels Church",
-        address: process.env.EMAIL_FROM_ADDRESS
+        name:
+          process.env.EMAIL_FROM_NAME || "St. Micheal`s & All Angels Church",
+        address: process.env.EMAIL_FROM_ADDRESS,
       },
       to: email,
-      subject: 'Password Change Notification - St. Micheal`s & All Angels Church',
+      subject:
+        "Password Change Notification - St. Micheal`s & All Angels Church",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #FF7E45;">Password Change Notification</h2>
@@ -174,14 +180,14 @@ export async function sendPasswordChangeEmail(email) {
           </p>
         </div>
       `,
-      text: `Your password has been changed successfully. If you did not initiate this change, please contact support immediately.\n\nManage your account: ${changeUrl}`
+      text: `Your password has been changed successfully. If you did not initiate this change, please contact support immediately.\n\nManage your account: ${changeUrl}`,
     };
 
     await transporter.sendMail(mailOptions);
-    console.log('✅ Password change notification sent to:', email);
+    console.log("✅ Password change notification sent to:", email);
   } catch (error) {
-    console.error('❌ Failed to send password change email:', error);
-    throw new Error('Failed to send password change notification');
+    console.error("❌ Failed to send password change email:", error);
+    throw new Error("Failed to send password change notification");
   }
 }
 
@@ -192,11 +198,12 @@ export async function sendAdminCodeEmail(email, code, description) {
 
     const mailOptions = {
       from: {
-        name: process.env.EMAIL_FROM_NAME || "St. Micheal`s & All Angels Church",
-        address: process.env.EMAIL_FROM_ADDRESS
+        name:
+          process.env.EMAIL_FROM_NAME || "St. Micheal`s & All Angels Church",
+        address: process.env.EMAIL_FROM_ADDRESS,
       },
       to: email,
-      subject: 'Admin Registration Code - St. Micheal`s & All Angels Church',
+      subject: "Admin Registration Code - St. Micheal`s & All Angels Church",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #FF7E45;">Admin Registration Code</h2>
@@ -209,14 +216,14 @@ export async function sendAdminCodeEmail(email, code, description) {
           </p>
         </div>
       `,
-      text: `Your admin registration code: ${code}\nDescription: ${description}\nUse this code during registration to gain admin privileges.`
+      text: `Your admin registration code: ${code}\nDescription: ${description}\nUse this code during registration to gain admin privileges.`,
     };
 
     await transporter.sendMail(mailOptions);
-    console.log('✅ Admin code email sent to:', email);
+    console.log("✅ Admin code email sent to:", email);
   } catch (error) {
-    console.error('❌ Failed to send admin code email:', error);
-    throw new Error('Failed to send admin code email');
+    console.error("❌ Failed to send admin code email:", error);
+    throw new Error("Failed to send admin code email");
   }
 }
 
@@ -227,11 +234,12 @@ export async function sendDonationReceipt(email, donation) {
 
     const mailOptions = {
       from: {
-        name: process.env.EMAIL_FROM_NAME || "St. Micheal`s & All Angels Church",
-        address: process.env.EMAIL_FROM_ADDRESS
+        name:
+          process.env.EMAIL_FROM_NAME || "St. Micheal`s & All Angels Church",
+        address: process.env.EMAIL_FROM_ADDRESS,
       },
       to: email,
-      subject: 'Donation Receipt - St. Micheal`s & All Angels Church',
+      subject: "Donation Receipt - St. Micheal`s & All Angels Church",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #FF7E45;">Thank You for Your Donation</h2>
@@ -250,14 +258,14 @@ export async function sendDonationReceipt(email, donation) {
           </p>
         </div>
       `,
-      text: `Thank you for your donation of $${donation.amount} on ${donation.createdAt.toDateString()}.\nPayment Method: ${donation.paymentMethod}\nDonation ID: ${donation._id}\n\nThis email serves as your official receipt for tax purposes.`
+      text: `Thank you for your donation of $${donation.amount} on ${donation.createdAt.toDateString()}.\nPayment Method: ${donation.paymentMethod}\nDonation ID: ${donation._id}\n\nThis email serves as your official receipt for tax purposes.`,
     };
 
     await transporter.sendMail(mailOptions);
-    console.log('✅ Donation receipt sent to:', email);
+    console.log("✅ Donation receipt sent to:", email);
   } catch (error) {
-    console.error('❌ Failed to send donation receipt:', error);
-    throw new Error('Failed to send donation receipt');
+    console.error("❌ Failed to send donation receipt:", error);
+    throw new Error("Failed to send donation receipt");
   }
 }
 
@@ -268,11 +276,13 @@ export async function sendVolunteerConfirmation(email, ministryName) {
 
     const mailOptions = {
       from: {
-        name: process.env.EMAIL_FROM_NAME || "St. Micheal`s & All Angels Church",
-        address: process.env.EMAIL_FROM_ADDRESS
+        name:
+          process.env.EMAIL_FROM_NAME || "St. Micheal`s & All Angels Church",
+        address: process.env.EMAIL_FROM_ADDRESS,
       },
       to: email,
-      subject: 'Volunteer Application Received - St. Micheal`s & All Angels Church',
+      subject:
+        "Volunteer Application Received - St. Micheal`s & All Angels Church",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #FF7E45;">Volunteer Application Received</h2>
@@ -284,14 +294,14 @@ export async function sendVolunteerConfirmation(email, ministryName) {
           </p>
         </div>
       `,
-      text: `Thank you for applying to volunteer for ${ministryName}. Our team will review your application and contact you soon.`
+      text: `Thank you for applying to volunteer for ${ministryName}. Our team will review your application and contact you soon.`,
     };
 
     await transporter.sendMail(mailOptions);
-    console.log('✅ Volunteer confirmation sent to:', email);
+    console.log("✅ Volunteer confirmation sent to:", email);
   } catch (error) {
-    console.error('❌ Failed to send volunteer confirmation:', error);
-    throw new Error('Failed to send volunteer confirmation');
+    console.error("❌ Failed to send volunteer confirmation:", error);
+    throw new Error("Failed to send volunteer confirmation");
   }
 }
 
@@ -302,30 +312,32 @@ export async function sendVolunteerStatusUpdate(email, ministryName, status) {
 
     const mailOptions = {
       from: {
-        name: process.env.EMAIL_FROM_NAME|| "St. Micheal`s & All Angels Church",
-        address: process.env.EMAIL_FROM_ADDRESS
+        name:
+          process.env.EMAIL_FROM_NAME || "St. Micheal`s & All Angels Church",
+        address: process.env.EMAIL_FROM_ADDRESS,
       },
       to: email,
-      subject: `Volunteer Application Update - St. Micheal's & All Angels Church`,
+      subject:
+        "Volunteer Application Update - St. Micheal's & All Angels Church",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #FF7E45;">Volunteer Application Update</h2>
           <p>Your application to volunteer for <strong>${ministryName}</strong> has been <strong>${status}</strong>.</p>
-          <p>${status === 'approved' ? 'We will contact you soon with next steps.' : 'Thank you for your interest in serving.'}</p>
+          <p>${status === "approved" ? "We will contact you soon with next steps." : "Thank you for your interest in serving."}</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
           <p style="color: #999; font-size: 12px;">
             St. Michael's Church & All Angels | Ifite-Awka
           </p>
         </div>
       `,
-      text: `Your application to volunteer for ${ministryName} has been ${status}.\n${status === 'approved' ? 'We will contact you soon with next steps.' : 'Thank you for your interest in serving.'}`
+      text: `Your application to volunteer for ${ministryName} has been ${status}.\n${status === "approved" ? "We will contact you soon with next steps." : "Thank you for your interest in serving."}`,
     };
 
     await transporter.sendMail(mailOptions);
-    console.log('✅ Volunteer status update sent to:', email);
+    console.log("✅ Volunteer status update sent to:", email);
   } catch (error) {
-    console.error('❌ Failed to send volunteer status update:', error);
-    throw new Error('Failed to send volunteer status update');
+    console.error("❌ Failed to send volunteer status update:", error);
+    throw new Error("Failed to send volunteer status update");
   }
 }
 
@@ -337,5 +349,5 @@ export default {
   sendAdminCodeEmail,
   sendDonationReceipt,
   sendVolunteerConfirmation,
-  sendVolunteerStatusUpdate
+  sendVolunteerStatusUpdate,
 };

@@ -1,6 +1,6 @@
 // models/AdminCode.mjs
-import { Schema, model } from 'mongoose';
-import { randomBytes } from 'crypto';
+import { Schema, model } from "mongoose";
+import { randomBytes } from "crypto";
 
 /**
  * Admin / Role Code model
@@ -21,50 +21,50 @@ const adminCodeSchema = new Schema(
       required: true,
       unique: true,
       uppercase: true,
-      trim: true
+      trim: true,
     },
     description: {
       type: String,
-      default: ''
+      default: "",
     },
     createdBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
+      ref: "User",
+      required: true,
     },
     assignedTo: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
-      default: null
+      ref: "User",
+      default: null,
     },
     role: {
-       type: String,
-       enum: ['admin', 'moderator'],
-       default: 'admin'
+      type: String,
+      enum: ["admin", "moderator"],
+      default: "admin",
     },
     isUsed: {
-       type: Boolean,
-       default: false,
-       index: true
+      type: Boolean,
+      default: false,
+      index: true,
     },
     usedAt: {
-       type: Date,
-       default: null
+      type: Date,
+      default: null,
     },
     expiresAt: {
-       type: Date,
-       default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      type: Date,
+      default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
     usageCount: {
-       type: Number,
-       default: 0
+      type: Number,
+      default: 0,
     },
     maxUsage: {
-       type: Number,
-       default: 1
-    }
+      type: Number,
+      default: 1,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Indexes for efficient lookup
@@ -72,10 +72,10 @@ adminCodeSchema.index({ code: 1, isUsed: 1, expiresAt: 1 });
 adminCodeSchema.index({ createdBy: 1 });
 
 // Auto-generate code on create if not provided
-adminCodeSchema.pre('validate', function (next) {
+adminCodeSchema.pre("validate", function (next) {
   if (this.isNew && !this.code) {
     // 16 hex chars -> 8 bytes -> uppercased
-    this.code = randomBytes(8).toString('hex').toUpperCase();
+    this.code = randomBytes(8).toString("hex").toUpperCase();
   }
   next();
 });
@@ -85,12 +85,12 @@ adminCodeSchema.pre('validate', function (next) {
  * Caller should perform an atomic update (useCode) to increment usage.
  */
 adminCodeSchema.statics.findValidByCode = function (code) {
-  if (!code || typeof code !== 'string') return Promise.resolve(null);
+  if (!code || typeof code !== "string") return Promise.resolve(null);
   const normalized = code.trim().toUpperCase();
   return this.findOne({
     code: normalized,
     expiresAt: { $gt: new Date() },
-    $expr: { $lt: ['$usageCount', '$maxUsage'] }
+    $expr: { $lt: ["$usageCount", "$maxUsage"] },
   }).lean();
 };
 
@@ -99,23 +99,23 @@ adminCodeSchema.statics.findValidByCode = function (code) {
  * Returns the updated document or null if not usable.
  */
 adminCodeSchema.statics.useCode = function (code, userId) {
-  const normalized = (code || '').trim().toUpperCase();
+  const normalized = (code || "").trim().toUpperCase();
   return this.findOneAndUpdate(
     {
       code: normalized,
       expiresAt: { $gt: new Date() },
-      $expr: { $lt: ['$usageCount', '$maxUsage'] }
+      $expr: { $lt: ["$usageCount", "$maxUsage"] },
     },
     {
       $inc: { usageCount: 1 },
       $set: {
         assignedTo: userId,
-        usedAt: new Date()
+        usedAt: new Date(),
       },
       // isUsed becomes true if usageCount + 1 >= maxUsage
-      $setOnInsert: {}
+      $setOnInsert: {},
     },
-    { new: true }
+    { new: true },
   ).then((doc) => {
     // If usageCount reached maxUsage, mark isUsed
     if (doc && doc.usageCount >= doc.maxUsage && !doc.isUsed) {
@@ -134,4 +134,4 @@ adminCodeSchema.methods.canBeUsed = function () {
   return !this.isUsed && !this.isExpired() && this.usageCount < this.maxUsage;
 };
 
-export default model('AdminCode', adminCodeSchema);
+export default model("AdminCode", adminCodeSchema);

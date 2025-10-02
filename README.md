@@ -1,2 +1,3 @@
 # Church
+
 SMC Church WebSite

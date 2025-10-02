@@ -30,7 +30,6 @@ export const AuthProvider = ({ children }) => {
   // ----------------------------
   const normalizeUser = (rawUser) => (rawUser ? new User(rawUser) : null);
 
-
   // ----------------------------
   // Initialize authentication on mount
   // ----------------------------
@@ -40,13 +39,21 @@ export const AuthProvider = ({ children }) => {
         setIsLoading(true);
         const existingToken = getAuthToken();
 
-        if (existingToken && isValidTokenFormat(existingToken) && isTokenValid(existingToken)) {
+        if (
+          existingToken &&
+          isValidTokenFormat(existingToken) &&
+          isTokenValid(existingToken)
+        ) {
           const tokenUser = getUserFromToken(existingToken);
 
-          if (tokenUser && (tokenUser.userId || tokenUser._id || tokenUser.id)) {
+          if (
+            tokenUser &&
+            (tokenUser.userId || tokenUser._id || tokenUser.id)
+          ) {
             try {
               const response = await authService.getCurrentUser();
-              const serverUser = response.data?.user || response.user || response;
+              const serverUser =
+                response.data?.user || response.user || response;
 
               if (serverUser) {
                 const normalizedUser = normalizeUser(serverUser);
@@ -55,16 +62,29 @@ export const AuthProvider = ({ children }) => {
                 setToken(existingToken);
 
                 // ✅ Redirect admins properly if landing on /login or /
-                if (window.location.pathname === "/" || window.location.pathname === "/login") {
-                  if (normalizedUser.role === "admin" || normalizedUser.role === "moderator") {
-                    navigate(`/admin/${normalizedUser.id}/dashboard`, { replace: true });
+                if (
+                  window.location.pathname === "/" ||
+                  window.location.pathname === "/login"
+                ) {
+                  if (
+                    normalizedUser.role === "admin" ||
+                    normalizedUser.role === "moderator"
+                  ) {
+                    navigate(`/admin/${normalizedUser.id}/dashboard`, {
+                      replace: true,
+                    });
                   } else {
-                    navigate(`/user/${normalizedUser.id}/dashboard`, { replace: true });
+                    navigate(`/user/${normalizedUser.id}/dashboard`, {
+                      replace: true,
+                    });
                   }
                 }
               }
             } catch (fetchError) {
-              console.warn("⚠️ Could not fetch user from server, falling back to token:", fetchError);
+              console.warn(
+                "⚠️ Could not fetch user from server, falling back to token:",
+                fetchError,
+              );
               const normalizedUser = normalizeUser(tokenUser);
               setUser(normalizedUser);
               setStoredUser(normalizedUser);
@@ -91,8 +111,8 @@ export const AuthProvider = ({ children }) => {
 
     initializeAuth();
   }, [navigate]);
-  
- // ----------------------------
+
+  // ----------------------------
   // LOGIN
   // ----------------------------
   const login = async (credentials) => {
@@ -142,9 +162,14 @@ export const AuthProvider = ({ children }) => {
       setToken(data.token);
 
       // ✅ Trust backend roles, no more downgrades
-      alert.success(`Welcome back, ${normalizedUser.name || normalizedUser.email}!`);
+      alert.success(
+        `Welcome back, ${normalizedUser.name || normalizedUser.email}!`,
+      );
 
-      if (normalizedUser.role === "admin" || normalizedUser.role === "moderator") {
+      if (
+        normalizedUser.role === "admin" ||
+        normalizedUser.role === "moderator"
+      ) {
         navigate(`/admin/${normalizedUser.id}/dashboard`, { replace: true });
       } else {
         navigate(`/user/${normalizedUser.id}/dashboard`, { replace: true });
@@ -182,7 +207,6 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem("authToken");
       localStorage.removeItem("user");
       console.log("✅ Local session cleared");
-
     }
     navigate("/login");
   };

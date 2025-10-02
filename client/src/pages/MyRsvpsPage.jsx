@@ -26,7 +26,7 @@ const MyRSVPsPage = () => {
     fetchRSVPs();
   }, [user]);
 
- const fetchRSVPs = async () => {
+  const fetchRSVPs = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -37,35 +37,43 @@ const MyRSVPsPage = () => {
       ]);
 
       // Process upcoming events
-      if (upcomingResponse.status === 'fulfilled') {
-        const upcomingData = upcomingResponse.value.data || upcomingResponse.value;
+      if (upcomingResponse.status === "fulfilled") {
+        const upcomingData =
+          upcomingResponse.value.data || upcomingResponse.value;
         const upcoming = (Array.isArray(upcomingData) ? upcomingData : [])
-          .filter(event => new Date(event.date || event.startTime) > new Date())
-          .map(event => ({
+          .filter(
+            (event) => new Date(event.date || event.startTime) > new Date(),
+          )
+          .map((event) => ({
             ...event,
             id: event._id || event.id,
-            title: event.title || 'Untitled Event',
+            title: event.title || "Untitled Event",
             date: event.date || event.startTime,
-            location: event.location || 'TBA',
-            status: event.rsvpStatus || 'Confirmed',
+            location: event.location || "TBA",
+            status: event.rsvpStatus || "Confirmed",
           }));
         setUpcomingEvents(upcoming);
       } else {
-        console.error("Error fetching upcoming events:", upcomingResponse.reason);
+        console.error(
+          "Error fetching upcoming events:",
+          upcomingResponse.reason,
+        );
       }
 
       // Process past events
-      if (pastResponse.status === 'fulfilled') {
+      if (pastResponse.status === "fulfilled") {
         const pastData = pastResponse.value.data || pastResponse.value;
         const past = (Array.isArray(pastData) ? pastData : [])
-          .filter(event => new Date(event.date || event.startTime) <= new Date())
-          .map(event => ({
+          .filter(
+            (event) => new Date(event.date || event.startTime) <= new Date(),
+          )
+          .map((event) => ({
             ...event,
             id: event._id || event.id,
-            title: event.title || 'Untitled Event',
+            title: event.title || "Untitled Event",
             date: event.date || event.startTime,
-            location: event.location || 'TBA',
-            attendanceStatus: event.attendanceStatus || 'Attended',
+            location: event.location || "TBA",
+            attendanceStatus: event.attendanceStatus || "Attended",
             recordingAvailable: event.recordingUrl || false,
             materialsAvailable: event.materialsUrl || false,
           }));
@@ -73,25 +81,28 @@ const MyRSVPsPage = () => {
       } else {
         console.error("Error fetching past events:", pastResponse.reason);
         // Fallback: filter upcoming events for past ones
-        if (upcomingResponse.status === 'fulfilled') {
-          const upcomingData = upcomingResponse.value.data || upcomingResponse.value;
+        if (upcomingResponse.status === "fulfilled") {
+          const upcomingData =
+            upcomingResponse.value.data || upcomingResponse.value;
           const past = (Array.isArray(upcomingData) ? upcomingData : [])
-            .filter(event => new Date(event.date || event.startTime) <= new Date())
-            .map(event => ({
+            .filter(
+              (event) => new Date(event.date || event.startTime) <= new Date(),
+            )
+            .map((event) => ({
               ...event,
               id: event._id || event.id,
-              title: event.title || 'Untitled Event',
+              title: event.title || "Untitled Event",
               date: event.date || event.startTime,
-              location: event.location || 'TBA',
-              attendanceStatus: event.attendanceStatus || 'Attended',
+              location: event.location || "TBA",
+              attendanceStatus: event.attendanceStatus || "Attended",
             }));
           setPastEvents(past);
         }
       }
-
     } catch (err) {
       console.error("Error fetching RSVPs:", err);
-      const errorMsg = err.response?.data?.message || "Failed to load your events";
+      const errorMsg =
+        err.response?.data?.message || "Failed to load your events";
       setError(errorMsg);
       alert.error(errorMsg);
     } finally {
@@ -101,14 +112,18 @@ const MyRSVPsPage = () => {
 
   // Fixed RSVP cancellation
   const handleCancelRSVP = async (eventId, eventTitle) => {
-    if (!window.confirm(`Are you sure you want to cancel your RSVP for "${eventTitle}"?`)) {
+    if (
+      !window.confirm(
+        `Are you sure you want to cancel your RSVP for "${eventTitle}"?`,
+      )
+    ) {
       return;
     }
 
     try {
       setActionLoading(true);
       const response = await eventService.cancelRsvp(eventId);
-      
+
       if (response.data?.success || response.success) {
         await fetchRSVPs(); // Refresh the list
         alert.success("RSVP cancelled successfully!");
@@ -129,10 +144,12 @@ const MyRSVPsPage = () => {
   const handleAddToCalendar = async (eventId, eventTitle) => {
     try {
       setActionLoading(true);
-      
+
       // This would typically integrate with a calendar service
       // For now, we'll create a simple .ics file download
-      const event = [...upcomingEvents, ...pastEvents].find(e => e.id === eventId);
+      const event = [...upcomingEvents, ...pastEvents].find(
+        (e) => e.id === eventId,
+      );
       if (event) {
         const icsContent = generateICSEvent(event);
         downloadICSFile(icsContent, eventTitle);
@@ -146,33 +163,38 @@ const MyRSVPsPage = () => {
     }
   };
 
-   // Helper function to generate ICS content
+  // Helper function to generate ICS content
   const generateICSEvent = (event) => {
-    const startDate = new Date(event.date || event.startTime).toISOString().replace(/-|:|\.\d+/g, '');
-    const endDate = new Date(new Date(event.date || event.startTime).getTime() + 2 * 60 * 60 * 1000) // 2 hours later
-      .toISOString().replace(/-|:|\.\d+/g, '');
-    
+    const startDate = new Date(event.date || event.startTime)
+      .toISOString()
+      .replace(/-|:|\.\d+/g, "");
+    const endDate = new Date(
+      new Date(event.date || event.startTime).getTime() + 2 * 60 * 60 * 1000,
+    ) // 2 hours later
+      .toISOString()
+      .replace(/-|:|\.\d+/g, "");
+
     return [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'BEGIN:VEVENT',
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "BEGIN:VEVENT",
       `DTSTART:${startDate}`,
       `DTEND:${endDate}`,
       `SUMMARY:${event.title}`,
-      `DESCRIPTION:${event.description || 'Church event'}`,
-      `LOCATION:${event.location || 'Church location'}`,
-      'END:VEVENT',
-      'END:VCALENDAR'
-    ].join('\n');
+      `DESCRIPTION:${event.description || "Church event"}`,
+      `LOCATION:${event.location || "Church location"}`,
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\n");
   };
 
-    // Helper function to download ICS file
+  // Helper function to download ICS file
   const downloadICSFile = (content, filename) => {
-    const blob = new Blob([content], { type: 'text/calendar' });
+    const blob = new Blob([content], { type: "text/calendar" });
     const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = `${filename.replace(/\s+/g, '_')}.ics`;
+    link.download = `${filename.replace(/\s+/g, "_")}.ics`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -182,9 +204,9 @@ const MyRSVPsPage = () => {
   // Fixed recording access
   const handleViewRecording = async (eventId) => {
     try {
-      const event = pastEvents.find(e => e.id === eventId);
+      const event = pastEvents.find((e) => e.id === eventId);
       if (event?.recordingUrl) {
-        window.open(event.recordingUrl, '_blank');
+        window.open(event.recordingUrl, "_blank");
       } else {
         alert.info("Recording not available for this event");
       }
@@ -197,9 +219,9 @@ const MyRSVPsPage = () => {
   // Fixed materials download
   const handleDownloadMaterials = async (eventId) => {
     try {
-      const event = pastEvents.find(e => e.id === eventId);
+      const event = pastEvents.find((e) => e.id === eventId);
       if (event?.materialsUrl) {
-        window.open(event.materialsUrl, '_blank');
+        window.open(event.materialsUrl, "_blank");
       } else {
         alert.info("Materials not available for this event");
       }
@@ -215,15 +237,23 @@ const MyRSVPsPage = () => {
       return {
         day: date.getDate().toString().padStart(2, "0"),
         month: date.toLocaleString("default", { month: "short" }).toUpperCase(),
-        time: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        fullDate: date.toLocaleDateString("en-US", { 
-          year: "numeric", 
-          month: "short", 
-          day: "numeric" 
-        })
+        time: date.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        fullDate: date.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        }),
       };
     } catch {
-      return { day: "--", month: "---", time: "--:--", fullDate: "Unknown date" };
+      return {
+        day: "--",
+        month: "---",
+        time: "--:--",
+        fullDate: "Unknown date",
+      };
     }
   };
 
@@ -267,8 +297,10 @@ const MyRSVPsPage = () => {
           <div className="max-w-4xl mx-auto">
             <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
               <div className="flex items-center mb-3">
-                <i className="fas fa-exclamation-triangle text-red-500 text-xl mr-2"></i>
-                <h2 className="text-xl font-semibold text-red-800">Error Loading Events</h2>
+                <i className="fas fa-exclamation-triangle text-red-500 text-xl mr-2" />
+                <h2 className="text-xl font-semibold text-red-800">
+                  Error Loading Events
+                </h2>
               </div>
               <p className="text-red-600 mb-4">{error}</p>
               <button
@@ -297,21 +329,29 @@ const MyRSVPsPage = () => {
             <h2 className="text-xl font-bold mb-4">Upcoming Events</h2>
             {upcomingEvents.length === 0 ? (
               <div className="text-center py-8">
-                <i className="fas fa-calendar-plus text-4xl text-gray-300 mb-3"></i>
-                <p className="text-gray-500 mb-2">You have no upcoming events.</p>
-                <a 
-                  href="/events" 
+                <i className="fas fa-calendar-plus text-4xl text-gray-300 mb-3" />
+                <p className="text-gray-500 mb-2">
+                  You have no upcoming events.
+                </p>
+                <a
+                  href="/events"
                   className="text-[#FF7E45] hover:text-[#F4B942] font-medium inline-flex items-center"
                 >
-                  <i className="fas fa-arrow-right mr-2"></i>Browse upcoming events
+                  <i className="fas fa-arrow-right mr-2" />
+                  Browse upcoming events
                 </a>
               </div>
             ) : (
               <div className="space-y-4">
                 {upcomingEvents.map((event) => {
-                  const formattedDate = formatDate(event.date || event.startTime);
+                  const formattedDate = formatDate(
+                    event.date || event.startTime,
+                  );
                   return (
-                    <div key={event.id || event._id} className="border rounded-lg overflow-hidden transition-shadow hover:shadow-lg">
+                    <div
+                      key={event.id || event._id}
+                      className="border rounded-lg overflow-hidden transition-shadow hover:shadow-lg"
+                    >
                       <div className="flex flex-col md:flex-row">
                         <div className="md:w-1/4 bg-gray-100 flex items-center justify-center p-4 md:p-6">
                           <div className="text-center">
@@ -331,35 +371,50 @@ const MyRSVPsPage = () => {
                             <h3 className="font-bold text-lg">{event.title}</h3>
                             <span
                               className={`text-xs px-2 py-1 rounded ${
-                                event.status === "confirmed" || event.status === "Comfirmed"
+                                event.status === "confirmed" ||
+                                event.status === "Comfirmed"
                                   ? "bg-green-100 text-green-800"
                                   : event.status === "Pending"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-gray-100 text-gray-800"
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-gray-100 text-gray-800"
                               }`}
                             >
                               {event.status || "Confirmed"}
                             </span>
                           </div>
-                          <p className="text-gray-600 mb-4">{event.description}</p>
+                          <p className="text-gray-600 mb-4">
+                            {event.description}
+                          </p>
                           <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-3 md:space-y-0">
                             <div className="text-sm text-gray-500">
-                              <i className="fas fa-map-marker-alt mr-1"></i> {event.location || 'TBA'}
+                              <i className="fas fa-map-marker-alt mr-1" />{" "}
+                              {event.location || "TBA"}
                             </div>
                             <div className="flex space-x-2">
-                              <button 
-                                onClick={() => handleAddToCalendar(event.id || event._id, event.title)}
+                              <button
+                                onClick={() =>
+                                  handleAddToCalendar(
+                                    event.id || event._id,
+                                    event.title,
+                                  )
+                                }
                                 className="text-[#FF7E45] hover:text-[#F4B942] text-sm inline-flex items-center"
                                 disabled={actionLoading}
                               >
-                                <i className="far fa-calendar-alt mr-1"></i> Add to Calendar
+                                <i className="far fa-calendar-alt mr-1" /> Add
+                                to Calendar
                               </button>
-                              <button 
-                                onClick={() => handleCancelRSVP(event.id || event._id, event.title)}
+                              <button
+                                onClick={() =>
+                                  handleCancelRSVP(
+                                    event.id || event._id,
+                                    event.title,
+                                  )
+                                }
                                 className="text-red-500 hover:text-red-700 text-sm inline-flex items-center"
                                 disabled={actionLoading}
                               >
-                                <i className="fas fa-times mr-1"></i> Cancel RSVP
+                                <i className="fas fa-times mr-1" /> Cancel RSVP
                               </button>
                             </div>
                           </div>
@@ -377,7 +432,7 @@ const MyRSVPsPage = () => {
             <h2 className="text-xl font-bold mb-4">Past Events</h2>
             {pastEvents.length === 0 ? (
               <div className="text-center py-8">
-                <i className="fas fa-history text-4xl text-gray-300 mb-3"></i>
+                <i className="fas fa-history text-4xl text-gray-300 mb-3" />
                 <p className="text-gray-500">
                   You haven't attended any events yet.
                 </p>
@@ -385,9 +440,14 @@ const MyRSVPsPage = () => {
             ) : (
               <div className="space-y-4">
                 {pastEvents.map((event) => {
-                  const formattedDate = formatDate(event.date || event.startTime);
+                  const formattedDate = formatDate(
+                    event.date || event.startTime,
+                  );
                   return (
-                    <div key={event.id || event._id} className="border rounded-lg overflow-hidden bg-gray-50 transition-shadow hover:shadow-md">
+                    <div
+                      key={event.id || event._id}
+                      className="border rounded-lg overflow-hidden bg-gray-50 transition-shadow hover:shadow-md"
+                    >
                       <div className="flex flex-col md:flex-row">
                         <div className="md:w-1/4 bg-gray-100 flex items-center justify-center p-4 md:p-6">
                           <div className="text-center">
@@ -416,8 +476,8 @@ const MyRSVPsPage = () => {
                           </p>
                           <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-3 md:space-y-0">
                             <div className="text-sm text-gray-500">
-                              <i className="fas fa-map-marker-alt mr-1"></i>
-                               {event.location || 'Unknown location'}
+                              <i className="fas fa-map-marker-alt mr-1" />
+                              {event.location || "Unknown location"}
                             </div>
                             <div className="flex space-x-3">
                               {event.recordingAvailable && (
@@ -427,18 +487,20 @@ const MyRSVPsPage = () => {
                                   }
                                   className="text-[#FF7E45] hover:text-[#F4B942] text-sm inline-flex items-center"
                                 >
-                                  <i className="fas fa-play-circle mr-1"></i>{" "}
+                                  <i className="fas fa-play-circle mr-1" />{" "}
                                   Watch Recording
                                 </button>
                               )}
                               {event.materialsAvailable && (
                                 <button
                                   onClick={() =>
-                                    handleDownloadMaterials(event.id || event._id)
+                                    handleDownloadMaterials(
+                                      event.id || event._id,
+                                    )
                                   }
                                   className="text-[#FF7E45] hover:text-[#F4B942] text-sm inline-flex items-center"
                                 >
-                                  <i className="fas fa-download mr-1"></i>{" "}
+                                  <i className="fas fa-download mr-1" />{" "}
                                   Materials
                                 </button>
                               )}
@@ -458,10 +520,10 @@ const MyRSVPsPage = () => {
       {actionLoading && (
         <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
           <Loader
-           type="spinner" 
-           size="medium" 
-           color="#FF7E45" 
-           text="Processing..." 
+            type="spinner"
+            size="medium"
+            color="#FF7E45"
+            text="Processing..."
           />
         </div>
       )}

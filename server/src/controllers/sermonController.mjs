@@ -1,16 +1,23 @@
-import Sermon from '../models/Sermon.mjs';
-import Favorite from '../models/Favorite.mjs';
+import Sermon from "../models/Sermon.mjs";
+import Favorite from "../models/Favorite.mjs";
 
 // Get all sermons
 export async function getAllSermons(req, res) {
   try {
-    const { page = 1, limit = 10, category, speaker, featured, series } = req.query;
-    
+    const {
+      page = 1,
+      limit = 10,
+      category,
+      speaker,
+      featured,
+      series,
+    } = req.query;
+
     const query = {};
     if (category) query.category = category;
-    if (speaker) query.speaker = { $regex: speaker, $options: 'i' };
-    if (featured === 'true') query.isFeatured = true;
-    if (series) query.series = { $regex: series, $options: 'i' };
+    if (speaker) query.speaker = { $regex: speaker, $options: "i" };
+    if (featured === "true") query.isFeatured = true;
+    if (series) query.series = { $regex: series, $options: "i" };
 
     const sermons = await Sermon.find(query)
       .sort({ date: -1 })
@@ -23,10 +30,10 @@ export async function getAllSermons(req, res) {
       sermons,
       totalPages: Math.ceil(total / limit),
       currentPage: page,
-      total
+      total,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -35,22 +42,22 @@ export async function getLiveSermons(req, res) {
   try {
     const liveSermons = await Sermon.find({
       isLive: true,
-      liveStreamStatus: { $in: ['scheduled', 'live'] }
+      liveStreamStatus: { $in: ["scheduled", "live"] },
     }).sort({ date: -1 });
 
     res.json(liveSermons);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
 // Get sermon categories
 export async function getSermonCategories(req, res) {
   try {
-    const categories = await Sermon.distinct('category');
+    const categories = await Sermon.distinct("category");
     res.json(categories);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -64,7 +71,7 @@ export async function getFeaturedSermons(req, res) {
 
     res.json(sermons);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -73,12 +80,12 @@ export async function getFavoriteSermons(req, res) {
   try {
     const favorites = await Favorite.find({
       userId: req.user._id,
-      itemType: 'sermon'
-    }).populate('itemId');
+      itemType: "sermon",
+    }).populate("itemId");
 
-    res.json(favorites.map(fav => fav.itemId));
+    res.json(favorites.map((fav) => fav.itemId));
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -89,24 +96,24 @@ export async function addFavoriteSermon(req, res) {
 
     const existingFavorite = await Favorite.findOne({
       userId: req.user._id,
-      itemType: 'sermon',
-      itemId: id
+      itemType: "sermon",
+      itemId: id,
     });
 
     if (existingFavorite) {
-      return res.status(400).json({ message: 'Sermon already in favorites' });
+      return res.status(400).json({ message: "Sermon already in favorites" });
     }
 
     const favorite = new Favorite({
       userId: req.user._id,
-      itemType: 'sermon',
-      itemId: id
+      itemType: "sermon",
+      itemId: id,
     });
 
     await favorite.save();
-    res.status(201).json({ message: 'Sermon added to favorites' });
+    res.status(201).json({ message: "Sermon added to favorites" });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -117,13 +124,13 @@ export async function removeFavoriteSermon(req, res) {
 
     await Favorite.findOneAndDelete({
       userId: req.user._id,
-      itemType: 'sermon',
-      itemId: id
+      itemType: "sermon",
+      itemId: id,
     });
 
-    res.json({ message: 'Sermon removed from favorites' });
+    res.json({ message: "Sermon removed from favorites" });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -131,7 +138,7 @@ export async function removeFavoriteSermon(req, res) {
 export async function createSermon(req, res) {
   try {
     const sermonData = req.body;
-    
+
     if (req.files) {
       if (req.files.audio) sermonData.audioUrl = req.files.audio[0].path;
       if (req.files.video) sermonData.videoUrl = req.files.video[0].path;
@@ -142,11 +149,11 @@ export async function createSermon(req, res) {
     await sermon.save();
 
     res.status(201).json({
-      message: 'Sermon created successfully',
-      sermon
+      message: "Sermon created successfully",
+      sermon,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -164,19 +171,19 @@ export async function updateSermon(req, res) {
 
     const sermon = await Sermon.findByIdAndUpdate(id, sermonData, {
       new: true,
-      runValidators: true
+      runValidators: true,
     });
 
     if (!sermon) {
-      return res.status(404).json({ message: 'Sermon not found' });
+      return res.status(404).json({ message: "Sermon not found" });
     }
 
     res.json({
-      message: 'Sermon updated successfully',
-      sermon
+      message: "Sermon updated successfully",
+      sermon,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -186,16 +193,16 @@ export async function deleteSermon(req, res) {
     const { id } = req.params;
 
     const sermon = await Sermon.findByIdAndDelete(id);
-    
+
     if (!sermon) {
-      return res.status(404).json({ message: 'Sermon not found' });
+      return res.status(404).json({ message: "Sermon not found" });
     }
 
-    await Favorite.deleteMany({ itemType: 'sermon', itemId: id });
+    await Favorite.deleteMany({ itemType: "sermon", itemId: id });
 
-    res.json({ message: 'Sermon deleted successfully' });
+    res.json({ message: "Sermon deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -203,20 +210,22 @@ export async function deleteSermon(req, res) {
 export async function getSermonStats(req, res) {
   try {
     const totalSermons = await Sermon.countDocuments();
-    const publishedSermons = await Sermon.countDocuments({ status: 'published' });
+    const publishedSermons = await Sermon.countDocuments({
+      status: "published",
+    });
     const liveSermons = await Sermon.countDocuments({ isLive: true });
     const totalViews = await Sermon.aggregate([
-      { $group: { _id: null, total: { $sum: '$views' } } }
+      { $group: { _id: null, total: { $sum: "$views" } } },
     ]);
 
     const categoryStats = await Sermon.aggregate([
       {
         $group: {
-          _id: '$category',
+          _id: "$category",
           count: { $sum: 1 },
-          totalViews: { $sum: '$views' }
-        }
-      }
+          totalViews: { $sum: "$views" },
+        },
+      },
     ]);
 
     res.json({
@@ -224,10 +233,10 @@ export async function getSermonStats(req, res) {
       publishedSermons,
       liveSermons,
       totalViews: totalViews[0]?.total || 0,
-      categoryStats
+      categoryStats,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -240,23 +249,23 @@ export async function startLiveStream(req, res) {
       sermonId,
       {
         isLive: true,
-        liveStreamStatus: 'live',
+        liveStreamStatus: "live",
         liveStreamUrl,
-        date: new Date()
+        date: new Date(),
       },
-      { new: true }
+      { new: true },
     );
 
     if (!sermon) {
-      return res.status(404).json({ message: 'Sermon not found' });
+      return res.status(404).json({ message: "Sermon not found" });
     }
 
     res.json({
-      message: 'Live stream started successfully',
-      sermon
+      message: "Live stream started successfully",
+      sermon,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -269,20 +278,20 @@ export async function stopLiveStream(req, res) {
       sermonId,
       {
         isLive: false,
-        liveStreamStatus: 'ended'
+        liveStreamStatus: "ended",
       },
-      { new: true }
+      { new: true },
     );
 
     if (!sermon) {
-      return res.status(404).json({ message: 'Sermon not found' });
+      return res.status(404).json({ message: "Sermon not found" });
     }
 
     res.json({
-      message: 'Live stream stopped successfully',
-      sermon
+      message: "Live stream stopped successfully",
+      sermon,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }

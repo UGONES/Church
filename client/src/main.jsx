@@ -3,10 +3,9 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
-import { AlertProvider } from './utils/Alert';
-import { AuthProvider } from './hooks/useAuth';
+import { AlertProvider } from "./utils/Alert";
+import { AuthProvider } from "./hooks/useAuth";
 import { SocialAuthProvider } from "./contexts/SocialAuthContext";
-
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -19,5 +18,5 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         </AuthProvider>
       </AlertProvider>
     </BrowserRouter>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

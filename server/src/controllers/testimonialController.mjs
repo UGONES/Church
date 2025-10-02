@@ -1,4 +1,4 @@
-import Testimonial from '../models/Testimonial.mjs';
+import Testimonial from "../models/Testimonial.mjs";
 
 // Get all testimonials
 export async function getAllTestimonials(req, res) {
@@ -7,7 +7,7 @@ export async function getAllTestimonials(req, res) {
 
     const query = {};
     if (category) query.category = category;
-    if (approved === 'true') query.status = { $in: ['approved', 'featured'] };
+    if (approved === "true") query.status = { $in: ["approved", "featured"] };
 
     const testimonials = await Testimonial.find(query)
       .sort({ createdAt: -1 })
@@ -20,10 +20,10 @@ export async function getAllTestimonials(req, res) {
       testimonials,
       totalPages: Math.ceil(total / limit),
       currentPage: page,
-      total
+      total,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -32,14 +32,14 @@ export async function getApprovedTestimonials(req, res) {
   try {
     const { limit = 6 } = req.query;
     const testimonials = await Testimonial.find({
-      status: { $in: ['approved', 'featured'] }
+      status: { $in: ["approved", "featured"] },
     })
       .sort({ featuredAt: -1, createdAt: -1 })
       .limit(parseInt(limit));
 
     res.json(testimonials);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -48,22 +48,22 @@ export async function getVideoTestimonials(req, res) {
   try {
     const testimonials = await Testimonial.find({
       isVideo: true,
-      status: { $in: ['approved', 'featured'] }
+      status: { $in: ["approved", "featured"] },
     }).sort({ createdAt: -1 });
 
     res.json(testimonials);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
 // Get testimonial categories
 export async function getTestimonialCategories(req, res) {
   try {
-    const categories = await Testimonial.distinct('category');
+    const categories = await Testimonial.distinct("category");
     res.json(categories);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -78,18 +78,18 @@ export async function submitTestimonial(req, res) {
 
     const testimonial = new Testimonial({
       ...testimonialData,
-      status: 'pending'
+      status: "pending",
     });
 
     await testimonial.save();
 
     res.status(201).json({
       message:
-        'Testimonial submitted successfully. It will be reviewed before publishing.',
-      testimonial
+        "Testimonial submitted successfully. It will be reviewed before publishing.",
+      testimonial,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -112,10 +112,10 @@ export async function getAllTestimonialsAdmin(req, res) {
       testimonials,
       totalPages: Math.ceil(total / limit),
       currentPage: page,
-      total
+      total,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -132,11 +132,11 @@ export async function createTestimonial(req, res) {
     await testimonial.save();
 
     res.status(201).json({
-      message: 'Testimonial created successfully',
-      testimonial
+      message: "Testimonial created successfully",
+      testimonial,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -150,21 +150,25 @@ export async function updateTestimonial(req, res) {
       testimonialData.imageUrl = req.file.path;
     }
 
-    const testimonial = await Testimonial.findByIdAndUpdate(id, testimonialData, {
-      new: true,
-      runValidators: true
-    });
+    const testimonial = await Testimonial.findByIdAndUpdate(
+      id,
+      testimonialData,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
 
     if (!testimonial) {
-      return res.status(404).json({ message: 'Testimonial not found' });
+      return res.status(404).json({ message: "Testimonial not found" });
     }
 
     res.json({
-      message: 'Testimonial updated successfully',
-      testimonial
+      message: "Testimonial updated successfully",
+      testimonial,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -176,12 +180,12 @@ export async function deleteTestimonial(req, res) {
     const testimonial = await Testimonial.findByIdAndDelete(id);
 
     if (!testimonial) {
-      return res.status(404).json({ message: 'Testimonial not found' });
+      return res.status(404).json({ message: "Testimonial not found" });
     }
 
-    res.json({ message: 'Testimonial deleted successfully' });
+    res.json({ message: "Testimonial deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -190,31 +194,31 @@ export async function getTestimonialStats(req, res) {
   try {
     const totalTestimonials = await Testimonial.countDocuments();
     const approvedTestimonials = await Testimonial.countDocuments({
-      status: 'approved'
+      status: "approved",
     });
     const featuredTestimonials = await Testimonial.countDocuments({
-      status: 'featured'
+      status: "featured",
     });
     const pendingTestimonials = await Testimonial.countDocuments({
-      status: 'pending'
+      status: "pending",
     });
 
     const categoryStats = await Testimonial.aggregate([
       {
         $group: {
-          _id: '$category',
-          count: { $sum: 1 }
-        }
-      }
+          _id: "$category",
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
     const statusStats = await Testimonial.aggregate([
       {
         $group: {
-          _id: '$status',
-          count: { $sum: 1 }
-        }
-      }
+          _id: "$status",
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
     res.json({
@@ -223,9 +227,9 @@ export async function getTestimonialStats(req, res) {
       featuredTestimonials,
       pendingTestimonials,
       categoryStats,
-      statusStats
+      statusStats,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }

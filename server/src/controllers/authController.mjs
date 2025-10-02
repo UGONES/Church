@@ -1,15 +1,18 @@
 import jwt from "jsonwebtoken";
-import { validationResult } from 'express-validator';
-import User from '../models/User.mjs';
-import Session from '../models/Session.mjs';
-import AuthAttempt from '../models/AuthAttempt.mjs';
-import AdminCode from '../models/AdminCode.mjs';
-import tokenUtils from '../utils/generateToken.mjs';
-import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/emailService.mjs';
+import { validationResult } from "express-validator";
+import User from "../models/User.mjs";
+import Session from "../models/Session.mjs";
+import AuthAttempt from "../models/AuthAttempt.mjs";
+import AdminCode from "../models/AdminCode.mjs";
+import tokenUtils from "../utils/generateToken.mjs";
+import {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+} from "../utils/emailService.mjs";
 
 const { generateAuthToken, generateRandomToken } = tokenUtils;
 
-const normalizeEmail = (e = '') => (e || '').trim().toLowerCase();
+const normalizeEmail = (e = "") => (e || "").trim().toLowerCase();
 
 /**
  * Register
@@ -26,7 +29,13 @@ export async function register(req, res) {
     }
 
     const { firstName, lastName, email, password, adminCode } = req.body;
-    console.log("📥 Incoming register payload:", { firstName, lastName, email, hasPassword: !!password, adminCode });
+    console.log("📥 Incoming register payload:", {
+      firstName,
+      lastName,
+      email,
+      hasPassword: !!password,
+      adminCode,
+    });
 
     const normalizedEmail = normalizeEmail(email);
     console.log("📧 Normalized email:", normalizedEmail);
@@ -41,44 +50,72 @@ export async function register(req, res) {
 
     if (recentRegistrations >= 50) {
       console.log("⛔ Too many registrations, blocking");
-      return res.status(429).json({ success: false, message: "Too many registration attempts. Please try again later." });
+      return res.status(429).json({
+        success: false,
+        message: "Too many registration attempts. Please try again later.",
+      });
     }
 
     // Check existing user (email OR social IDs)
     const query = [{ email: normalizedEmail }];
-    if (req.body.googleId) query.push({ "socialAuth.googleId": req.body.googleId });
-    if (req.body.facebookId) query.push({ "socialAuth.facebookId": req.body.facebookId });
+    if (req.body.googleId) {
+      query.push({ "socialAuth.googleId": req.body.googleId });
+    }
+    if (req.body.facebookId) {
+      query.push({ "socialAuth.facebookId": req.body.facebookId });
+    }
 
     console.log("🔍 Query object:", { $or: query });
     const existing = await User.findOne({ $or: query });
-    console.log("📄 Existing user doc:", !!existing ? existing.email : null);
+    console.log("📄 Existing user doc:", existing ? existing.email : null);
 
     if (existing) {
       if (existing.authMethod !== "local") {
         console.log("🔄 Converting social account to local");
-        await AuthAttempt.logAttempt({ email: normalizedEmail, ipAddress: req.ip, attemptType: "register", success: false, reason: "User already exists (social)" });
+        await AuthAttempt.logAttempt({
+          email: normalizedEmail,
+          ipAddress: req.ip,
+          attemptType: "register",
+          success: false,
+          reason: "User already exists (social)",
+        });
 
         existing.password = password;
         existing.authMethod = "local";
-        existing.name = existing.name || `${(firstName || '').trim()} ${(lastName || '').trim()}`.trim();
+        existing.name =
+          existing.name ||
+          `${(firstName || "").trim()} ${(lastName || "").trim()}`.trim();
         await existing.save();
 
         console.log("🛠 Saving converted account, will hash password...");
 
-        const token = generateAuthToken(existing._id.toString(), { email: existing.email, role: existing.role, name: existing.name, emailVerified: existing.emailVerified });
+        const token = generateAuthToken(existing._id.toString(), {
+          email: existing.email,
+          role: existing.role,
+          name: existing.name,
+          emailVerified: existing.emailVerified,
+        });
         console.log("✅ Converted social → local, returning token");
-        return res.status(200).json({ success: true, message: "Account converted to local", token, user: existing.getPublicProfile() });
+        return res.status(200).json({
+          success: true,
+          message: "Account converted to local",
+          token,
+          user: existing.getPublicProfile(),
+        });
       }
 
       console.log("❌ User already exists as local");
-      return res.status(409).json({ success: false, message: "User already exists" });
+      return res
+        .status(409)
+        .json({ success: false, message: "User already exists" });
     }
 
     // Build user record (ensure name present if model requires it)
-    const name = `${(firstName || '').trim()} ${(lastName || '').trim()}`.trim();
+    const name =
+      `${(firstName || "").trim()} ${(lastName || "").trim()}`.trim();
     const user = new User({
-      firstName: firstName?.trim() || '',
-      lastName: lastName?.trim() || '',
+      firstName: firstName?.trim() || "",
+      lastName: lastName?.trim() || "",
       name: name || undefined,
       email: normalizedEmail,
       password,
@@ -98,7 +135,8 @@ export async function register(req, res) {
         console.log("✅ Valid code found in DB:", codeDoc);
 
         // Assign role from codeDoc.role (safer than guessing from prefix)
-        user.role = codeDoc.role ||
+        user.role =
+          codeDoc.role ||
           (normalizedCode.startsWith("MODCODE") ? "moderator" : "admin");
 
         user.adminCode = normalizedCode;
@@ -109,7 +147,9 @@ export async function register(req, res) {
         // Now atomically consume the code
         // await AdminCode.useCode(normalizedCode, user._id);
 
-        console.log(`🎉 User promoted to ${user.role} using code ${normalizedCode}`);
+        console.log(
+          `🎉 User promoted to ${user.role} using code ${normalizedCode}`,
+        );
       } else {
         console.warn("⚠️ Invalid or expired code:", normalizedCode);
         await user.save();
@@ -118,9 +158,12 @@ export async function register(req, res) {
       await user.save();
     }
 
-
     // Create verification token: a JWT which includes id + email
-    const verificationToken = jwt.sign({ id: user._id?.toString(), email: normalizedEmail }, process.env.JWT_SECRET, { expiresIn: "24h" });
+    const verificationToken = jwt.sign(
+      { id: user._id?.toString(), email: normalizedEmail },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" },
+    );
     user.verificationToken = verificationToken;
     user.verificationExpires = Date.now() + 24 * 60 * 60 * 1000;
     console.log("📨 Generated verification token (JWT)");
@@ -136,28 +179,62 @@ export async function register(req, res) {
       console.error("📛 Email sending failed", err);
     }
 
-    const responseUser = user.getPublicProfile ? user.getPublicProfile() : { id: user._id.toString(), email: user.email, role: user.role };
+    const responseUser = user.getPublicProfile
+      ? user.getPublicProfile()
+      : { id: user._id.toString(), email: user.email, role: user.role };
     console.log("📤 Public profile prepared:", responseUser);
 
     // Log registration attempt
-    await AuthAttempt.logAttempt({ email: normalizedEmail, ipAddress: req.ip, attemptType: "register", success: true, userAgent: req.get("User-Agent") });
+    await AuthAttempt.logAttempt({
+      email: normalizedEmail,
+      ipAddress: req.ip,
+      attemptType: "register",
+      success: true,
+      userAgent: req.get("User-Agent"),
+    });
     console.log("📝 Registration attempt logged");
 
     // Create session token for immediate session (still requires email verification)
-    const sessionToken = generateAuthToken(user._id.toString(), { email: user.email, role: user.role, name: user.name, emailVerified: user.emailVerified });
+    const sessionToken = generateAuthToken(user._id.toString(), {
+      email: user.email,
+      role: user.role,
+      name: user.name,
+      emailVerified: user.emailVerified,
+    });
     console.log("🔑 Generated session JWT token");
 
-    await Session.saveOrUpdateSession({ token: sessionToken, userId: user._id, userAgent: req.get("User-Agent"), ipAddress: req.ip });
+    await Session.saveOrUpdateSession({
+      token: sessionToken,
+      userId: user._id,
+      userAgent: req.get("User-Agent"),
+      ipAddress: req.ip,
+    });
     console.log("💾 Session created/updated");
 
-    return res.status(201).json({ success: true, message: "Registered; verify email", token: sessionToken, user: responseUser });
+    return res.status(201).json({
+      success: true,
+      message: "Registered; verify email",
+      token: sessionToken,
+      user: responseUser,
+    });
   } catch (err) {
     console.error("💥 Register error", err);
     if (err.code === 11000) {
-      return res.status(409).json({ success: false, message: "User already exists" });
+      return res
+        .status(409)
+        .json({ success: false, message: "User already exists" });
     }
-    await AuthAttempt.logAttempt({ email: req.body?.email || 'unknown', ipAddress: req.ip, attemptType: "register", success: false, reason: "Server error" }).catch(() => { });
-    return res.status(500).json({ success: false, message: "Registration failed due to server error" });
+    await AuthAttempt.logAttempt({
+      email: req.body?.email || "unknown",
+      ipAddress: req.ip,
+      attemptType: "register",
+      success: false,
+      reason: "Server error",
+    }).catch(() => {});
+    return res.status(500).json({
+      success: false,
+      message: "Registration failed due to server error",
+    });
   }
 }
 
@@ -168,32 +245,54 @@ export async function register(req, res) {
 export async function claimAdminCode(req, res) {
   try {
     const userId = req.user && req.user._id;
-    if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
 
     const { code } = req.body;
-    if (!code || typeof code !== 'string') return res.status(400).json({ success: false, message: 'Code required' });
+    if (!code || typeof code !== "string") {
+      return res.status(400).json({ success: false, message: "Code required" });
+    }
 
     // Find valid code
     const valid = await AdminCode.findOne({
       code: code.trim().toUpperCase(),
       expiresAt: { $gt: new Date() },
-      $expr: { $lt: ['$usageCount', '$maxUsage'] }
+      $expr: { $lt: ["$usageCount", "$maxUsage"] },
     });
 
-    if (!valid) return res.status(400).json({ success: false, message: 'Invalid or expired code' });
+    if (!valid) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired code" });
+    }
 
     // Use code atomically
     const used = await AdminCode.useCode(valid.code, userId);
-    if (!used) return res.status(400).json({ success: false, message: 'Failed to use code' });
+    if (!used) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Failed to use code" });
+    }
 
     // promote user role accordingly
-    const role = used.role || 'admin';
-    const updatedUser = await User.findByIdAndUpdate(userId, { $set: { role } }, { new: true }).select('-password -__v');
+    const role = used.role || "admin";
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: { role } },
+      { new: true },
+    ).select("-password -__v");
 
-    return res.json({ success: true, message: `Promoted to ${role}`, user: updatedUser.getPublicProfile() });
+    return res.json({
+      success: true,
+      message: `Promoted to ${role}`,
+      user: updatedUser.getPublicProfile(),
+    });
   } catch (err) {
-    console.error('Claim admin code error', err);
-    return res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Claim admin code error", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 }
 
@@ -206,9 +305,9 @@ export async function verifyEmail(req, res) {
   console.log("➡️ Verify email init");
   try {
     const { token } = req.params;
-    if (!token || typeof token !== 'string') {
+    if (!token || typeof token !== "string") {
       console.log("❌ Missing token param");
-      return res.status(400).json({ success: false, message: 'Invalid token' });
+      return res.status(400).json({ success: false, message: "Invalid token" });
     }
 
     let decoded;
@@ -217,15 +316,27 @@ export async function verifyEmail(req, res) {
       console.log("🔓 JWT decoded:", decoded);
     } catch (err) {
       console.error("❌ JWT verification failed:", err.message);
-      return res.status(400).json({ success: false, message: 'Invalid or expired verification link' });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired verification link",
+      });
     }
 
     // find user with token and not expired (token must match stored token)
-    const user = await User.findOne({ _id: decoded.id, verificationToken: token.trim(), verificationExpires: { $gt: Date.now() } });
+    const user = await User.findOne({
+      _id: decoded.id,
+      verificationToken: token.trim(),
+      verificationExpires: { $gt: Date.now() },
+    });
     console.log("👤 User found for verification:", !!user);
     if (!user) {
-      console.warn("⚠️ No user matched the provided token / token expired or mismatched");
-      return res.status(400).json({ success: false, message: 'Invalid or expired verification token' });
+      console.warn(
+        "⚠️ No user matched the provided token / token expired or mismatched",
+      );
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired verification token",
+      });
     }
 
     // If adminCode was stored, try to consume it (atomic model method expected)
@@ -234,8 +345,9 @@ export async function verifyEmail(req, res) {
       try {
         const used = await AdminCode.useCode(user.adminCode, user._id);
         console.log("🔧 AdminCode.useCode result:", !!used);
-        if (used && used.canBeUsed === undefined) { }
-        if (used && (used.role === 'admin' || used.role === 'moderator')) {
+        if (used && used.canBeUsed === undefined) {
+        }
+        if (used && (used.role === "admin" || used.role === "moderator")) {
           user.role = used.role;
           promotedRole = used.role;
           console.log(`🎉 User promoted to ${used.role}`);
@@ -254,13 +366,28 @@ export async function verifyEmail(req, res) {
     console.log("✅ Email verified for:", user.email);
 
     // issue a new JWT reflecting updated role & emailVerified
-    const newToken = generateAuthToken(user._id.toString(), { email: user.email, role: user.role, name: user.name, emailVerified: user.emailVerified });
+    const newToken = generateAuthToken(user._id.toString(), {
+      email: user.email,
+      role: user.role,
+      name: user.name,
+      emailVerified: user.emailVerified,
+    });
     console.log("🎟 New session token issued");
 
-    return res.json({ success: true, message: 'Email verified', token: newToken, user: user.getPublicProfile ? user.getPublicProfile() : { id: user._id.toString(), email: user.email }, promotedRole });
+    return res.json({
+      success: true,
+      message: "Email verified",
+      token: newToken,
+      user: user.getPublicProfile
+        ? user.getPublicProfile()
+        : { id: user._id.toString(), email: user.email },
+      promotedRole,
+    });
   } catch (err) {
     console.error("💥 Verify email error:", err);
-    return res.status(500).json({ success: false, message: 'Server error during verification' });
+    return res
+      .status(500)
+      .json({ success: false, message: "Server error during verification" });
   }
 }
 
@@ -272,16 +399,29 @@ export async function login(req, res) {
   console.log("➡️ Start login");
   try {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
 
     const { email, password } = req.body;
     const normalizedEmail = normalizeEmail(email);
 
-    const user = await User.findOne({ email: normalizedEmail }).select("+password");
+    const user = await User.findOne({ email: normalizedEmail }).select(
+      "+password",
+    );
     console.log("🔍 User found:", !!user);
-    if (!user || user.authMethod !== 'local') {
-      await AuthAttempt.logAttempt({ email: normalizedEmail, ipAddress: req.ip, userAgent: req.get('User-Agent'), attemptType: 'login', success: false, reason: 'User not found or wrong method' });
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    if (!user || user.authMethod !== "local") {
+      await AuthAttempt.logAttempt({
+        email: normalizedEmail,
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+        attemptType: "login",
+        success: false,
+        reason: "User not found or wrong method",
+      });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid credentials" });
     }
 
     console.log("🛠 Stored hash exists:", !!user.password);
@@ -289,53 +429,116 @@ export async function login(req, res) {
     const match = await user.comparePassword(password);
     console.log("🔑 Password match:", match);
     if (!match) {
-      await AuthAttempt.logAttempt({ email: normalizedEmail, ipAddress: req.ip, userAgent: req.get('User-Agent'), attemptType: 'login', success: false, reason: 'Invalid password' });
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      await AuthAttempt.logAttempt({
+        email: normalizedEmail,
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+        attemptType: "login",
+        success: false,
+        reason: "Invalid password",
+      });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid credentials" });
     }
 
-    if (!user.isActive) return res.status(403).json({ success: false, message: 'Account deactivated' });
-    if (!user.emailVerified) return res.status(403).json({ success: false, code: 'EMAIL_NOT_VERIFIED', message: 'Please verify your email first', email: user.email });
+    if (!user.isActive) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Account deactivated" });
+    }
+    if (!user.emailVerified) {
+      return res.status(403).json({
+        success: false,
+        code: "EMAIL_NOT_VERIFIED",
+        message: "Please verify your email first",
+        email: user.email,
+      });
+    }
 
-    const token = generateAuthToken(user._id.toString(), { email: user.email, role: user.role, name: user.name, emailVerified: user.emailVerified });
+    const token = generateAuthToken(user._id.toString(), {
+      email: user.email,
+      role: user.role,
+      name: user.name,
+      emailVerified: user.emailVerified,
+    });
     console.log("🎟 Token generated");
 
-    await Session.saveOrUpdateSession({ token, userId: user._id, userAgent: req.get('User-Agent'), ipAddress: req.ip });
+    await Session.saveOrUpdateSession({
+      token,
+      userId: user._id,
+      userAgent: req.get("User-Agent"),
+      ipAddress: req.ip,
+    });
     console.log("💾 Session saved");
 
-    await User.findByIdAndUpdate(user._id, { $set: { lastLogin: new Date() }, $inc: { loginCount: 1 } });
+    await User.findByIdAndUpdate(user._id, {
+      $set: { lastLogin: new Date() },
+      $inc: { loginCount: 1 },
+    });
     console.log("📊 User updated");
 
-    await AuthAttempt.logAttempt({ email: normalizedEmail, ipAddress: req.ip, userAgent: req.get('User-Agent'), attemptType: 'login', success: true });
+    await AuthAttempt.logAttempt({
+      email: normalizedEmail,
+      ipAddress: req.ip,
+      userAgent: req.get("User-Agent"),
+      attemptType: "login",
+      success: true,
+    });
     console.log("📝 Attempt logged");
 
-    return res.status(200).json({ success: true, message: 'Login successful', token, user: { ...user.getPublicProfile(), ...user.getDashboardData(), role: user.role } });
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: {
+        ...user.getPublicProfile(),
+        ...user.getDashboardData(),
+        role: user.role,
+      },
+    });
   } catch (err) {
-    console.error('Login error', err);
-    return res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Login error", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 }
 
 export async function logout(req, res) {
   try {
     // Extract token from request (middleware should already set req.token, but fallback)
-    const token = req.token || (req.headers.authorization && req.headers.authorization.split(" ") [1]);
+    const token =
+      req.token ||
+      (req.headers.authorization && req.headers.authorization.split(" ")[1]);
 
     if (!token) {
-      return res.status(400).json({ success: false, message: "No token provided for logout", });
+      return res
+        .status(400)
+        .json({ success: false, message: "No token provided for logout" });
     }
 
-    const session = await Session.findOneAndUpdate( { token, isActive: true }, { isActive: false, loggedOutAt: new Date() }, { new: true } );
+    const session = await Session.findOneAndUpdate(
+      { token, isActive: true },
+      { isActive: false, loggedOutAt: new Date() },
+      { new: true },
+    );
 
     if (!session) {
       console.warn("⚠️ Logout attempted with invalid or expired token:", token);
-      return res.status(200).json({ success: true, message: "Already logged out or session not found", });
+      return res.status(200).json({
+        success: true,
+        message: "Already logged out or session not found",
+      });
     }
 
-    console.log(`✅ User ${session.userId} logged out at ${session.loggedOutAt}`);
+    console.log(
+      `✅ User ${session.userId} logged out at ${session.loggedOutAt}`,
+    );
     return res.json({ success: true, message: "Logged out" });
   } catch (err) {
     console.error("❌ Logout error:", err);
-    return res.status(500).json({ success: false, message: "Server error during logout", });
+    return res
+      .status(500)
+      .json({ success: false, message: "Server error during logout" });
   }
 }
 
@@ -344,8 +547,16 @@ export async function forgotPassword(req, res) {
     const { email } = req.body;
     const normalizedEmail = normalizeEmail(email);
 
-    const user = await User.findOne({ email: normalizedEmail, authMethod: 'local' });
-    if (!user) return res.json({ success: true, message: 'If the email exists, reset instructions will be sent' });
+    const user = await User.findOne({
+      email: normalizedEmail,
+      authMethod: "local",
+    });
+    if (!user) {
+      return res.json({
+        success: true,
+        message: "If the email exists, reset instructions will be sent",
+      });
+    }
 
     const resetToken = generateRandomToken(32);
     user.resetPasswordToken = resetToken;
@@ -354,10 +565,13 @@ export async function forgotPassword(req, res) {
 
     await sendPasswordResetEmail(user.email, resetToken);
     console.log("📧 Pssword reset sent to email");
-    return res.json({ success: true, message: 'Password reset instructions sent' });
+    return res.json({
+      success: true,
+      message: "Password reset instructions sent",
+    });
   } catch (err) {
-    console.error('💥 Forgot password error:', err);
-    return res.status(500).json({ success: false, message: 'Server error' });
+    console.error("💥 Forgot password error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 }
 
@@ -367,9 +581,17 @@ export async function resetPassword(req, res) {
     const { token } = req.params;
     const { password } = req.body;
 
-    const user = await User.findOne({ resetPasswordToken: token, resetPasswordExpires: { $gt: Date.now() }, authMethod: 'local' });
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+      authMethod: "local",
+    });
     console.log("👤 User found for reset:", !!user);
-    if (!user) return res.status(400).json({ success: false, message: 'Invalid or expired reset token' });
+    if (!user) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired reset token" });
+    }
 
     user.password = password;
     user.resetPasswordToken = undefined;
@@ -377,10 +599,10 @@ export async function resetPassword(req, res) {
     await user.save();
     console.log("✅ Password updated");
 
-    return res.json({ success: true, message: 'Password reset' });
+    return res.json({ success: true, message: "Password reset" });
   } catch (err) {
-    console.error('💥 Reset password error:', err);
-    return res.status(500).json({ success: false, message: 'Server error' });
+    console.error("💥 Reset password error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 }
 
@@ -392,12 +614,27 @@ export async function resendVerification(req, res) {
     const normalizedEmail = normalizeEmail(email);
     console.log("📧 Normalized:", normalizedEmail);
 
-    const user = await User.findOne({ email: normalizedEmail, authMethod: 'local' });
+    const user = await User.findOne({
+      email: normalizedEmail,
+      authMethod: "local",
+    });
     console.log("👤 Resend target user:", !!user);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    if (user.emailVerified) return res.status(400).json({ success: false, message: 'Already verified' });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+    if (user.emailVerified) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Already verified" });
+    }
 
-    const token = jwt.sign({ id: user._id.toString(), email: normalizedEmail }, process.env.JWT_SECRET, { expiresIn: "24h" });
+    const token = jwt.sign(
+      { id: user._id.toString(), email: normalizedEmail },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" },
+    );
     user.verificationToken = token;
     user.verificationExpires = Date.now() + 24 * 60 * 60 * 1000;
     await user.save();
@@ -406,20 +643,27 @@ export async function resendVerification(req, res) {
     await sendVerificationEmail(user.email, token);
     console.log("📧 Verification email resent");
 
-    return res.json({ success: true, message: '✅ Verification email resent' });
+    return res.json({ success: true, message: "✅ Verification email resent" });
   } catch (err) {
-    console.error('💥 Resend verification error:', err);
-    return res.status(500).json({ success: false, message: 'Server error' });
+    console.error("💥 Resend verification error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 }
 
 export async function getCurrentUser(req, res) {
   try {
     // req.user provided by auth middleware
-    if (!req.user) return res.status(401).json({ success: false, message: 'Not authenticated' });
-    return res.json({ success: true, user: req.user.getPublicProfile ? req.user.getPublicProfile() : req.user });
+    if (!req.user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Not authenticated" });
+    }
+    return res.json({
+      success: true,
+      user: req.user.getPublicProfile ? req.user.getPublicProfile() : req.user,
+    });
   } catch (err) {
-    console.error('Get current user error', err);
-    return res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Get current user error", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 }

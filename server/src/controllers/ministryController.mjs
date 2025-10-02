@@ -1,8 +1,8 @@
 // ministryController.mjs
 
-import Ministry from '../models/Ministry.mjs';
-import Volunteer from '../models/Volunteer.mjs';
-import User from '../models/User.mjs';
+import Ministry from "../models/Ministry.mjs";
+import Volunteer from "../models/Volunteer.mjs";
+import User from "../models/User.mjs";
 
 // Get all ministries
 export async function getAllMinistries(req, res) {
@@ -14,7 +14,7 @@ export async function getAllMinistries(req, res) {
     if (category) query.tags = category;
 
     const ministries = await Ministry.find(query)
-      .populate('leaders.user', 'name email avatar')
+      .populate("leaders.user", "name email avatar")
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -28,20 +28,20 @@ export async function getAllMinistries(req, res) {
       total,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
 // Get volunteer opportunities
 export async function getVolunteerOpportunities(req, res) {
   try {
-    const ministries = await Ministry.find({ status: 'active' })
-      .select('name description volunteerNeeds')
+    const ministries = await Ministry.find({ status: "active" })
+      .select("name description volunteerNeeds")
       .sort({ name: 1 });
 
     res.json(ministries);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -49,12 +49,12 @@ export async function getVolunteerOpportunities(req, res) {
 export async function getUserMinistries(req, res) {
   try {
     const volunteerRoles = await Volunteer.find({ userId: req.user._id })
-      .populate('ministryId', 'name description imageUrl')
-      .select('ministryId role status');
+      .populate("ministryId", "name description imageUrl")
+      .select("ministryId role status");
 
     res.json(volunteerRoles);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -70,9 +70,9 @@ export async function volunteerForMinistry(req, res) {
     });
 
     if (existingVolunteer) {
-      return res
-        .status(400)
-        .json({ message: 'You have already applied to volunteer for this ministry' });
+      return res.status(400).json({
+        message: "You have already applied to volunteer for this ministry",
+      });
     }
 
     const volunteer = new Volunteer({
@@ -83,18 +83,18 @@ export async function volunteerForMinistry(req, res) {
       skills,
       experience,
       message,
-      status: 'pending',
+      status: "pending",
     });
 
     await volunteer.save();
-    await volunteer.populate('ministryId', 'name');
+    await volunteer.populate("ministryId", "name");
 
     res.status(201).json({
-      message: 'Volunteer application submitted successfully',
+      message: "Volunteer application submitted successfully",
       volunteer,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -104,21 +104,24 @@ export async function contactMinistryLeaders(req, res) {
     const { id } = req.params;
     const { message } = req.body;
 
-    const ministry = await Ministry.findById(id).populate('leaders.user', 'email name');
+    const ministry = await Ministry.findById(id).populate(
+      "leaders.user",
+      "email name",
+    );
 
     if (!ministry) {
-      return res.status(404).json({ message: 'Ministry not found' });
+      return res.status(404).json({ message: "Ministry not found" });
     }
 
     // In a real application, send emails to ministry leaders here
     const leaderEmails = ministry.leaders.map((leader) => leader.user.email);
 
     res.json({
-      message: 'Message sent to ministry leaders successfully',
+      message: "Message sent to ministry leaders successfully",
       recipients: leaderEmails,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -135,11 +138,11 @@ export async function createMinistry(req, res) {
     await ministry.save();
 
     res.status(201).json({
-      message: 'Ministry created successfully',
+      message: "Ministry created successfully",
       ministry,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -159,15 +162,15 @@ export async function updateMinistry(req, res) {
     });
 
     if (!ministry) {
-      return res.status(404).json({ message: 'Ministry not found' });
+      return res.status(404).json({ message: "Ministry not found" });
     }
 
     res.json({
-      message: 'Ministry updated successfully',
+      message: "Ministry updated successfully",
       ministry,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -179,15 +182,15 @@ export async function deleteMinistry(req, res) {
     const ministry = await Ministry.findByIdAndDelete(id);
 
     if (!ministry) {
-      return res.status(404).json({ message: 'Ministry not found' });
+      return res.status(404).json({ message: "Ministry not found" });
     }
 
     // Also delete related volunteers
     await Volunteer.deleteMany({ ministryId: id });
 
-    res.json({ message: 'Ministry deleted successfully' });
+    res.json({ message: "Ministry deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -195,14 +198,18 @@ export async function deleteMinistry(req, res) {
 export async function getMinistryStats(req, res) {
   try {
     const totalMinistries = await Ministry.countDocuments();
-    const activeMinistries = await Ministry.countDocuments({ status: 'active' });
+    const activeMinistries = await Ministry.countDocuments({
+      status: "active",
+    });
     const totalVolunteers = await Volunteer.countDocuments();
-    const pendingVolunteers = await Volunteer.countDocuments({ status: 'pending' });
+    const pendingVolunteers = await Volunteer.countDocuments({
+      status: "pending",
+    });
 
     const ministryStats = await Ministry.aggregate([
       {
         $group: {
-          _id: '$status',
+          _id: "$status",
           count: { $sum: 1 },
         },
       },
@@ -216,7 +223,7 @@ export async function getMinistryStats(req, res) {
       statusDistribution: ministryStats,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -230,21 +237,21 @@ export async function getMinistryVolunteers(req, res) {
     if (status) query.status = status;
 
     const volunteers = await Volunteer.find(query)
-      .populate('userId', 'name email avatar')
+      .populate("userId", "name email avatar")
       .sort({ createdAt: -1 });
 
     res.json(volunteers);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
 // Get ministry categories
 export async function getMinistryCategories(req, res) {
   try {
-    const categories = await Ministry.distinct('tags');
+    const categories = await Ministry.distinct("tags");
     res.json(categories.filter((cat) => cat)); // Remove empty/null values
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }

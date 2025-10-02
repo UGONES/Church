@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   adminService,
   userService,
@@ -9,56 +9,70 @@ import {
   testimonialService,
   prayerService,
   blogService,
-  utilityService
-} from '../services/apiService';
-import Loader from '../components/Loader';
-import { useAlert } from '../utils/Alert';
-import { useForm } from '../hooks/useForm';
-import useAuth from '../hooks/useAuth';
+  utilityService,
+} from "../services/apiService";
+import Loader from "../components/Loader";
+import { useAlert } from "../utils/Alert";
+import { useForm } from "../hooks/useForm";
+import useAuth from "../hooks/useAuth";
 
-/*====================================== Reusable Components ======================================*/
+/* ====================================== Reusable Components ====================================== */
 
 // StatCard Component
-const StatCard = ({ title, value, change, changeType, icon, iconBgColor, iconTextColor }) => (
+const StatCard = ({
+  title,
+  value,
+  change,
+  changeType,
+  icon,
+  iconBgColor,
+  iconTextColor,
+}) => (
   <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
     <div className="flex justify-between items-center">
       <div className="flex-1">
         <p className="text-xs md:text-sm text-gray-500 mb-1">{title}</p>
         <h3 className="text-xl md:text-3xl font-bold">{value}</h3>
-        <p className={`text-xs ${changeType === 'increase' ? 'text-green-600' : 'text-red-600'} mt-1 md:mt-2`}>
-          <i className={`fas ${changeType === 'increase' ? 'fa-arrow-up' : 'fa-arrow-down'} mr-1`}></i>
+        <p
+          className={`text-xs ${changeType === "increase" ? "text-green-600" : "text-red-600"} mt-1 md:mt-2`}
+        >
+          <i
+            className={`fas ${changeType === "increase" ? "fa-arrow-up" : "fa-arrow-down"} mr-1`}
+          />
           {change}
         </p>
       </div>
-      <div className={`w-8 h-8 md:w-12 md:h-12 ${iconBgColor} rounded-full flex items-center justify-center ml-2`}>
-        <i className={`fas ${icon} ${iconTextColor} text-lg md:text-xl`}></i>
+      <div
+        className={`w-8 h-8 md:w-12 md:h-12 ${iconBgColor} rounded-full flex items-center justify-center ml-2`}
+      >
+        <i className={`fas ${icon} ${iconTextColor} text-lg md:text-xl`} />
       </div>
     </div>
   </div>
 );
 
-
 // SidebarButton Component
 const SidebarButton = ({ label, icon, tabName, activeTab, onClick }) => (
   <li>
     <button
-      className={`w-full text-left px-4 py-2 rounded-md flex items-center ${activeTab === tabName ? 'bg-[#FF7E45] text-white' : 'hover:bg-gray-100'}`}
+      className={`w-full text-left px-4 py-2 rounded-md flex items-center ${activeTab === tabName ? "bg-[#FF7E45] text-white" : "hover:bg-gray-100"}`}
       onClick={() => onClick(tabName)}
-      aria-current={activeTab === tabName ? 'page' : undefined}
+      aria-current={activeTab === tabName ? "page" : undefined}
       aria-label={`${label} tab`}
     >
-      <i className={`${icon} mr-3`} aria-hidden="true"></i>
+      <i className={`${icon} mr-3`} aria-hidden="true" />
       <span>{label}</span>
     </button>
   </li>
 );
 
-
 // ActivityItem Component
 const ActivityItem = ({ icon, bgColor, text, time }) => (
   <div className="flex items-start">
-    <div className={`w-10 h-10 ${bgColor} rounded-full flex items-center justify-center mr-3 flex-shrink-0`}>
-      <i className={`fas ${icon}`}></i>
+    <div
+      className={`w-10 h-10 ${bgColor} rounded-full flex items-center justify-center mr-3 flex-shrink-0`}
+    >
+      <i className={`fas ${icon}`} />
     </div>
     <div>
       <p className="font-medium">{text}</p>
@@ -68,13 +82,20 @@ const ActivityItem = ({ icon, bgColor, text, time }) => (
 );
 
 // DataTable Component
-const DataTable = ({ columns, data, onEdit, onDelete, emptyMessage, actions = true }) => {
+const DataTable = ({
+  columns,
+  data,
+  onEdit,
+  onDelete,
+  emptyMessage,
+  actions = true,
+}) => {
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full">
         <thead>
           <tr className="border-b">
-            {columns.map(column => (
+            {columns.map((column) => (
               <th key={column.key} className="py-3 px-4 text-left">
                 {column.title}
               </th>
@@ -84,9 +105,9 @@ const DataTable = ({ columns, data, onEdit, onDelete, emptyMessage, actions = tr
         </thead>
         <tbody>
           {data.length > 0 ? (
-            data.map(item => (
+            data.map((item) => (
               <tr key={item._id || item.id} className="border-b">
-                {columns.map(column => (
+                {columns.map((column) => (
                   <td key={column.key} className="py-3 px-4">
                     {column.render ? column.render(item) : item[column.key]}
                   </td>
@@ -98,14 +119,14 @@ const DataTable = ({ columns, data, onEdit, onDelete, emptyMessage, actions = tr
                       className="text-gray-500 hover:text-[#FF7E45] mr-2"
                       aria-label={`Edit ${item.title || item.name}`}
                     >
-                      <i className="fas fa-edit"></i>
+                      <i className="fas fa-edit" />
                     </button>
                     <button
                       onClick={() => onDelete(item)}
                       className="text-gray-500 hover:text-red-500"
                       aria-label={`Delete ${item.title || item.name}`}
                     >
-                      <i className="fas fa-trash-alt"></i>
+                      <i className="fas fa-trash-alt" />
                     </button>
                   </td>
                 )}
@@ -113,7 +134,10 @@ const DataTable = ({ columns, data, onEdit, onDelete, emptyMessage, actions = tr
             ))
           ) : (
             <tr>
-              <td colSpan={actions ? columns.length + 1 : columns.length} className="py-4 text-center text-gray-500">
+              <td
+                colSpan={actions ? columns.length + 1 : columns.length}
+                className="py-4 text-center text-gray-500"
+              >
                 {emptyMessage}
               </td>
             </tr>
@@ -124,14 +148,14 @@ const DataTable = ({ columns, data, onEdit, onDelete, emptyMessage, actions = tr
   );
 };
 
-const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
+const Modal = ({ isOpen, onClose, title, children, size = "md" }) => {
   if (!isOpen) return null;
 
   const sizeClasses = {
-    sm: 'max-w-md',
-    md: 'max-w-2xl',
-    lg: 'max-w-4xl',
-    xl: 'max-w-6xl'
+    sm: "max-w-md",
+    md: "max-w-2xl",
+    lg: "max-w-4xl",
+    xl: "max-w-6xl",
   };
 
   return (
@@ -143,18 +167,18 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
         aria-labelledby="modal-title"
       >
         <div className="flex justify-between items-center p-6 border-b">
-          <h2 id="modal-title" className="text-xl font-bold">{title}</h2>
+          <h2 id="modal-title" className="text-xl font-bold">
+            {title}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
             aria-label="Close modal"
           >
-            <i className="fas fa-times"></i>
+            <i className="fas fa-times" />
           </button>
         </div>
-        <div className="p-6">
-          {children}
-        </div>
+        <div className="p-6">{children}</div>
       </div>
     </div>
   );
@@ -183,45 +207,54 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
 /* ====================================== Components for Each Tab ====================================== */
 
 // Users Management Component
-const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+const UsersManagement = ({
+  users,
+  onUpdateUser,
+  onDeleteUser,
+  onCreateUser,
+}) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const alert = useAlert();
 
   const { values, handleChange, setValues, resetForm } = useForm({
-    name: '',
-    email: '',
-    phone: '',
-    role: 'user',
-    status: 'active',
-    joinDate: new Date().toISOString().split('T')[0],
-    address: '',
-    notes: ''
+    name: "",
+    email: "",
+    phone: "",
+    role: "user",
+    status: "active",
+    joinDate: new Date().toISOString().split("T")[0],
+    address: "",
+    notes: "",
   });
 
   useEffect(() => {
     if (selectedUser) {
       setValues({
-        name: selectedUser.name || '',
-        email: selectedUser.email || '',
-        phone: selectedUser.phone || '',
-        role: selectedUser.role || 'user',
-        status: selectedUser.status || 'active',
-        joinDate: selectedUser.joinDate ? new Date(selectedUser.joinDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        address: selectedUser.address || '',
-        notes: selectedUser.notes || ''
+        name: selectedUser.name || "",
+        email: selectedUser.email || "",
+        phone: selectedUser.phone || "",
+        role: selectedUser.role || "user",
+        status: selectedUser.status || "active",
+        joinDate: selectedUser.joinDate
+          ? new Date(selectedUser.joinDate).toISOString().split("T")[0]
+          : new Date().toISOString().split("T")[0],
+        address: selectedUser.address || "",
+        notes: selectedUser.notes || "",
       });
     }
   }, [selectedUser, setValues]);
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
+      user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    const matchesStatus =
+      statusFilter === "all" || user.status === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
   });
 
@@ -236,55 +269,68 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
       setShowCreateModal(false);
       setSelectedUser(null);
       resetForm();
-      alert.success(`User ${selectedUser ? 'updated' : 'created'} successfully`);
+      alert.success(
+        `User ${selectedUser ? "updated" : "created"} successfully`,
+      );
     } catch (error) {
-      alert.error(`Failed to ${selectedUser ? 'update' : 'create'} user`);
+      alert.error(`Failed to ${selectedUser ? "update" : "create"} user`);
     }
   };
 
   const userColumns = [
     {
-      key: 'user',
-      title: 'User',
+      key: "user",
+      title: "User",
       render: (user) => (
         <div className="flex items-center">
           <div className="h-10 w-10 flex-shrink-0 bg-gray-300 rounded-full flex items-center justify-center">
-            {user.name?.charAt(0)?.toUpperCase() || 'U'}
+            {user.name?.charAt(0)?.toUpperCase() || "U"}
           </div>
           <div className="ml-4">
             <div className="text-sm font-medium text-gray-900">{user.name}</div>
-            <div className="text-sm text-gray-500">Joined: {new Date(user.createdAt).toLocaleDateString()}</div>
+            <div className="text-sm text-gray-500">
+              Joined: {new Date(user.createdAt).toLocaleDateString()}
+            </div>
           </div>
         </div>
-      )
+      ),
     },
-    { key: 'email', title: 'Email' },
+    { key: "email", title: "Email" },
     {
-      key: 'role',
-      title: 'Role',
+      key: "role",
+      title: "Role",
       render: (user) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
-          user.role === 'moderator' ? 'bg-blue-100 text-blue-800' :
-            user.role === 'staff' ? 'bg-green-100 text-green-800' :
-              'bg-gray-100 text-gray-800'
-          }`}>
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            user.role === "admin"
+              ? "bg-purple-100 text-purple-800"
+              : user.role === "moderator"
+                ? "bg-blue-100 text-blue-800"
+                : user.role === "staff"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-gray-100 text-gray-800"
+          }`}
+        >
           {user.role}
         </span>
-      )
+      ),
     },
     {
-      key: 'status',
-      title: 'Status',
+      key: "status",
+      title: "Status",
       render: (user) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${user.status === 'active'
-          ? 'bg-green-100 text-green-800'
-          : user.status === 'inactive'
-            ? 'bg-yellow-100 text-yellow-800'
-            : 'bg-red-100 text-red-800'
-          }`}>
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            user.status === "active"
+              ? "bg-green-100 text-green-800"
+              : user.status === "inactive"
+                ? "bg-yellow-100 text-yellow-800"
+                : "bg-red-100 text-red-800"
+          }`}
+        >
           {user.status}
         </span>
-      )
+      ),
     },
   ];
 
@@ -330,7 +376,7 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
             }}
             className="btn btn-primary"
           >
-            <i className="fas fa-plus mr-2"></i> New User
+            <i className="fas fa-plus mr-2" /> New User
           </button>
         </div>
       </div>
@@ -356,13 +402,15 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
           setSelectedUser(null);
           resetForm();
         }}
-        title={selectedUser ? 'Edit User' : 'Create New User'}
+        title={selectedUser ? "Edit User" : "Create New User"}
         size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Full Name*</label>
+              <label className="block text-sm font-medium mb-1">
+                Full Name*
+              </label>
               <input
                 type="text"
                 name="name"
@@ -397,7 +445,9 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Join Date</label>
+              <label className="block text-sm font-medium mb-1">
+                Join Date
+              </label>
               <input
                 type="date"
                 name="joinDate"
@@ -476,7 +526,7 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
-              {selectedUser ? 'Update' : 'Create'} User
+              {selectedUser ? "Update" : "Create"} User
             </button>
           </div>
         </form>
@@ -486,47 +536,53 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
 };
 
 // Ministries Management Component
-const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMinistry, onCreateMinistry }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+const MinistriesManagement = ({
+  ministries,
+  users,
+  onUpdateMinistry,
+  onDeleteMinistry,
+  onCreateMinistry,
+}) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedMinistry, setSelectedMinistry] = useState(null);
   const [ministryCategories, setMinistryCategories] = useState([]);
   const alert = useAlert();
 
   const { values, handleChange, setValues, resetForm } = useForm({
-    name: '',
-    description: '',
-    leader: '',
+    name: "",
+    description: "",
+    leader: "",
     coLeaders: [],
-    meetingTimes: '',
-    location: '',
-    category: '',
-    status: 'active',
-    image: '',
-    objectives: '',
-    targetAudience: '',
-    contactEmail: '',
-    contactPhone: ''
+    meetingTimes: "",
+    location: "",
+    category: "",
+    status: "active",
+    image: "",
+    objectives: "",
+    targetAudience: "",
+    contactEmail: "",
+    contactPhone: "",
   });
 
   useEffect(() => {
     if (selectedMinistry) {
       setValues({
-        name: selectedMinistry.name || '',
-        description: selectedMinistry.description || '',
-        leader: selectedMinistry.leader || '',
+        name: selectedMinistry.name || "",
+        description: selectedMinistry.description || "",
+        leader: selectedMinistry.leader || "",
         coLeaders: selectedMinistry.coLeaders || [],
-        meetingTimes: selectedMinistry.meetingTimes || '',
-        location: selectedMinistry.location || '',
-        category: selectedMinistry.category || '',
-        status: selectedMinistry.status || 'active',
-        image: selectedMinistry.image || '',
-        objectives: selectedMinistry.objectives || '',
-        targetAudience: selectedMinistry.targetAudience || '',
-        contactEmail: selectedMinistry.contactEmail || '',
-        contactPhone: selectedMinistry.contactPhone || ''
+        meetingTimes: selectedMinistry.meetingTimes || "",
+        location: selectedMinistry.location || "",
+        category: selectedMinistry.category || "",
+        status: selectedMinistry.status || "active",
+        image: selectedMinistry.image || "",
+        objectives: selectedMinistry.objectives || "",
+        targetAudience: selectedMinistry.targetAudience || "",
+        contactEmail: selectedMinistry.contactEmail || "",
+        contactPhone: selectedMinistry.contactPhone || "",
       });
     }
   }, [selectedMinistry, setValues]);
@@ -535,19 +591,25 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
     // Fetch ministry categories
     const fetchCategories = async () => {
       try {
-        const response = await apiClient.get(API_ENDPOINTS.MINISTRIES.CATEGORIES);
+        const response = await apiClient.get(
+          API_ENDPOINTS.MINISTRIES.CATEGORIES,
+        );
         setMinistryCategories(response.categories || []);
       } catch (error) {
-        console.error('Error fetching ministry categories:', error);
+        console.error("Error fetching ministry categories:", error);
       }
     };
     fetchCategories();
   }, []);
 
-  const filteredMinistries = ministries.filter(ministry => {
-    const matchesSearch = ministry.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || ministry.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || ministry.category === categoryFilter;
+  const filteredMinistries = ministries.filter((ministry) => {
+    const matchesSearch = ministry.name
+      ?.toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" || ministry.status === statusFilter;
+    const matchesCategory =
+      categoryFilter === "all" || ministry.category === categoryFilter;
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
@@ -562,16 +624,20 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
       setShowCreateModal(false);
       setSelectedMinistry(null);
       resetForm();
-      alert.success(`Ministry ${selectedMinistry ? 'updated' : 'created'} successfully`);
+      alert.success(
+        `Ministry ${selectedMinistry ? "updated" : "created"} successfully`,
+      );
     } catch (error) {
-      alert.error(`Failed to ${selectedMinistry ? 'update' : 'create'} ministry`);
+      alert.error(
+        `Failed to ${selectedMinistry ? "update" : "create"} ministry`,
+      );
     }
   };
 
   const addCoLeader = () => {
     setValues({
       ...values,
-      coLeaders: [...values.coLeaders, '']
+      coLeaders: [...values.coLeaders, ""],
     });
   };
 
@@ -589,48 +655,57 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
 
   const ministryColumns = [
     {
-      key: 'name',
-      title: 'Ministry Name',
+      key: "name",
+      title: "Ministry Name",
       render: (ministry) => (
         <div className="flex items-center">
           <div className="h-10 w-10 flex-shrink-0 bg-gray-300 rounded-full flex items-center justify-center">
-            {ministry.name?.charAt(0)?.toUpperCase() || 'M'}
+            {ministry.name?.charAt(0)?.toUpperCase() || "M"}
           </div>
           <div className="ml-4">
-            <div className="text-sm font-medium text-gray-900">{ministry.name}</div>
-            <div className="text-sm text-gray-500">Created: {new Date(ministry.createdAt).toLocaleDateString()}</div>
+            <div className="text-sm font-medium text-gray-900">
+              {ministry.name}
+            </div>
+            <div className="text-sm text-gray-500">
+              Created: {new Date(ministry.createdAt).toLocaleDateString()}
+            </div>
           </div>
         </div>
-      )
+      ),
     },
     {
-      key: 'leader',
-      title: 'Leader',
+      key: "leader",
+      title: "Leader",
       render: (ministry) => {
-        const leaderUser = users.find(u => u._id === ministry.leader);
-        return leaderUser ? leaderUser.name : 'Not assigned';
-      }
+        const leaderUser = users.find((u) => u._id === ministry.leader);
+        return leaderUser ? leaderUser.name : "Not assigned";
+      },
     },
-    { key: 'category', title: 'Category' },
+    { key: "category", title: "Category" },
     {
-      key: 'status',
-      title: 'Status',
+      key: "status",
+      title: "Status",
       render: (ministry) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${ministry.status === 'active'
-          ? 'bg-green-100 text-green-800'
-          : ministry.status === 'inactive'
-            ? 'bg-yellow-100 text-yellow-800'
-            : 'bg-red-100 text-red-800'
-          }`}>
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            ministry.status === "active"
+              ? "bg-green-100 text-green-800"
+              : ministry.status === "inactive"
+                ? "bg-yellow-100 text-yellow-800"
+                : "bg-red-100 text-red-800"
+          }`}
+        >
           {ministry.status}
         </span>
-      )
+      ),
     },
   ];
 
   // Filter users who can be leaders (staff, moderators, admins)
-  const potentialLeaders = users.filter(user =>
-    ['admin', 'moderator', 'staff', 'volunteer'].includes(user.role) && user.status === 'active'
+  const potentialLeaders = users.filter(
+    (user) =>
+      ["admin", "moderator", "staff", "volunteer"].includes(user.role) &&
+      user.status === "active",
   );
 
   return (
@@ -651,8 +726,10 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
             className="form-input"
           >
             <option value="all">All Categories</option>
-            {ministryCategories.map(category => (
-              <option key={category} value={category}>{category}</option>
+            {ministryCategories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
             ))}
           </select>
           <select
@@ -673,7 +750,7 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
             }}
             className="btn btn-primary"
           >
-            <i className="fas fa-plus mr-2"></i> New Ministry
+            <i className="fas fa-plus mr-2" /> New Ministry
           </button>
         </div>
       </div>
@@ -699,13 +776,15 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
           setSelectedMinistry(null);
           resetForm();
         }}
-        title={selectedMinistry ? 'Edit Ministry' : 'Create New Ministry'}
+        title={selectedMinistry ? "Edit Ministry" : "Create New Ministry"}
         size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Ministry Name*</label>
+              <label className="block text-sm font-medium mb-1">
+                Ministry Name*
+              </label>
               <input
                 type="text"
                 name="name"
@@ -716,7 +795,9 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Category*</label>
+              <label className="block text-sm font-medium mb-1">
+                Category*
+              </label>
               <select
                 name="category"
                 value={values.category}
@@ -725,15 +806,19 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
                 required
               >
                 <option value="">Select a category</option>
-                {ministryCategories.map(category => (
-                  <option key={category} value={category}>{category}</option>
+                {ministryCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Description*</label>
+            <label className="block text-sm font-medium mb-1">
+              Description*
+            </label>
             <textarea
               name="description"
               value={values.description}
@@ -755,8 +840,10 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
                 required
               >
                 <option value="">Select a leader</option>
-                {potentialLeaders.map(user => (
-                  <option key={user._id} value={user._id}>{user.name} ({user.role})</option>
+                {potentialLeaders.map((user) => (
+                  <option key={user._id} value={user._id}>
+                    {user.name} ({user.role})
+                  </option>
                 ))}
               </select>
             </div>
@@ -795,8 +882,10 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
                   className="form-input flex-1"
                 >
                   <option value="">Select a co-leader</option>
-                  {potentialLeaders.map(user => (
-                    <option key={user._id} value={user._id}>{user.name} ({user.role})</option>
+                  {potentialLeaders.map((user) => (
+                    <option key={user._id} value={user._id}>
+                      {user.name} ({user.role})
+                    </option>
                   ))}
                 </select>
                 <button
@@ -804,7 +893,7 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
                   onClick={() => removeCoLeader(index)}
                   className="ml-2 text-red-500 hover:text-red-700"
                 >
-                  <i className="fas fa-times"></i>
+                  <i className="fas fa-times" />
                 </button>
               </div>
             ))}
@@ -812,7 +901,9 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Meeting Times</label>
+              <label className="block text-sm font-medium mb-1">
+                Meeting Times
+              </label>
               <input
                 type="text"
                 name="meetingTimes"
@@ -837,7 +928,9 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Contact Email</label>
+              <label className="block text-sm font-medium mb-1">
+                Contact Email
+              </label>
               <input
                 type="email"
                 name="contactEmail"
@@ -847,7 +940,9 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Contact Phone</label>
+              <label className="block text-sm font-medium mb-1">
+                Contact Phone
+              </label>
               <input
                 type="tel"
                 name="contactPhone"
@@ -859,7 +954,9 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Target Audience</label>
+            <label className="block text-sm font-medium mb-1">
+              Target Audience
+            </label>
             <input
               type="text"
               name="targetAudience"
@@ -907,7 +1004,7 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
-              {selectedMinistry ? 'Update' : 'Create'} Ministry
+              {selectedMinistry ? "Update" : "Create"} Ministry
             </button>
           </div>
         </form>
@@ -917,43 +1014,52 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
 };
 
 // Testimonials Management Component
-const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTestimonial, onCreateTestimonial }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+const TestimonialsManagement = ({
+  testimonials,
+  onUpdateTestimonial,
+  onDeleteTestimonial,
+  onCreateTestimonial,
+}) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTestimonial, setSelectedTestimonial] = useState(null);
   const alert = useAlert();
 
   const { values, handleChange, setValues, resetForm } = useForm({
-    author: '',
-    content: '',
-    status: 'pending',
-    videoUrl: '',
-    imageUrl: '',
-    category: 'general',
+    author: "",
+    content: "",
+    status: "pending",
+    videoUrl: "",
+    imageUrl: "",
+    category: "general",
     featured: false,
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split("T")[0],
   });
 
   useEffect(() => {
     if (selectedTestimonial) {
       setValues({
-        author: selectedTestimonial.author || '',
-        content: selectedTestimonial.content || '',
-        status: selectedTestimonial.status || 'pending',
-        videoUrl: selectedTestimonial.videoUrl || '',
-        imageUrl: selectedTestimonial.imageUrl || '',
-        category: selectedTestimonial.category || 'general',
+        author: selectedTestimonial.author || "",
+        content: selectedTestimonial.content || "",
+        status: selectedTestimonial.status || "pending",
+        videoUrl: selectedTestimonial.videoUrl || "",
+        imageUrl: selectedTestimonial.imageUrl || "",
+        category: selectedTestimonial.category || "general",
         featured: selectedTestimonial.featured || false,
-        date: selectedTestimonial.date ? new Date(selectedTestimonial.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+        date: selectedTestimonial.date
+          ? new Date(selectedTestimonial.date).toISOString().split("T")[0]
+          : new Date().toISOString().split("T")[0],
       });
     }
   }, [selectedTestimonial, setValues]);
 
-  const filteredTestimonials = testimonials.filter(testimonial => {
-    const matchesSearch = testimonial.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredTestimonials = testimonials.filter((testimonial) => {
+    const matchesSearch =
+      testimonial.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       testimonial.content?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || testimonial.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" || testimonial.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -968,59 +1074,77 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
       setShowCreateModal(false);
       setSelectedTestimonial(null);
       resetForm();
-      alert.success(`Testimonial ${selectedTestimonial ? 'updated' : 'created'} successfully`);
+      alert.success(
+        `Testimonial ${selectedTestimonial ? "updated" : "created"} successfully`,
+      );
     } catch (error) {
-      alert.error(`Failed to ${selectedTestimonial ? 'update' : 'create'} testimonial`);
+      alert.error(
+        `Failed to ${selectedTestimonial ? "update" : "create"} testimonial`,
+      );
     }
   };
 
   const testimonialColumns = [
     {
-      key: 'author',
-      title: 'Author',
+      key: "author",
+      title: "Author",
       render: (testimonial) => (
         <div className="flex items-center">
           <div className="h-10 w-10 flex-shrink-0 bg-gray-300 rounded-full flex items-center justify-center">
-            {testimonial.author?.charAt(0)?.toUpperCase() || 'T'}
+            {testimonial.author?.charAt(0)?.toUpperCase() || "T"}
           </div>
           <div className="ml-4">
-            <div className="text-sm font-medium text-gray-900">{testimonial.author}</div>
-            <div className="text-sm text-gray-500">Created: {new Date(testimonial.createdAt).toLocaleDateString()}</div>
+            <div className="text-sm font-medium text-gray-900">
+              {testimonial.author}
+            </div>
+            <div className="text-sm text-gray-500">
+              Created: {new Date(testimonial.createdAt).toLocaleDateString()}
+            </div>
           </div>
         </div>
-      )
+      ),
     },
     {
-      key: 'content',
-      title: 'Content',
+      key: "content",
+      title: "Content",
       render: (testimonial) => (
-        <p className="text-sm text-gray-700 line-clamp-2">{testimonial.content}</p>
-      )
+        <p className="text-sm text-gray-700 line-clamp-2">
+          {testimonial.content}
+        </p>
+      ),
     },
     {
-      key: 'status',
-      title: 'Status',
+      key: "status",
+      title: "Status",
       render: (testimonial) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${testimonial.status === 'published'
-          ? 'bg-green-100 text-green-800'
-          : testimonial.status === 'pending'
-            ? 'bg-yellow-100 text-yellow-800'
-            : 'bg-red-100 text-red-800'
-          }`}>
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            testimonial.status === "published"
+              ? "bg-green-100 text-green-800"
+              : testimonial.status === "pending"
+                ? "bg-yellow-100 text-yellow-800"
+                : "bg-red-100 text-red-800"
+          }`}
+        >
           {testimonial.status}
         </span>
-      )
+      ),
     },
     {
-      key: 'featured',
-      title: 'Featured',
+      key: "featured",
+      title: "Featured",
       render: (testimonial) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${testimonial.featured ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-          }`}>
-          {testimonial.featured ? 'Yes' : 'No'}
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            testimonial.featured
+              ? "bg-blue-100 text-blue-800"
+              : "bg-gray-100 text-gray-800"
+          }`}
+        >
+          {testimonial.featured ? "Yes" : "No"}
         </span>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -1053,7 +1177,7 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
             }}
             className="btn btn-primary"
           >
-            <i className="fas fa-plus mr-2"></i> New Testimonial
+            <i className="fas fa-plus mr-2" /> New Testimonial
           </button>
         </div>
       </div>
@@ -1079,13 +1203,17 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
           setSelectedTestimonial(null);
           resetForm();
         }}
-        title={selectedTestimonial ? 'Edit Testimonial' : 'Create New Testimonial'}
+        title={
+          selectedTestimonial ? "Edit Testimonial" : "Create New Testimonial"
+        }
         size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Author Name*</label>
+              <label className="block text-sm font-medium mb-1">
+                Author Name*
+              </label>
               <input
                 type="text"
                 name="author"
@@ -1114,7 +1242,9 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Testimonial Content*</label>
+            <label className="block text-sm font-medium mb-1">
+              Testimonial Content*
+            </label>
             <textarea
               name="content"
               value={values.content}
@@ -1155,7 +1285,9 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Video URL</label>
+              <label className="block text-sm font-medium mb-1">
+                Video URL
+              </label>
               <input
                 type="url"
                 name="videoUrl"
@@ -1166,7 +1298,9 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Image URL</label>
+              <label className="block text-sm font-medium mb-1">
+                Image URL
+              </label>
               <input
                 type="url"
                 name="imageUrl"
@@ -1183,11 +1317,18 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
               type="checkbox"
               name="featured"
               checked={values.featured}
-              onChange={(e) => handleChange({ target: { name: 'featured', value: e.target.checked } })}
+              onChange={(e) =>
+                handleChange({
+                  target: { name: "featured", value: e.target.checked },
+                })
+              }
               className="form-checkbox h-4 w-4 text-[#FF7E45]"
               id="featuredTestimonial"
             />
-            <label htmlFor="featuredTestimonial" className="ml-2 text-sm font-medium">
+            <label
+              htmlFor="featuredTestimonial"
+              className="ml-2 text-sm font-medium"
+            >
               Feature this testimonial on the homepage
             </label>
           </div>
@@ -1205,7 +1346,7 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
-              {selectedTestimonial ? 'Update' : 'Create'} Testimonial
+              {selectedTestimonial ? "Update" : "Create"} Testimonial
             </button>
           </div>
         </form>
@@ -1215,11 +1356,16 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
 };
 
 // Blog Management Component
-const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [authorFilter, setAuthorFilter] = useState('all');
+const BlogManagement = ({
+  posts,
+  onUpdatePost,
+  onDeletePost,
+  onCreatePost,
+}) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [authorFilter, setAuthorFilter] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [blogCategories, setBlogCategories] = useState([]);
@@ -1227,35 +1373,37 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
   const alert = useAlert();
 
   const { values, handleChange, setValues, resetForm } = useForm({
-    title: '',
-    content: '',
-    excerpt: '',
-    author: '',
-    status: 'draft',
-    category: '',
+    title: "",
+    content: "",
+    excerpt: "",
+    author: "",
+    status: "draft",
+    category: "",
     tags: [],
-    featuredImage: '',
-    publishedAt: new Date().toISOString().split('T')[0],
-    metaTitle: '',
-    metaDescription: '',
-    featured: false
+    featuredImage: "",
+    publishedAt: new Date().toISOString().split("T")[0],
+    metaTitle: "",
+    metaDescription: "",
+    featured: false,
   });
 
   useEffect(() => {
     if (selectedPost) {
       setValues({
-        title: selectedPost.title || '',
-        content: selectedPost.content || '',
-        excerpt: selectedPost.excerpt || '',
-        author: selectedPost.author || '',
-        status: selectedPost.status || 'draft',
-        category: selectedPost.category || '',
+        title: selectedPost.title || "",
+        content: selectedPost.content || "",
+        excerpt: selectedPost.excerpt || "",
+        author: selectedPost.author || "",
+        status: selectedPost.status || "draft",
+        category: selectedPost.category || "",
         tags: selectedPost.tags || [],
-        featuredImage: selectedPost.featuredImage || '',
-        publishedAt: selectedPost.publishedAt ? new Date(selectedPost.publishedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        metaTitle: selectedPost.metaTitle || '',
-        metaDescription: selectedPost.metaDescription || '',
-        featured: selectedPost.featured || false
+        featuredImage: selectedPost.featuredImage || "",
+        publishedAt: selectedPost.publishedAt
+          ? new Date(selectedPost.publishedAt).toISOString().split("T")[0]
+          : new Date().toISOString().split("T")[0],
+        metaTitle: selectedPost.metaTitle || "",
+        metaDescription: selectedPost.metaDescription || "",
+        featured: selectedPost.featured || false,
       });
     }
   }, [selectedPost, setValues]);
@@ -1267,7 +1415,7 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
         const response = await apiClient.get(API_ENDPOINTS.BLOG.CATEGORIES);
         setBlogCategories(response.categories || []);
       } catch (error) {
-        console.error('Error fetching blog categories:', error);
+        console.error("Error fetching blog categories:", error);
       }
     };
 
@@ -1275,12 +1423,14 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
     const fetchAuthors = async () => {
       try {
         const response = await apiClient.get(API_ENDPOINTS.USERS.BASE);
-        const authorUsers = response.users.filter(user =>
-          ['admin', 'moderator', 'staff'].includes(user.role) && user.status === 'active'
+        const authorUsers = response.users.filter(
+          (user) =>
+            ["admin", "moderator", "staff"].includes(user.role) &&
+            user.status === "active",
         );
         setAuthors(authorUsers);
       } catch (error) {
-        console.error('Error fetching authors:', error);
+        console.error("Error fetching authors:", error);
       }
     };
 
@@ -1288,12 +1438,16 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
     fetchAuthors();
   }, []);
 
-  const filteredPosts = posts.filter(post => {
-    const matchesSearch = post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredPosts = posts.filter((post) => {
+    const matchesSearch =
+      post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.content?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || post.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || post.category === categoryFilter;
-    const matchesAuthor = authorFilter === 'all' || post.author === authorFilter;
+    const matchesStatus =
+      statusFilter === "all" || post.status === statusFilter;
+    const matchesCategory =
+      categoryFilter === "all" || post.category === categoryFilter;
+    const matchesAuthor =
+      authorFilter === "all" || post.author === authorFilter;
     return matchesSearch && matchesStatus && matchesCategory && matchesAuthor;
   });
 
@@ -1308,16 +1462,18 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
       setShowCreateModal(false);
       setSelectedPost(null);
       resetForm();
-      alert.success(`Blog post ${selectedPost ? 'updated' : 'created'} successfully`);
+      alert.success(
+        `Blog post ${selectedPost ? "updated" : "created"} successfully`,
+      );
     } catch (error) {
-      alert.error(`Failed to ${selectedPost ? 'update' : 'create'} blog post`);
+      alert.error(`Failed to ${selectedPost ? "update" : "create"} blog post`);
     }
   };
 
   const addTag = () => {
     setValues({
       ...values,
-      tags: [...values.tags, '']
+      tags: [...values.tags, ""],
     });
   };
 
@@ -1335,40 +1491,51 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
 
   const postColumns = [
     {
-      key: 'title',
-      title: 'Title',
+      key: "title",
+      title: "Title",
       render: (post) => (
         <div>
           <div className="text-sm font-medium text-gray-900">{post.title}</div>
-          <div className="text-sm text-gray-500">By {post.authorName} on {new Date(post.publishedAt || post.createdAt).toLocaleDateString()}</div>
+          <div className="text-sm text-gray-500">
+            By {post.authorName} on{" "}
+            {new Date(post.publishedAt || post.createdAt).toLocaleDateString()}
+          </div>
         </div>
-      )
+      ),
     },
-    { key: 'category', title: 'Category' },
+    { key: "category", title: "Category" },
     {
-      key: 'status',
-      title: 'Status',
+      key: "status",
+      title: "Status",
       render: (post) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${post.status === 'published'
-          ? 'bg-green-100 text-green-800'
-          : post.status === 'draft'
-            ? 'bg-yellow-100 text-yellow-800'
-            : 'bg-red-100 text-red-800'
-          }`}>
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            post.status === "published"
+              ? "bg-green-100 text-green-800"
+              : post.status === "draft"
+                ? "bg-yellow-100 text-yellow-800"
+                : "bg-red-100 text-red-800"
+          }`}
+        >
           {post.status}
         </span>
-      )
+      ),
     },
     {
-      key: 'featured',
-      title: 'Featured',
+      key: "featured",
+      title: "Featured",
       render: (post) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${post.featured ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-          }`}>
-          {post.featured ? 'Yes' : 'No'}
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            post.featured
+              ? "bg-blue-100 text-blue-800"
+              : "bg-gray-100 text-gray-800"
+          }`}
+        >
+          {post.featured ? "Yes" : "No"}
         </span>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -1389,8 +1556,10 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
             className="form-input"
           >
             <option value="all">All Categories</option>
-            {blogCategories.map(category => (
-              <option key={category} value={category}>{category}</option>
+            {blogCategories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
             ))}
           </select>
           <select
@@ -1409,8 +1578,10 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
             className="form-input"
           >
             <option value="all">All Authors</option>
-            {authors.map(author => (
-              <option key={author._id} value={author._id}>{author.name}</option>
+            {authors.map((author) => (
+              <option key={author._id} value={author._id}>
+                {author.name}
+              </option>
             ))}
           </select>
           <button
@@ -1421,7 +1592,7 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
             }}
             className="btn btn-primary"
           >
-            <i className="fas fa-plus mr-2"></i> New Post
+            <i className="fas fa-plus mr-2" /> New Post
           </button>
         </div>
       </div>
@@ -1447,7 +1618,7 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
           setSelectedPost(null);
           resetForm();
         }}
-        title={selectedPost ? 'Edit Blog Post' : 'Create New Blog Post'}
+        title={selectedPost ? "Edit Blog Post" : "Create New Blog Post"}
         size="xl"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -1474,13 +1645,17 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
                 required
               >
                 <option value="">Select an author</option>
-                {authors.map(author => (
-                  <option key={author._id} value={author._id}>{author.name}</option>
+                {authors.map((author) => (
+                  <option key={author._id} value={author._id}>
+                    {author.name}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Category*</label>
+              <label className="block text-sm font-medium mb-1">
+                Category*
+              </label>
               <select
                 name="category"
                 value={values.category}
@@ -1489,8 +1664,10 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
                 required
               >
                 <option value="">Select a category</option>
-                {blogCategories.map(category => (
-                  <option key={category} value={category}>{category}</option>
+                {blogCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
                 ))}
               </select>
             </div>
@@ -1512,7 +1689,9 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Publish Date</label>
+              <label className="block text-sm font-medium mb-1">
+                Publish Date
+              </label>
               <input
                 type="date"
                 name="publishedAt"
@@ -1573,7 +1752,7 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
                   onClick={() => removeTag(index)}
                   className="ml-2 text-red-500 hover:text-red-700"
                 >
-                  <i className="fas fa-times"></i>
+                  <i className="fas fa-times" />
                 </button>
               </div>
             ))}
@@ -1581,7 +1760,9 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Featured Image URL</label>
+              <label className="block text-sm font-medium mb-1">
+                Featured Image URL
+              </label>
               <input
                 type="url"
                 name="featuredImage"
@@ -1596,18 +1777,27 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
                 type="checkbox"
                 name="featured"
                 checked={values.featured}
-                onChange={(e) => handleChange({ target: { name: 'featured', value: e.target.checked } })}
+                onChange={(e) =>
+                  handleChange({
+                    target: { name: "featured", value: e.target.checked },
+                  })
+                }
                 className="form-checkbox h-4 w-4 text-[#FF7E45]"
                 id="featuredPost"
               />
-              <label htmlFor="featuredPost" className="ml-2 text-sm font-medium">
+              <label
+                htmlFor="featuredPost"
+                className="ml-2 text-sm font-medium"
+              >
                 Feature this post
               </label>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Meta Title (SEO)</label>
+            <label className="block text-sm font-medium mb-1">
+              Meta Title (SEO)
+            </label>
             <input
               type="text"
               name="metaTitle"
@@ -1619,7 +1809,9 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Meta Description (SEO)</label>
+            <label className="block text-sm font-medium mb-1">
+              Meta Description (SEO)
+            </label>
             <textarea
               name="metaDescription"
               value={values.metaDescription}
@@ -1643,7 +1835,7 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
-              {selectedPost ? 'Update' : 'Create'} Post
+              {selectedPost ? "Update" : "Create"} Post
             </button>
           </div>
         </form>
@@ -1654,27 +1846,29 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
 
 // Donations Management Component
 const DonationsManagement = ({ donations, onUpdateDonation }) => {
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('all');
-  const [methodFilter, setMethodFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [methodFilter, setMethodFilter] = useState("all");
 
-  const filteredDonations = donations.filter(donation => {
-    const matchesStatus = statusFilter === 'all' || donation.status === statusFilter;
-    const matchesMethod = methodFilter === 'all' || donation.paymentMethod === methodFilter;
+  const filteredDonations = donations.filter((donation) => {
+    const matchesStatus =
+      statusFilter === "all" || donation.status === statusFilter;
+    const matchesMethod =
+      methodFilter === "all" || donation.paymentMethod === methodFilter;
 
     let matchesDate = true;
-    if (dateFilter === 'today') {
+    if (dateFilter === "today") {
       const today = new Date().toDateString();
       matchesDate = new Date(donation.createdAt).toDateString() === today;
-    } else if (dateFilter === 'week') {
+    } else if (dateFilter === "week") {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
       matchesDate = new Date(donation.createdAt) >= weekAgo;
-    } else if (dateFilter === 'month') {
+    } else if (dateFilter === "month") {
       const monthAgo = new Date();
       monthAgo.setMonth(monthAgo.getMonth() - 1);
       matchesDate = new Date(donation.createdAt) >= monthAgo;
-    } else if (dateFilter === 'year') {
+    } else if (dateFilter === "year") {
       const yearAgo = new Date();
       yearAgo.setFullYear(yearAgo.getFullYear() - 1);
       matchesDate = new Date(donation.createdAt) >= yearAgo;
@@ -1684,50 +1878,60 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
   });
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
     }).format(amount);
   };
 
   const donationColumns = [
     {
-      key: 'donor',
-      title: 'Donor',
+      key: "donor",
+      title: "Donor",
       render: (donation) => (
         <div>
-          <div className="text-sm font-medium text-gray-900">{donation.donorName || 'Anonymous'}</div>
-          <div className="text-sm text-gray-500">{donation.donorEmail || 'No email provided'}</div>
+          <div className="text-sm font-medium text-gray-900">
+            {donation.donorName || "Anonymous"}
+          </div>
+          <div className="text-sm text-gray-500">
+            {donation.donorEmail || "No email provided"}
+          </div>
         </div>
-      )
+      ),
     },
     {
-      key: 'amount',
-      title: 'Amount',
-      render: (donation) => formatCurrency(donation.amount)
+      key: "amount",
+      title: "Amount",
+      render: (donation) => formatCurrency(donation.amount),
     },
     {
-      key: 'date',
-      title: 'Date',
-      render: (donation) => new Date(donation.createdAt).toLocaleDateString()
+      key: "date",
+      title: "Date",
+      render: (donation) => new Date(donation.createdAt).toLocaleDateString(),
     },
     {
-      key: 'method',
-      title: 'Method',
-      render: (donation) => donation.paymentMethod ? donation.paymentMethod.charAt(0).toUpperCase() + donation.paymentMethod.slice(1) : 'Unknown'
+      key: "method",
+      title: "Method",
+      render: (donation) =>
+        donation.paymentMethod
+          ? donation.paymentMethod.charAt(0).toUpperCase() +
+            donation.paymentMethod.slice(1)
+          : "Unknown",
     },
     {
-      key: 'type',
-      title: 'Type',
-      render: (donation) => donation.recurring ? 'Recurring' : 'One-time'
+      key: "type",
+      title: "Type",
+      render: (donation) => (donation.recurring ? "Recurring" : "One-time"),
     },
     {
-      key: 'status',
-      title: 'Status',
+      key: "status",
+      title: "Status",
       render: (donation) => (
         <select
           value={donation.status}
-          onChange={(e) => onUpdateDonation(donation._id, { status: e.target.value })}
+          onChange={(e) =>
+            onUpdateDonation(donation._id, { status: e.target.value })
+          }
           className="form-input text-sm"
         >
           <option value="pending">Pending</option>
@@ -1735,11 +1939,14 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
           <option value="failed">Failed</option>
           <option value="refunded">Refunded</option>
         </select>
-      )
+      ),
     },
   ];
 
-  const totalAmount = filteredDonations.reduce((sum, donation) => sum + donation.amount, 0);
+  const totalAmount = filteredDonations.reduce(
+    (sum, donation) => sum + donation.amount,
+    0,
+  );
 
   return (
     <div>
@@ -1781,7 +1988,7 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
             <option value="year">This Year</option>
           </select>
           <button className="btn btn-primary">
-            <i className="fas fa-download mr-2"></i> Export
+            <i className="fas fa-download mr-2" /> Export
           </button>
         </div>
       </div>
@@ -1789,13 +1996,21 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
       <div className="bg-white rounded-lg shadow-md p-4 mb-6">
         <div className="flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-semibold">Total: {formatCurrency(totalAmount)}</h3>
-            <p className="text-sm text-gray-500">{filteredDonations.length} donations</p>
+            <h3 className="text-lg font-semibold">
+              Total: {formatCurrency(totalAmount)}
+            </h3>
+            <p className="text-sm text-gray-500">
+              {filteredDonations.length} donations
+            </p>
           </div>
           <div className="text-right">
             <p className="text-sm text-gray-500">Recurring donations</p>
             <p className="font-semibold">
-              {formatCurrency(filteredDonations.filter(d => d.recurring).reduce((sum, d) => sum + d.amount, 0))}
+              {formatCurrency(
+                filteredDonations
+                  .filter((d) => d.recurring)
+                  .reduce((sum, d) => sum + d.amount, 0),
+              )}
             </p>
           </div>
         </div>
@@ -1805,8 +2020,8 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
         <DataTable
           columns={donationColumns}
           data={filteredDonations}
-          onEdit={() => { }}
-          onDelete={() => { }}
+          onEdit={() => {}}
+          onDelete={() => {}}
           emptyMessage="No donations found matching your criteria"
         />
       </div>
@@ -1815,57 +2030,77 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
 };
 
 // Prayer Requests Management Component
-const PrayerRequestsManagement = ({ prayerRequests, onUpdatePrayerRequest, onDeletePrayerRequest }) => {
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [privacyFilter, setPrivacyFilter] = useState('all');
+const PrayerRequestsManagement = ({
+  prayerRequests,
+  onUpdatePrayerRequest,
+  onDeletePrayerRequest,
+}) => {
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [privacyFilter, setPrivacyFilter] = useState("all");
 
-  const filteredPrayerRequests = prayerRequests.filter(request => {
-    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || request.category === categoryFilter;
-    const matchesPrivacy = privacyFilter === 'all' ||
-      (privacyFilter === 'public' && request.isPublic) ||
-      (privacyFilter === 'private' && !request.isPublic);
+  const filteredPrayerRequests = prayerRequests.filter((request) => {
+    const matchesStatus =
+      statusFilter === "all" || request.status === statusFilter;
+    const matchesCategory =
+      categoryFilter === "all" || request.category === categoryFilter;
+    const matchesPrivacy =
+      privacyFilter === "all" ||
+      (privacyFilter === "public" && request.isPublic) ||
+      (privacyFilter === "private" && !request.isPublic);
     return matchesStatus && matchesCategory && matchesPrivacy;
   });
 
   const prayerColumns = [
     {
-      key: 'name',
-      title: 'Name',
+      key: "name",
+      title: "Name",
       render: (request) => (
         <div>
-          <div className="text-sm font-medium text-gray-900">{request.name || 'Anonymous'}</div>
-          <div className="text-sm text-gray-500">{request.email || 'No email provided'}</div>
+          <div className="text-sm font-medium text-gray-900">
+            {request.name || "Anonymous"}
+          </div>
+          <div className="text-sm text-gray-500">
+            {request.email || "No email provided"}
+          </div>
         </div>
-      )
+      ),
     },
     {
-      key: 'request',
-      title: 'Request',
+      key: "request",
+      title: "Request",
       render: (request) => (
-        <div className="text-sm text-gray-900 line-clamp-2">{request.request}</div>
-      )
+        <div className="text-sm text-gray-900 line-clamp-2">
+          {request.request}
+        </div>
+      ),
     },
-    { key: 'category', title: 'Category' },
+    { key: "category", title: "Category" },
     {
-      key: 'privacy',
-      title: 'Privacy',
+      key: "privacy",
+      title: "Privacy",
       render: (request) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${request.isPublic ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-          }`}>
-          {request.isPublic ? 'Public' : 'Private'}
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            request.isPublic
+              ? "bg-blue-100 text-blue-800"
+              : "bg-gray-100 text-gray-800"
+          }`}
+        >
+          {request.isPublic ? "Public" : "Private"}
         </span>
-      )
+      ),
     },
-    { key: 'prayerCount', title: 'Prayers' },
+    { key: "prayerCount", title: "Prayers" },
     {
-      key: 'status',
-      title: 'Status',
+      key: "status",
+      title: "Status",
       render: (request) => (
         <select
           value={request.status}
-          onChange={(e) => onUpdatePrayerRequest(request._id, { status: e.target.value })}
+          onChange={(e) =>
+            onUpdatePrayerRequest(request._id, { status: e.target.value })
+          }
           className="form-input text-sm"
         >
           <option value="pending">Pending</option>
@@ -1873,7 +2108,7 @@ const PrayerRequestsManagement = ({ prayerRequests, onUpdatePrayerRequest, onDel
           <option value="answered">Answered</option>
           <option value="rejected">Rejected</option>
         </select>
-      )
+      ),
     },
   ];
 
@@ -1922,7 +2157,7 @@ const PrayerRequestsManagement = ({ prayerRequests, onUpdatePrayerRequest, onDel
         <DataTable
           columns={prayerColumns}
           data={filteredPrayerRequests}
-          onEdit={() => { }}
+          onEdit={() => {}}
           onDelete={(request) => onDeletePrayerRequest(request._id)}
           emptyMessage="No prayer requests found matching your criteria"
         />
@@ -1932,22 +2167,28 @@ const PrayerRequestsManagement = ({ prayerRequests, onUpdatePrayerRequest, onDel
 };
 
 // Event Form Modal Component
-const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) => {
+const EventFormModal = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  eventData = {},
+  users,
+}) => {
   const { values, handleChange, setValues } = useForm({
-    title: '',
-    description: '',
-    startTime: '',
-    endTime: '',
-    location: '',
+    title: "",
+    description: "",
+    startTime: "",
+    endTime: "",
+    location: "",
     address: {},
-    category: 'service',
-    imageUrl: '',
+    category: "service",
+    imageUrl: "",
     capacity: 0,
     requiresRSVP: false,
     price: 0,
     leaders: [],
     tags: [],
-    ...eventData
+    ...eventData,
   });
 
   const handleSubmit = (e) => {
@@ -1958,7 +2199,7 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
   const addLeader = () => {
     setValues({
       ...values,
-      leaders: [...values.leaders, { userId: '', role: '' }]
+      leaders: [...values.leaders, { userId: "", role: "" }],
     });
   };
 
@@ -1977,7 +2218,7 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
   const addTag = () => {
     setValues({
       ...values,
-      tags: [...values.tags, '']
+      tags: [...values.tags, ""],
     });
   };
 
@@ -1995,23 +2236,32 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
 
   useEffect(() => {
     if (isOpen) {
-      document.querySelector('.form-input')?.focus();
+      document.querySelector(".form-input")?.focus();
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   // Filter users who can be leaders (staff, moderators, admins, volunteers)
-  const potentialLeaders = users.filter(user =>
-    ['admin', 'moderator', 'staff', 'volunteer'].includes(user.role) && user.status === 'active'
+  const potentialLeaders = users.filter(
+    (user) =>
+      ["admin", "moderator", "staff", "volunteer"].includes(user.role) &&
+      user.status === "active",
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={eventData._id ? 'Edit Event' : 'Create Event'} size="lg">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={eventData._id ? "Edit Event" : "Create Event"}
+      size="lg"
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Event Title*</label>
+            <label className="block text-sm font-medium mb-1">
+              Event Title*
+            </label>
             <input
               type="text"
               name="title"
@@ -2046,7 +2296,9 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Start Time*</label>
+            <label className="block text-sm font-medium mb-1">
+              Start Time*
+            </label>
             <input
               type="datetime-local"
               name="startTime"
@@ -2157,15 +2409,20 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
             </button>
           </div>
           {values.leaders.map((leader, index) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+            <div
+              key={index}
+              className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2"
+            >
               <select
                 value={leader.userId}
-                onChange={(e) => updateLeader(index, 'userId', e.target.value)}
+                onChange={(e) => updateLeader(index, "userId", e.target.value)}
                 className="form-input"
               >
                 <option value="">Select a leader</option>
-                {potentialLeaders.map(user => (
-                  <option key={user._id} value={user._id}>{user.name} ({user.role})</option>
+                {potentialLeaders.map((user) => (
+                  <option key={user._id} value={user._id}>
+                    {user.name} ({user.role})
+                  </option>
                 ))}
               </select>
               <div className="flex">
@@ -2173,7 +2430,7 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
                   type="text"
                   placeholder="Role"
                   value={leader.role}
-                  onChange={(e) => updateLeader(index, 'role', e.target.value)}
+                  onChange={(e) => updateLeader(index, "role", e.target.value)}
                   className="form-input flex-1"
                 />
                 <button
@@ -2181,7 +2438,7 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
                   onClick={() => removeLeader(index)}
                   className="ml-2 text-red-500 hover:text-red-700"
                 >
-                  <i className="fas fa-times"></i>
+                  <i className="fas fa-times" />
                 </button>
               </div>
             </div>
@@ -2213,7 +2470,7 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
                 onClick={() => removeTag(index)}
                 className="ml-2 text-red-500 hover:text-red-700"
               >
-                <i className="fas fa-times"></i>
+                <i className="fas fa-times" />
               </button>
             </div>
           ))}
@@ -2224,7 +2481,7 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
             Cancel
           </button>
           <button type="submit" className="btn btn-primary">
-            {eventData._id ? 'Update' : 'Create'} Event
+            {eventData._id ? "Update" : "Create"} Event
           </button>
         </div>
       </form>
@@ -2233,24 +2490,30 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
 };
 
 // Sermon Form Modal Component
-const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) => {
+const SermonFormModal = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  sermonData = {},
+  users,
+}) => {
   const { values, handleChange, setValues } = useForm({
-    title: '',
-    speaker: '',
-    description: '',
-    scripture: '',
-    category: 'sunday-service',
-    date: '',
-    duration: '00:00',
-    videoUrl: '',
-    audioUrl: '',
-    imageUrl: '',
+    title: "",
+    speaker: "",
+    description: "",
+    scripture: "",
+    category: "sunday-service",
+    date: "",
+    duration: "00:00",
+    videoUrl: "",
+    audioUrl: "",
+    imageUrl: "",
     isLive: false,
-    liveStreamUrl: '',
+    liveStreamUrl: "",
     tags: [],
-    series: '',
-    seriesPart: '',
-    ...sermonData
+    series: "",
+    seriesPart: "",
+    ...sermonData,
   });
 
   const handleSubmit = (e) => {
@@ -2261,7 +2524,7 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
   const addTag = () => {
     setValues({
       ...values,
-      tags: [...values.tags, '']
+      tags: [...values.tags, ""],
     });
   };
 
@@ -2279,23 +2542,32 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
 
   useEffect(() => {
     if (isOpen) {
-      document.querySelector('.form-input')?.focus();
+      document.querySelector(".form-input")?.focus();
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   // Filter users who can be speakers (staff, moderators, admins, volunteers)
-  const potentialSpeakers = users.filter(user =>
-    ['admin', 'moderator', 'staff', 'volunteer'].includes(user.role) && user.status === 'active'
+  const potentialSpeakers = users.filter(
+    (user) =>
+      ["admin", "moderator", "staff", "volunteer"].includes(user.role) &&
+      user.status === "active",
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={sermonData._id ? 'Edit Sermon' : 'Create Sermon'} size="lg">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={sermonData._id ? "Edit Sermon" : "Create Sermon"}
+      size="lg"
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Sermon Title*</label>
+            <label className="block text-sm font-medium mb-1">
+              Sermon Title*
+            </label>
             <input
               type="text"
               name="title"
@@ -2315,8 +2587,10 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
               required
             >
               <option value="">Select a speaker</option>
-              {potentialSpeakers.map(user => (
-                <option key={user._id} value={user._id}>{user.name} ({user.role})</option>
+              {potentialSpeakers.map((user) => (
+                <option key={user._id} value={user._id}>
+                  {user.name} ({user.role})
+                </option>
               ))}
             </select>
           </div>
@@ -2368,7 +2642,9 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Scripture Reference</label>
+            <label className="block text-sm font-medium mb-1">
+              Scripture Reference
+            </label>
             <input
               type="text"
               name="scripture"
@@ -2405,7 +2681,9 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Series Part</label>
+            <label className="block text-sm font-medium mb-1">
+              Series Part
+            </label>
             <input
               type="number"
               name="seriesPart"
@@ -2442,14 +2720,19 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
               className="form-checkbox h-4 w-4 text-[#FF7E45]"
               id="isLiveCheckbox"
             />
-            <label htmlFor="isLiveCheckbox" className="ml-2 text-sm font-medium">
+            <label
+              htmlFor="isLiveCheckbox"
+              className="ml-2 text-sm font-medium"
+            >
               This is a live stream
             </label>
           </div>
 
           {values.isLive ? (
             <div>
-              <label className="block text-sm font-medium mb-1">Live Stream URL*</label>
+              <label className="block text-sm font-medium mb-1">
+                Live Stream URL*
+              </label>
               <input
                 type="url"
                 name="liveStreamUrl"
@@ -2466,7 +2749,9 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
           ) : (
             <>
               <div>
-                <label className="block text-sm font-medium mb-1">Video URL</label>
+                <label className="block text-sm font-medium mb-1">
+                  Video URL
+                </label>
                 <input
                   type="url"
                   name="videoUrl"
@@ -2477,7 +2762,9 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Audio URL</label>
+                <label className="block text-sm font-medium mb-1">
+                  Audio URL
+                </label>
                 <input
                   type="url"
                   name="audioUrl"
@@ -2516,7 +2803,7 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
                 onClick={() => removeTag(index)}
                 className="ml-2 text-red-500 hover:text-red-700"
               >
-                <i className="fas fa-times"></i>
+                <i className="fas fa-times" />
               </button>
             </div>
           ))}
@@ -2527,7 +2814,7 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
             Cancel
           </button>
           <button type="submit" className="btn btn-primary">
-            {sermonData._id ? 'Update' : 'Create'} Sermon
+            {sermonData._id ? "Update" : "Create"} Sermon
           </button>
         </div>
       </form>
@@ -2544,7 +2831,7 @@ const LiveStreamControl = ({ isLive, onStartLive, onStopLive, liveStats }) => {
       {isLive ? (
         <div className="space-y-4">
           <div className="flex items-center">
-            <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></div>
+            <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2" />
             <span className="font-medium text-red-600">Live Stream Active</span>
           </div>
 
@@ -2552,46 +2839,47 @@ const LiveStreamControl = ({ isLive, onStartLive, onStopLive, liveStats }) => {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-600">Viewers:</span>
-                <span className="font-medium ml-2">{liveStats.viewers || 0}</span>
+                <span className="font-medium ml-2">
+                  {liveStats.viewers || 0}
+                </span>
               </div>
               <div>
                 <span className="text-gray-600">Duration:</span>
-                <span className="font-medium ml-2">{liveStats.duration || '0:00'}</span>
+                <span className="font-medium ml-2">
+                  {liveStats.duration || "0:00"}
+                </span>
               </div>
             </div>
           )}
 
-          <button
-            onClick={onStopLive}
-            className="btn btn-danger"
-          >
-            <i className="fas fa-stop mr-2"></i> End Live Stream
+          <button onClick={onStopLive} className="btn btn-danger">
+            <i className="fas fa-stop mr-2" /> End Live Stream
           </button>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-sm text-blue-700">
-              <i className="fas fa-info-circle mr-1"></i>
-              Your live stream is currently active and visible to members and guests.
+              <i className="fas fa-info-circle mr-1" />
+              Your live stream is currently active and visible to members and
+              guests.
             </p>
           </div>
         </div>
       ) : (
         <div className="space-y-4">
           <div className="flex items-center">
-            <div className="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
-            <span className="font-medium text-gray-600">No Active Live Stream</span>
+            <div className="w-3 h-3 bg-gray-400 rounded-full mr-2" />
+            <span className="font-medium text-gray-600">
+              No Active Live Stream
+            </span>
           </div>
 
-          <button
-            onClick={onStartLive}
-            className="btn btn-primary"
-          >
-            <i className="fas fa-broadcast-tower mr-2"></i> Start Live Stream
+          <button onClick={onStartLive} className="btn btn-primary">
+            <i className="fas fa-broadcast-tower mr-2" /> Start Live Stream
           </button>
 
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
             <p className="text-sm text-yellow-700">
-              <i className="fas fa-exclamation-triangle mr-1"></i>
+              <i className="fas fa-exclamation-triangle mr-1" />
               Make sure your streaming software is configured before starting.
             </p>
           </div>
@@ -2604,14 +2892,14 @@ const LiveStreamControl = ({ isLive, onStartLive, onStopLive, liveStats }) => {
 // Settings Form Component
 const SettingsForm = ({ settings, onUpdateSettings }) => {
   const { values, handleChange, setValues } = useForm({
-    churchName: settings.churchName || '',
+    churchName: settings.churchName || "",
     churchAddress: settings.churchAddress || {},
-    contactEmail: settings.contactEmail || '',
-    contactPhone: settings.contactPhone || '',
-    pastorName: settings.pastorName || '',
+    contactEmail: settings.contactEmail || "",
+    contactPhone: settings.contactPhone || "",
+    pastorName: settings.pastorName || "",
     serviceTimes: settings.serviceTimes || [],
     socialMedia: settings.socialMedia || {},
-    liveStreamUrl: settings.liveStreamUrl || '',
+    liveStreamUrl: settings.liveStreamUrl || "",
     givingOptions: settings.givingOptions || {},
     emailSettings: settings.emailSettings || {},
     sermonSettings: settings.sermonSettings || {},
@@ -2620,7 +2908,7 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
     testimonialSettings: settings.testimonialSettings || {},
     blogSettings: settings.blogSettings || {},
     ministrySettings: settings.ministrySettings || {},
-    ...settings
+    ...settings,
   });
 
   const handleSubmit = (e) => {
@@ -2631,7 +2919,10 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
   const addServiceTime = () => {
     setValues({
       ...values,
-      serviceTimes: [...values.serviceTimes, { day: '', time: '', description: '' }]
+      serviceTimes: [
+        ...values.serviceTimes,
+        { day: "", time: "", description: "" },
+      ],
     });
   };
 
@@ -2652,8 +2943,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       churchAddress: {
         ...values.churchAddress,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -2662,8 +2953,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       socialMedia: {
         ...values.socialMedia,
-        [platform]: value
-      }
+        [platform]: value,
+      },
     });
   };
 
@@ -2672,8 +2963,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       givingOptions: {
         ...values.givingOptions,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -2682,8 +2973,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       emailSettings: {
         ...values.emailSettings,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -2692,8 +2983,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       sermonSettings: {
         ...values.sermonSettings,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -2702,8 +2993,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       eventSettings: {
         ...values.eventSettings,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -2712,8 +3003,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       prayerRequestSettings: {
         ...values.prayerRequestSettings,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -2722,8 +3013,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       testimonialSettings: {
         ...values.testimonialSettings,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -2732,8 +3023,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       blogSettings: {
         ...values.blogSettings,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -2742,8 +3033,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       ministrySettings: {
         ...values.ministrySettings,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -2756,7 +3047,9 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
           <h3 className="text-lg font-semibold mb-4">Church Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Church Name*</label>
+              <label className="block text-sm font-medium mb-1">
+                Church Name*
+              </label>
               <input
                 type="text"
                 name="churchName"
@@ -2767,7 +3060,9 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Pastor Name</label>
+              <label className="block text-sm font-medium mb-1">
+                Pastor Name
+              </label>
               <input
                 type="text"
                 name="pastorName"
@@ -2779,34 +3074,36 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
           </div>
 
           <div className="mt-4">
-            <label className="block text-sm font-medium mb-1">Church Address</label>
+            <label className="block text-sm font-medium mb-1">
+              Church Address
+            </label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <input
                 type="text"
                 placeholder="Street"
-                value={values.churchAddress.street || ''}
-                onChange={(e) => updateAddress('street', e.target.value)}
+                value={values.churchAddress.street || ""}
+                onChange={(e) => updateAddress("street", e.target.value)}
                 className="form-input"
               />
               <input
                 type="text"
                 placeholder="City"
-                value={values.churchAddress.city || ''}
-                onChange={(e) => updateAddress('city', e.target.value)}
+                value={values.churchAddress.city || ""}
+                onChange={(e) => updateAddress("city", e.target.value)}
                 className="form-input"
               />
               <input
                 type="text"
                 placeholder="State"
-                value={values.churchAddress.state || ''}
-                onChange={(e) => updateAddress('state', e.target.value)}
+                value={values.churchAddress.state || ""}
+                onChange={(e) => updateAddress("state", e.target.value)}
                 className="form-input"
               />
               <input
                 type="text"
                 placeholder="ZIP Code"
-                value={values.churchAddress.zipCode || ''}
-                onChange={(e) => updateAddress('zipCode', e.target.value)}
+                value={values.churchAddress.zipCode || ""}
+                onChange={(e) => updateAddress("zipCode", e.target.value)}
                 className="form-input"
               />
             </div>
@@ -2814,7 +3111,9 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Contact Email</label>
+              <label className="block text-sm font-medium mb-1">
+                Contact Email
+              </label>
               <input
                 type="email"
                 name="contactEmail"
@@ -2824,7 +3123,9 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Contact Phone</label>
+              <label className="block text-sm font-medium mb-1">
+                Contact Phone
+              </label>
               <input
                 type="tel"
                 name="contactPhone"
@@ -2849,19 +3150,26 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
             </button>
           </div>
           {values.serviceTimes.map((service, index) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+            <div
+              key={index}
+              className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2"
+            >
               <input
                 type="text"
                 placeholder="Day (e.g., Sunday)"
                 value={service.day}
-                onChange={(e) => updateServiceTime(index, 'day', e.target.value)}
+                onChange={(e) =>
+                  updateServiceTime(index, "day", e.target.value)
+                }
                 className="form-input"
               />
               <input
                 type="text"
                 placeholder="Time (e.g., 10:00 AM)"
                 value={service.time}
-                onChange={(e) => updateServiceTime(index, 'time', e.target.value)}
+                onChange={(e) =>
+                  updateServiceTime(index, "time", e.target.value)
+                }
                 className="form-input"
               />
               <div className="flex">
@@ -2869,7 +3177,9 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
                   type="text"
                   placeholder="Description"
                   value={service.description}
-                  onChange={(e) => updateServiceTime(index, 'description', e.target.value)}
+                  onChange={(e) =>
+                    updateServiceTime(index, "description", e.target.value)
+                  }
                   className="form-input flex-1"
                 />
                 <button
@@ -2877,7 +3187,7 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
                   onClick={() => removeServiceTime(index)}
                   className="ml-2 text-red-500 hover:text-red-700"
                 >
-                  <i className="fas fa-times"></i>
+                  <i className="fas fa-times" />
                 </button>
               </div>
             </div>
@@ -2889,42 +3199,42 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
           <h3 className="text-lg font-semibold mb-4">Social Media</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center">
-              <i className="fab fa-facebook text-blue-600 mr-2 w-5"></i>
+              <i className="fab fa-facebook text-blue-600 mr-2 w-5" />
               <input
                 type="url"
                 placeholder="Facebook URL"
-                value={values.socialMedia.facebook || ''}
-                onChange={(e) => updateSocialMedia('facebook', e.target.value)}
+                value={values.socialMedia.facebook || ""}
+                onChange={(e) => updateSocialMedia("facebook", e.target.value)}
                 className="form-input flex-1"
               />
             </div>
             <div className="flex items-center">
-              <i className="fab fa-instagram text-pink-600 mr-2 w-5"></i>
+              <i className="fab fa-instagram text-pink-600 mr-2 w-5" />
               <input
                 type="url"
                 placeholder="Instagram URL"
-                value={values.socialMedia.instagram || ''}
-                onChange={(e) => updateSocialMedia('instagram', e.target.value)}
+                value={values.socialMedia.instagram || ""}
+                onChange={(e) => updateSocialMedia("instagram", e.target.value)}
                 className="form-input flex-1"
               />
             </div>
             <div className="flex items-center">
-              <i className="fab fa-twitter text-blue-400 mr-2 w-5"></i>
+              <i className="fab fa-twitter text-blue-400 mr-2 w-5" />
               <input
                 type="url"
                 placeholder="Twitter URL"
-                value={values.socialMedia.twitter || ''}
-                onChange={(e) => updateSocialMedia('twitter', e.target.value)}
+                value={values.socialMedia.twitter || ""}
+                onChange={(e) => updateSocialMedia("twitter", e.target.value)}
                 className="form-input flex-1"
               />
             </div>
             <div className="flex items-center">
-              <i className="fab fa-youtube text-red-600 mr-2 w-5"></i>
+              <i className="fab fa-youtube text-red-600 mr-2 w-5" />
               <input
                 type="url"
                 placeholder="YouTube URL"
-                value={values.socialMedia.youtube || ''}
-                onChange={(e) => updateSocialMedia('youtube', e.target.value)}
+                value={values.socialMedia.youtube || ""}
+                onChange={(e) => updateSocialMedia("youtube", e.target.value)}
                 className="form-input flex-1"
               />
             </div>
@@ -2935,7 +3245,9 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
         <div>
           <h3 className="text-lg font-semibold mb-4">Live Stream</h3>
           <div>
-            <label className="block text-sm font-medium mb-1">Live Stream URL</label>
+            <label className="block text-sm font-medium mb-1">
+              Live Stream URL
+            </label>
             <input
               type="url"
               name="liveStreamUrl"
@@ -2955,32 +3267,45 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               type="checkbox"
               name="enableOnlineGiving"
               checked={values.givingOptions.enableOnlineGiving || false}
-              onChange={(e) => updateGivingOptions('enableOnlineGiving', e.target.checked)}
+              onChange={(e) =>
+                updateGivingOptions("enableOnlineGiving", e.target.checked)
+              }
               className="form-checkbox h-4 w-4 text-[#FF7E45]"
               id="enableOnlineGiving"
             />
-            <label htmlFor="enableOnlineGiving" className="ml-2 text-sm font-medium">
+            <label
+              htmlFor="enableOnlineGiving"
+              className="ml-2 text-sm font-medium"
+            >
               Enable Online Giving
             </label>
           </div>
           {values.givingOptions.enableOnlineGiving && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Stripe Publishable Key</label>
+                <label className="block text-sm font-medium mb-1">
+                  Stripe Publishable Key
+                </label>
                 <input
                   type="text"
-                  value={values.givingOptions.stripePublishableKey || ''}
-                  onChange={(e) => updateGivingOptions('stripePublishableKey', e.target.value)}
+                  value={values.givingOptions.stripePublishableKey || ""}
+                  onChange={(e) =>
+                    updateGivingOptions("stripePublishableKey", e.target.value)
+                  }
                   className="form-input"
                   placeholder="pk_test_..."
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Stripe Secret Key</label>
+                <label className="block text-sm font-medium mb-1">
+                  Stripe Secret Key
+                </label>
                 <input
                   type="password"
-                  value={values.givingOptions.stripeSecretKey || ''}
-                  onChange={(e) => updateGivingOptions('stripeSecretKey', e.target.value)}
+                  value={values.givingOptions.stripeSecretKey || ""}
+                  onChange={(e) =>
+                    updateGivingOptions("stripeSecretKey", e.target.value)
+                  }
                   className="form-input"
                   placeholder="sk_test_..."
                 />
@@ -2994,38 +3319,58 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
           <h3 className="text-lg font-semibold mb-4">Email Settings</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">SMTP Host</label>
+              <label className="block text-sm font-medium mb-1">
+                SMTP Host
+              </label>
               <input
                 type="text"
-                value={values.emailSettings.host || ''}
-                onChange={(e) => updateEmailSettings('host', e.target.value)}
+                value={values.emailSettings.host || ""}
+                onChange={(e) => updateEmailSettings("host", e.target.value)}
                 className="form-input"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">SMTP Port</label>
+              <label className="block text-sm font-medium mb-1">
+                SMTP Port
+              </label>
               <input
                 type="number"
-                value={values.emailSettings.port || ''}
-                onChange={(e) => updateEmailSettings('port', parseInt(e.target.value) || '')}
+                value={values.emailSettings.port || ""}
+                onChange={(e) =>
+                  updateEmailSettings("port", parseInt(e.target.value) || "")
+                }
                 className="form-input"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">SMTP Username</label>
+              <label className="block text-sm font-medium mb-1">
+                SMTP Username
+              </label>
               <input
                 type="text"
-                value={values.emailSettings.auth?.user || ''}
-                onChange={(e) => updateEmailSettings('auth', { ...values.emailSettings.auth, user: e.target.value })}
+                value={values.emailSettings.auth?.user || ""}
+                onChange={(e) =>
+                  updateEmailSettings("auth", {
+                    ...values.emailSettings.auth,
+                    user: e.target.value,
+                  })
+                }
                 className="form-input"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">SMTP Password</label>
+              <label className="block text-sm font-medium mb-1">
+                SMTP Password
+              </label>
               <input
                 type="password"
-                value={values.emailSettings.auth?.pass || ''}
-                onChange={(e) => updateEmailSettings('auth', { ...values.emailSettings.auth, pass: e.target.value })}
+                value={values.emailSettings.auth?.pass || ""}
+                onChange={(e) =>
+                  updateEmailSettings("auth", {
+                    ...values.emailSettings.auth,
+                    pass: e.target.value,
+                  })
+                }
                 className="form-input"
               />
             </div>
@@ -3033,7 +3378,9 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               <input
                 type="checkbox"
                 checked={values.emailSettings.secure || false}
-                onChange={(e) => updateEmailSettings('secure', e.target.checked)}
+                onChange={(e) =>
+                  updateEmailSettings("secure", e.target.checked)
+                }
                 className="form-checkbox h-4 w-4 text-[#FF7E45]"
                 id="secureSMTP"
               />
@@ -3055,11 +3402,16 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               <input
                 type="checkbox"
                 checked={values.sermonSettings.autoPublish || false}
-                onChange={(e) => updateSermonSettings('autoPublish', e.target.checked)}
+                onChange={(e) =>
+                  updateSermonSettings("autoPublish", e.target.checked)
+                }
                 className="form-checkbox h-4 w-4 text-[#FF7E45]"
                 id="autoPublishSermons"
               />
-              <label htmlFor="autoPublishSermons" className="ml-2 text-sm font-medium">
+              <label
+                htmlFor="autoPublishSermons"
+                className="ml-2 text-sm font-medium"
+              >
                 Auto-publish new sermons
               </label>
             </div>
@@ -3072,11 +3424,16 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               <input
                 type="checkbox"
                 checked={values.blogSettings.enableComments || false}
-                onChange={(e) => updateBlogSettings('enableComments', e.target.checked)}
+                onChange={(e) =>
+                  updateBlogSettings("enableComments", e.target.checked)
+                }
                 className="form-checkbox h-4 w-4 text-[#FF7E45]"
                 id="enableBlogComments"
               />
-              <label htmlFor="enableBlogComments" className="ml-2 text-sm font-medium">
+              <label
+                htmlFor="enableBlogComments"
+                className="ml-2 text-sm font-medium"
+              >
                 Enable blog comments
               </label>
             </div>
@@ -3084,11 +3441,16 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               <input
                 type="checkbox"
                 checked={values.blogSettings.requireApproval || false}
-                onChange={(e) => updateBlogSettings('requireApproval', e.target.checked)}
+                onChange={(e) =>
+                  updateBlogSettings("requireApproval", e.target.checked)
+                }
                 className="form-checkbox h-4 w-4 text-[#FF7E45]"
                 id="requireBlogApproval"
               />
-              <label htmlFor="requireBlogApproval" className="ml-2 text-sm font-medium">
+              <label
+                htmlFor="requireBlogApproval"
+                className="ml-2 text-sm font-medium"
+              >
                 Require blog post approval
               </label>
             </div>
@@ -3101,11 +3463,19 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               <input
                 type="checkbox"
                 checked={values.ministrySettings.enableVolunteerSignup || false}
-                onChange={(e) => updateMinistrySettings('enableVolunteerSignup', e.target.checked)}
+                onChange={(e) =>
+                  updateMinistrySettings(
+                    "enableVolunteerSignup",
+                    e.target.checked,
+                  )
+                }
                 className="form-checkbox h-4 w-4 text-[#FF7E45]"
                 id="enableVolunteerSignup"
               />
-              <label htmlFor="enableVolunteerSignup" className="ml-2 text-sm font-medium">
+              <label
+                htmlFor="enableVolunteerSignup"
+                className="ml-2 text-sm font-medium"
+              >
                 Enable volunteer signup
               </label>
             </div>
@@ -3113,11 +3483,16 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               <input
                 type="checkbox"
                 checked={values.ministrySettings.showLeaders || true}
-                onChange={(e) => updateMinistrySettings('showLeaders', e.target.checked)}
+                onChange={(e) =>
+                  updateMinistrySettings("showLeaders", e.target.checked)
+                }
                 className="form-checkbox h-4 w-4 text-[#FF7E45]"
                 id="showMinistryLeaders"
               />
-              <label htmlFor="showMinistryLeaders" className="ml-2 text-sm font-medium">
+              <label
+                htmlFor="showMinistryLeaders"
+                className="ml-2 text-sm font-medium"
+              >
                 Show ministry leaders publicly
               </label>
             </div>
@@ -3130,11 +3505,16 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               <input
                 type="checkbox"
                 checked={values.eventSettings.requireApproval || false}
-                onChange={(e) => updateEventSettings('requireApproval', e.target.checked)}
+                onChange={(e) =>
+                  updateEventSettings("requireApproval", e.target.checked)
+                }
                 className="form-checkbox h-4 w-4 text-[#FF7E45]"
                 id="requireEventApproval"
               />
-              <label htmlFor="requireEventApproval" className="ml-2 text-sm font-medium">
+              <label
+                htmlFor="requireEventApproval"
+                className="ml-2 text-sm font-medium"
+              >
                 Require event approval
               </label>
             </div>
@@ -3142,11 +3522,16 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               <input
                 type="checkbox"
                 checked={values.eventSettings.allowPublicRSVP || true}
-                onChange={(e) => updateEventSettings('allowPublicRSVP', e.target.checked)}
+                onChange={(e) =>
+                  updateEventSettings("allowPublicRSVP", e.target.checked)
+                }
                 className="form-checkbox h-4 w-4 text-[#FF7E45]"
                 id="allowPublicRSVP"
               />
-              <label htmlFor="allowPublicRSVP" className="ml-2 text-sm font-medium">
+              <label
+                htmlFor="allowPublicRSVP"
+                className="ml-2 text-sm font-medium"
+              >
                 Allow public RSVP
               </label>
             </div>
@@ -3159,11 +3544,19 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               <input
                 type="checkbox"
                 checked={values.prayerRequestSettings.requireApproval || true}
-                onChange={(e) => updatePrayerRequestSettings('requireApproval', e.target.checked)}
+                onChange={(e) =>
+                  updatePrayerRequestSettings(
+                    "requireApproval",
+                    e.target.checked,
+                  )
+                }
                 className="form-checkbox h-4 w-4 text-[#FF7E45]"
                 id="requirePrayerApproval"
               />
-              <label htmlFor="requirePrayerApproval" className="ml-2 text-sm font-medium">
+              <label
+                htmlFor="requirePrayerApproval"
+                className="ml-2 text-sm font-medium"
+              >
                 Require prayer request approval
               </label>
             </div>
@@ -3171,11 +3564,19 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               <input
                 type="checkbox"
                 checked={values.prayerRequestSettings.allowAnonymous || true}
-                onChange={(e) => updatePrayerRequestSettings('allowAnonymous', e.target.checked)}
+                onChange={(e) =>
+                  updatePrayerRequestSettings(
+                    "allowAnonymous",
+                    e.target.checked,
+                  )
+                }
                 className="form-checkbox h-4 w-4 text-[#FF7E45]"
                 id="allowAnonymousPrayer"
               />
-              <label htmlFor="allowAnonymousPrayer" className="ml-2 text-sm font-medium">
+              <label
+                htmlFor="allowAnonymousPrayer"
+                className="ml-2 text-sm font-medium"
+              >
                 Allow anonymous prayer requests
               </label>
             </div>
@@ -3188,11 +3589,16 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               <input
                 type="checkbox"
                 checked={values.testimonialSettings.requireApproval || true}
-                onChange={(e) => updateTestimonialSettings('requireApproval', e.target.checked)}
+                onChange={(e) =>
+                  updateTestimonialSettings("requireApproval", e.target.checked)
+                }
                 className="form-checkbox h-4 w-4 text-[#FF7E45]"
                 id="requireTestimonialApproval"
               />
-              <label htmlFor="requireTestimonialApproval" className="ml-2 text-sm font-medium">
+              <label
+                htmlFor="requireTestimonialApproval"
+                className="ml-2 text-sm font-medium"
+              >
                 Require testimonial approval
               </label>
             </div>
@@ -3200,11 +3606,16 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               <input
                 type="checkbox"
                 checked={values.testimonialSettings.allowVideo || true}
-                onChange={(e) => updateTestimonialSettings('allowVideo', e.target.checked)}
+                onChange={(e) =>
+                  updateTestimonialSettings("allowVideo", e.target.checked)
+                }
                 className="form-checkbox h-4 w-4 text-[#FF7E45]"
                 id="allowVideoTestimonials"
               />
-              <label htmlFor="allowVideoTestimonials" className="ml-2 text-sm font-medium">
+              <label
+                htmlFor="allowVideoTestimonials"
+                className="ml-2 text-sm font-medium"
+              >
                 Allow video testimonials
               </label>
             </div>
@@ -3212,7 +3623,11 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
         </div>
 
         <div className="flex justify-end space-x-2 pt-4">
-          <button type="button" onClick={() => setValues(settings)} className="btn btn-outline">
+          <button
+            type="button"
+            onClick={() => setValues(settings)}
+            className="btn btn-outline"
+          >
             Reset
           </button>
           <button type="submit" className="btn btn-primary">
@@ -3226,7 +3641,7 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
 
 // Main AdminPage Component
 const AdminPage = () => {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
   const [stats, setStats] = useState({});
   const [recentActivity, setRecentActivity] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -3246,7 +3661,7 @@ const AdminPage = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedSermon, setSelectedSermon] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [deleteType, setDeleteType] = useState('');
+  const [deleteType, setDeleteType] = useState("");
   const [deleteItem, setDeleteItem] = useState(null);
   const [liveStreamStatus, setLiveStreamStatus] = useState(false);
   const [liveStats, setLiveStats] = useState(null);
@@ -3256,9 +3671,10 @@ const AdminPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "SMC: - Admin | St. Micheal`s & All Angels Church | Ifite-Awka";
+    document.title =
+      "SMC: - Admin | St. Micheal`s & All Angels Church | Ifite-Awka";
 
-    if (user && (user.role === 'admin' || user.role === 'moderator')) {
+    if (user && (user.role === "admin" || user.role === "moderator")) {
       fetchDashboardData();
       fetchSettings();
       checkLiveStreamStatus();
@@ -3285,7 +3701,7 @@ const AdminPage = () => {
         sermonsResponse,
         donationsResponse,
         prayerResponse,
-        settingsResponse
+        settingsResponse,
       ] = await Promise.allSettled([
         utilityService.getDashboardStats(), // ✅ now points to /api/analytics/admin/dashboard/stats
         utilityService.getRecentActivity(), // ✅ now points to /api/analytics/admin/activity/recent
@@ -3297,25 +3713,87 @@ const AdminPage = () => {
         sermonService.getAll({ limit: 50 }),
         donationService.getAll({ limit: 100 }),
         prayerService.getAll({ limit: 100 }),
-        adminService.getSettings()
+        adminService.getSettings(),
       ]);
 
       // Process responses with proper error handling
-      setStats(statsResponse.status === 'fulfilled' ? statsResponse.value.data || statsResponse.value : {});
-      setRecentActivity(activityResponse.status === 'fulfilled' ? (Array.isArray(activityResponse.value.data) ? activityResponse.value.data : []) : []);
-      setUsers(usersResponse.status === 'fulfilled' ? (Array.isArray(usersResponse.value.users) ? usersResponse.value.users : []) : []);
-      setMinistries(ministriesResponse.status === 'fulfilled' ? (Array.isArray(ministriesResponse.value.ministries) ? ministriesResponse.value.ministries : []) : []);
-      setTestimonials(testimonialsResponse.status === 'fulfilled' ? (Array.isArray(testimonialsResponse.value.testimonials) ? testimonialsResponse.value.testimonials : []) : []);
-      setBlogPosts(blogResponse.status === 'fulfilled' ? (Array.isArray(blogResponse.value.posts) ? blogResponse.value.posts : []) : []);
-      setUpcomingEvents(eventsResponse.status === 'fulfilled' ? (Array.isArray(eventsResponse.value.events) ? eventsResponse.value.events : []) : []);
-      setSermons(sermonsResponse.status === 'fulfilled' ? (Array.isArray(sermonsResponse.value.sermons) ? sermonsResponse.value.sermons : []) : []);
-      setDonations(donationsResponse.status === 'fulfilled' ? (Array.isArray(donationsResponse.value.donations) ? donationsResponse.value.donations : []) : []);
-      setPrayerRequests(prayerResponse.status === 'fulfilled' ? (Array.isArray(prayerResponse.value.prayers) ? prayerResponse.value.prayers : []) : []);
-      setSettings(settingsResponse.status === 'fulfilled' ? settingsResponse.value.settings || settingsResponse.value.data || {} : {});
-
+      setStats(
+        statsResponse.status === "fulfilled"
+          ? statsResponse.value.data || statsResponse.value
+          : {},
+      );
+      setRecentActivity(
+        activityResponse.status === "fulfilled"
+          ? Array.isArray(activityResponse.value.data)
+            ? activityResponse.value.data
+            : []
+          : [],
+      );
+      setUsers(
+        usersResponse.status === "fulfilled"
+          ? Array.isArray(usersResponse.value.users)
+            ? usersResponse.value.users
+            : []
+          : [],
+      );
+      setMinistries(
+        ministriesResponse.status === "fulfilled"
+          ? Array.isArray(ministriesResponse.value.ministries)
+            ? ministriesResponse.value.ministries
+            : []
+          : [],
+      );
+      setTestimonials(
+        testimonialsResponse.status === "fulfilled"
+          ? Array.isArray(testimonialsResponse.value.testimonials)
+            ? testimonialsResponse.value.testimonials
+            : []
+          : [],
+      );
+      setBlogPosts(
+        blogResponse.status === "fulfilled"
+          ? Array.isArray(blogResponse.value.posts)
+            ? blogResponse.value.posts
+            : []
+          : [],
+      );
+      setUpcomingEvents(
+        eventsResponse.status === "fulfilled"
+          ? Array.isArray(eventsResponse.value.events)
+            ? eventsResponse.value.events
+            : []
+          : [],
+      );
+      setSermons(
+        sermonsResponse.status === "fulfilled"
+          ? Array.isArray(sermonsResponse.value.sermons)
+            ? sermonsResponse.value.sermons
+            : []
+          : [],
+      );
+      setDonations(
+        donationsResponse.status === "fulfilled"
+          ? Array.isArray(donationsResponse.value.donations)
+            ? donationsResponse.value.donations
+            : []
+          : [],
+      );
+      setPrayerRequests(
+        prayerResponse.status === "fulfilled"
+          ? Array.isArray(prayerResponse.value.prayers)
+            ? prayerResponse.value.prayers
+            : []
+          : [],
+      );
+      setSettings(
+        settingsResponse.status === "fulfilled"
+          ? settingsResponse.value.settings || settingsResponse.value.data || {}
+          : {},
+      );
     } catch (err) {
-      console.error('Error fetching dashboard data:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to load dashboard data';
+      console.error("Error fetching dashboard data:", err);
+      const errorMessage =
+        err.response?.data?.message || "Failed to load dashboard data";
       setError(errorMessage);
       alert.error(errorMessage);
     } finally {
@@ -3328,8 +3806,9 @@ const AdminPage = () => {
       const response = await adminService.getSettings();
       setSettings(response.settings || response);
     } catch (error) {
-      console.error('Error fetching settings:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to load settings';
+      console.error("Error fetching settings:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to load settings";
       alert.error(errorMessage);
     }
   };
@@ -3341,13 +3820,14 @@ const AdminPage = () => {
 
       if (updatedSettings) {
         setSettings(updatedSettings);
-        return { success: true, message: 'Settings updated successfully' };
+        return { success: true, message: "Settings updated successfully" };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error updating settings:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update settings';
+      console.error("Error updating settings:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update settings";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3357,11 +3837,12 @@ const AdminPage = () => {
     try {
       const response = await adminService.resetSettings();
       setSettings(response.settings || response);
-      alert.success('Settings reset successfully');
-      return { success: true, message: 'Settings reset successfully' };
+      alert.success("Settings reset successfully");
+      return { success: true, message: "Settings reset successfully" };
     } catch (error) {
-      console.error('Error resetting settings:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to reset settings';
+      console.error("Error resetting settings:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to reset settings";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3374,8 +3855,9 @@ const AdminPage = () => {
       setLiveStreamStatus(response.isLive || false);
       setLiveStats(response.status || null);
     } catch (error) {
-      console.error('Error getting live stream status:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to get live stream status';
+      console.error("Error getting live stream status:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to get live stream status";
       alert.error(errorMessage);
 
       return { success: false, message: errorMessage };
@@ -3386,11 +3868,12 @@ const AdminPage = () => {
     try {
       const response = await sermonService.startLiveStream();
       setLiveStreamStatus(true);
-      alert.success('Live stream started successfully');
-      return { success: true, message: 'Live stream started successfully' };
+      alert.success("Live stream started successfully");
+      return { success: true, message: "Live stream started successfully" };
     } catch (error) {
-      console.error('Error starting live stream:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to start live stream';
+      console.error("Error starting live stream:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to start live stream";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3401,11 +3884,12 @@ const AdminPage = () => {
       const response = await sermonService.stopLiveStream();
       setLiveStreamStatus(false);
       setLiveStats(null);
-      alert.success('Live stream ended successfully');
-      return { success: true, message: 'Live stream ended successfully' };
+      alert.success("Live stream ended successfully");
+      return { success: true, message: "Live stream ended successfully" };
     } catch (error) {
-      console.error('Error stopping live stream:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to stop live stream';
+      console.error("Error stopping live stream:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to stop live stream";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3418,14 +3902,15 @@ const AdminPage = () => {
       const newUser = response.data?.user || response.user;
 
       if (newUser) {
-        setUsers(prev => [...prev, newUser]);
-        return { success: true, message: 'User created successfully' };
+        setUsers((prev) => [...prev, newUser]);
+        return { success: true, message: "User created successfully" };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error creating user:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to create user';
+      console.error("Error creating user:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to create user";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3437,14 +3922,17 @@ const AdminPage = () => {
       const updatedUser = response.data?.user || response.user;
 
       if (updatedUser) {
-        setUsers(prev => prev.map(user => user._id === userId ? updatedUser : user));
-        return { success: true, message: 'User updated successfully' };
+        setUsers((prev) =>
+          prev.map((user) => (user._id === userId ? updatedUser : user)),
+        );
+        return { success: true, message: "User updated successfully" };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error updating user:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update user';
+      console.error("Error updating user:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update user";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3453,11 +3941,12 @@ const AdminPage = () => {
   const handleDeleteUser = async (userId) => {
     try {
       await userService.deleteUser(userId);
-      setUsers(prev => prev.filter(user => user._id !== userId));
-      return { success: true, message: 'User deleted successfully' };
+      setUsers((prev) => prev.filter((user) => user._id !== userId));
+      return { success: true, message: "User deleted successfully" };
     } catch (error) {
-      console.error('Error deleting user:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to delete user';
+      console.error("Error deleting user:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete user";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3470,14 +3959,15 @@ const AdminPage = () => {
       const newMinistry = response.data?.ministry || response.ministry;
 
       if (newMinistry) {
-        setMinistries(prev => [...prev, newMinistry]);
-        return { success: true, message: 'Ministry created successfully' };
+        setMinistries((prev) => [...prev, newMinistry]);
+        return { success: true, message: "Ministry created successfully" };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error creating ministry:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to create ministry';
+      console.error("Error creating ministry:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to create ministry";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3485,18 +3975,26 @@ const AdminPage = () => {
 
   const handleUpdateMinistry = async (ministryId, ministryData) => {
     try {
-      const response = await adminService.updateMinistry(ministryId, ministryData);
+      const response = await adminService.updateMinistry(
+        ministryId,
+        ministryData,
+      );
       const updatedMinistry = response.data?.ministry || response.ministry;
 
       if (updatedMinistry) {
-        setMinistries(prev => prev.map(ministry => ministry._id === ministryId ? updatedMinistry : ministry));
-        return { success: true, message: 'Ministry updated successfully' };
+        setMinistries((prev) =>
+          prev.map((ministry) =>
+            ministry._id === ministryId ? updatedMinistry : ministry,
+          ),
+        );
+        return { success: true, message: "Ministry updated successfully" };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error updating ministry:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update ministry';
+      console.error("Error updating ministry:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update ministry";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3505,11 +4003,14 @@ const AdminPage = () => {
   const handleDeleteMinistry = async (ministryId) => {
     try {
       await adminService.deleteMinistry(ministryId);
-      setMinistries(prev => prev.filter(ministry => ministry._id !== ministryId));
-      return { success: true, message: 'Ministry deleted successfully' };
+      setMinistries((prev) =>
+        prev.filter((ministry) => ministry._id !== ministryId),
+      );
+      return { success: true, message: "Ministry deleted successfully" };
     } catch (error) {
-      console.error('Error deleting ministry:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to delete ministry';
+      console.error("Error deleting ministry:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete ministry";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3518,12 +4019,17 @@ const AdminPage = () => {
   // Testimonial Management Handlers
   const handleCreateTestimonial = async (testimonialData) => {
     try {
-      const response = await testimonialService.createTestimonial(testimonialData);
-      setTestimonials(prev => [...prev, response.data?.testimonial || response.testimonial]);
-      return { success: true, message: 'Testimonial created successfully' };
+      const response =
+        await testimonialService.createTestimonial(testimonialData);
+      setTestimonials((prev) => [
+        ...prev,
+        response.data?.testimonial || response.testimonial,
+      ]);
+      return { success: true, message: "Testimonial created successfully" };
     } catch (error) {
-      console.error('Error creating testimonial:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to create testimonial';
+      console.error("Error creating testimonial:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to create testimonial";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3531,12 +4037,22 @@ const AdminPage = () => {
 
   const handleUpdateTestimonial = async (testimonialId, testimonialData) => {
     try {
-      const response = await testimonialService.updateTestimonial(testimonialId, testimonialData);
-      setTestimonials(prev => prev.map(testimonial => testimonial._id === testimonialId ? response.data?.testimonial || response.testimonial : testimonial));
-      return { success: true, message: 'Testimonial updated successfully' };
+      const response = await testimonialService.updateTestimonial(
+        testimonialId,
+        testimonialData,
+      );
+      setTestimonials((prev) =>
+        prev.map((testimonial) =>
+          testimonial._id === testimonialId
+            ? response.data?.testimonial || response.testimonial
+            : testimonial,
+        ),
+      );
+      return { success: true, message: "Testimonial updated successfully" };
     } catch (error) {
-      console.error('Error updating testimonial:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update testimonial';
+      console.error("Error updating testimonial:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update testimonial";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3545,11 +4061,14 @@ const AdminPage = () => {
   const handleDeleteTestimonial = async (testimonialId) => {
     try {
       await testimonialService.deleteTestimonial(testimonialId);
-      setTestimonials(prev => prev.filter(testimonial => testimonial._id !== testimonialId));
-      return { success: true, message: 'Testimonial deleted successfully' };
+      setTestimonials((prev) =>
+        prev.filter((testimonial) => testimonial._id !== testimonialId),
+      );
+      return { success: true, message: "Testimonial deleted successfully" };
     } catch (error) {
-      console.error('Error deleting testimonial:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to delete testimonial';
+      console.error("Error deleting testimonial:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete testimonial";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3559,11 +4078,12 @@ const AdminPage = () => {
   const handleCreateBlogPost = async (blogData) => {
     try {
       const response = await blogService.createBlogPost(blogData);
-      setBlogPosts(prev => [...prev, response.data?.post || response.post]);
-      return { success: true, message: 'Blog post created successfully' };
+      setBlogPosts((prev) => [...prev, response.data?.post || response.post]);
+      return { success: true, message: "Blog post created successfully" };
     } catch (error) {
-      console.error('Error creating blog post:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to create blog post';
+      console.error("Error creating blog post:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to create blog post";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3572,11 +4092,16 @@ const AdminPage = () => {
   const handleUpdateBlogPost = async (blogId, blogData) => {
     try {
       const response = await blogService.updateBlogPost(blogId, blogData);
-      setBlogPosts(prev => prev.map(post => post._id === blogId ? response.data?.post || response.post : post));
-      return { success: true, message: 'Blog post updated successfully' };
+      setBlogPosts((prev) =>
+        prev.map((post) =>
+          post._id === blogId ? response.data?.post || response.post : post,
+        ),
+      );
+      return { success: true, message: "Blog post updated successfully" };
     } catch (error) {
-      console.error('Error updating blog post:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update blog post';
+      console.error("Error updating blog post:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update blog post";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3585,11 +4110,12 @@ const AdminPage = () => {
   const handleDeleteBlogPost = async (blogId) => {
     try {
       await blogService.deleteBlogPost(blogId);
-      setBlogPosts(prev => prev.filter(post => post._id !== blogId));
-      return { success: true, message: 'Blog post deleted successfully' };
+      setBlogPosts((prev) => prev.filter((post) => post._id !== blogId));
+      return { success: true, message: "Blog post deleted successfully" };
     } catch (error) {
-      console.error('Error deleting blog post:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to delete blog post';
+      console.error("Error deleting blog post:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete blog post";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3602,14 +4128,15 @@ const AdminPage = () => {
       const newEvent = response.data?.event || response.event;
 
       if (newEvent) {
-        setUpcomingEvents(prev => [...prev, newEvent]);
-        return { success: true, message: 'Event created successfully' };
+        setUpcomingEvents((prev) => [...prev, newEvent]);
+        return { success: true, message: "Event created successfully" };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error creating event:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to create event';
+      console.error("Error creating event:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to create event";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3617,18 +4144,21 @@ const AdminPage = () => {
 
   const handleUpdateEvent = async (eventId, eventData) => {
     try {
-      const response = await eventService.update(eventId, eventData);;
+      const response = await eventService.update(eventId, eventData);
       const updatedEvent = response.data?.event || response.event;
 
       if (updatedEvent) {
-        setUpcomingEvents(prev => prev.map(event => event._id === eventId ? updatedEvent : event));
-        return { success: true, message: 'Event updated successfully' };
+        setUpcomingEvents((prev) =>
+          prev.map((event) => (event._id === eventId ? updatedEvent : event)),
+        );
+        return { success: true, message: "Event updated successfully" };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error updating event:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update event';
+      console.error("Error updating event:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update event";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3637,11 +4167,14 @@ const AdminPage = () => {
   const handleDeleteEvent = async (eventId) => {
     try {
       await eventService.delete(eventId);
-      setUpcomingEvents(prev => prev.filter(event => event._id !== eventId));
-      return { success: true, message: 'Event deleted successfully' };
+      setUpcomingEvents((prev) =>
+        prev.filter((event) => event._id !== eventId),
+      );
+      return { success: true, message: "Event deleted successfully" };
     } catch (error) {
-      console.error('Error deleting event:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to delete event';
+      console.error("Error deleting event:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete event";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3654,14 +4187,15 @@ const AdminPage = () => {
       const newSermon = response.data?.sermon || response.sermon;
 
       if (newSermon) {
-        setSermons(prev => [...prev, newSermon]);
-        return { success: true, message: 'Sermon created successfully' };
+        setSermons((prev) => [...prev, newSermon]);
+        return { success: true, message: "Sermon created successfully" };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error creating sermon:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to create sermon';
+      console.error("Error creating sermon:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to create sermon";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3673,14 +4207,19 @@ const AdminPage = () => {
       const updatedSermon = response.data?.sermon || response.sermon;
 
       if (updatedSermon) {
-        setSermons(prev => prev.map(sermon => sermon._id === sermonId ? updatedSermon : sermon));
-        return { success: true, message: 'Sermon updated successfully' };
+        setSermons((prev) =>
+          prev.map((sermon) =>
+            sermon._id === sermonId ? updatedSermon : sermon,
+          ),
+        );
+        return { success: true, message: "Sermon updated successfully" };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error updating sermon:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update sermon';
+      console.error("Error updating sermon:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update sermon";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3689,11 +4228,12 @@ const AdminPage = () => {
   const handleDeleteSermon = async (sermonId) => {
     try {
       await sermonService.delete(sermonId);
-      setSermons(prev => prev.filter(sermon => sermon._id !== sermonId));
-      return { success: true, message: 'Sermon deleted successfully' };
+      setSermons((prev) => prev.filter((sermon) => sermon._id !== sermonId));
+      return { success: true, message: "Sermon deleted successfully" };
     } catch (error) {
-      console.error('Error deleting sermon:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to delete sermon';
+      console.error("Error deleting sermon:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete sermon";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3702,18 +4242,26 @@ const AdminPage = () => {
   // Donation Management Handlers
   const handleUpdateDonation = async (donationId, donationData) => {
     try {
-      const response = await donationService.updateDonation(donationId, donationData);
+      const response = await donationService.updateDonation(
+        donationId,
+        donationData,
+      );
       const updatedDonation = response.data?.donation || response.donation;
 
       if (updatedDonation) {
-        setDonations(prev => prev.map(donation => donation._id === donationId ? updatedDonation : donation));
-        return { success: true, message: 'Donation updated successfully' };
+        setDonations((prev) =>
+          prev.map((donation) =>
+            donation._id === donationId ? updatedDonation : donation,
+          ),
+        );
+        return { success: true, message: "Donation updated successfully" };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error updating donations:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update donations';
+      console.error("Error updating donations:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update donations";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3722,18 +4270,29 @@ const AdminPage = () => {
   // Prayer Request Management Handlers
   const handleUpdatePrayerRequest = async (prayerId, prayerData) => {
     try {
-      const response = await prayerService.updatePrayerRequest(prayerId, prayerData);
+      const response = await prayerService.updatePrayerRequest(
+        prayerId,
+        prayerData,
+      );
       const updatedPrayer = response.data?.prayer || response.prayer;
 
       if (updatedPrayer) {
-        setPrayerRequests(prev => prev.map(prayer => prayer._id === prayerId ? updatedPrayer : prayer));
-        return { success: true, message: 'Prayer request updated successfully' };
+        setPrayerRequests((prev) =>
+          prev.map((prayer) =>
+            prayer._id === prayerId ? updatedPrayer : prayer,
+          ),
+        );
+        return {
+          success: true,
+          message: "Prayer request updated successfully",
+        };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error updating prayer request:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update prayer request';
+      console.error("Error updating prayer request:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update prayer request";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3742,11 +4301,14 @@ const AdminPage = () => {
   const handleDeletePrayerRequest = async (prayerId) => {
     try {
       await prayerService.deletePrayerRequest(prayerId);
-      setPrayerRequests(prev => prev.filter(prayer => prayer._id !== prayerId));
-      return { success: true, message: 'Prayer request deleted successfully' };
+      setPrayerRequests((prev) =>
+        prev.filter((prayer) => prayer._id !== prayerId),
+      );
+      return { success: true, message: "Prayer request deleted successfully" };
     } catch (error) {
-      console.error('Error deleting prayer request:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to delete prayer request';
+      console.error("Error deleting prayer request:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete prayer request";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3765,7 +4327,6 @@ const AdminPage = () => {
     setIsEventModalOpen(false);
   };
 
-
   // Sermon Modal
   const openSermonModal = (sermon = null) => {
     setSelectedSermon(sermon);
@@ -3777,7 +4338,6 @@ const AdminPage = () => {
     setIsSermonModalOpen(false);
   };
 
-
   // Setting Modal
   const openSettingsModal = () => {
     setIsSettingsModalOpen(true);
@@ -3786,7 +4346,6 @@ const AdminPage = () => {
   const closeSettingsModal = () => {
     setIsSettingsModalOpen(false);
   };
-
 
   // Delete Modal
   const openDeleteModal = (item, type) => {
@@ -3797,7 +4356,7 @@ const AdminPage = () => {
 
   const closeDeleteModal = () => {
     setDeleteItem(null);
-    setDeleteType('');
+    setDeleteType("");
     setIsDeleteModalOpen(false);
   };
 
@@ -3805,29 +4364,29 @@ const AdminPage = () => {
     try {
       let result;
       switch (deleteType) {
-        case 'user':
+        case "user":
           result = await handleDeleteUser(deleteItem._id);
           break;
-        case 'ministry':
+        case "ministry":
           result = await handleDeleteMinistry(deleteItem._id);
           break;
-        case 'testimonial':
+        case "testimonial":
           result = await handleDeleteTestimonial(deleteItem._id);
           break;
-        case 'blog':
+        case "blog":
           result = await handleDeleteBlogPost(deleteItem._id);
           break;
-        case 'event':
+        case "event":
           result = await handleDeleteEvent(deleteItem._id);
           break;
-        case 'sermon':
+        case "sermon":
           result = await handleDeleteSermon(deleteItem._id);
           break;
-        case 'prayer':
+        case "prayer":
           result = await handleDeletePrayerRequest(deleteItem._id);
           break;
         default:
-          result = { success: false, message: 'Unknown item type' };
+          result = { success: false, message: "Unknown item type" };
       }
 
       if (result.success) {
@@ -3836,7 +4395,7 @@ const AdminPage = () => {
         alert.error(result.message);
       }
     } catch (error) {
-      alert.error('An error occurred during deletion');
+      alert.error("An error occurred during deletion");
     } finally {
       closeDeleteModal();
     }
@@ -3858,7 +4417,7 @@ const AdminPage = () => {
         alert.error(result.message);
       }
     } catch (error) {
-      alert.error('An error occurred while saving the event');
+      alert.error("An error occurred while saving the event");
     }
   };
 
@@ -3878,24 +4437,24 @@ const AdminPage = () => {
         alert.error(result.message);
       }
     } catch (error) {
-      alert.error('An error occurred while saving the sermon');
+      alert.error("An error occurred while saving the sermon");
     }
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   const formatTime = (timeString) => {
-    if (!timeString) return 'N/A';
-    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
+    if (!timeString) return "N/A";
+    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -3904,12 +4463,16 @@ const AdminPage = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i className="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+            <i className="fas fa-exclamation-triangle text-red-600 text-2xl" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Authentication Required</h2>
-          <p className="text-gray-600 mb-4">Please log in to access the admin panel.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Authentication Required
+          </h2>
+          <p className="text-gray-600 mb-4">
+            Please log in to access the admin panel.
+          </p>
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate("/login")}
             className="btn btn-primary"
           >
             Go to Login
@@ -3924,23 +4487,25 @@ const AdminPage = () => {
   }
 
   if (isLoading) {
-    return <Loader type="spinner" text="Loading admin dashboard..." fullScreen />;
+    return (
+      <Loader type="spinner" text="Loading admin dashboard..." fullScreen />
+    );
   }
 
-
-  if (user.role !== 'admin' && user.role !== 'moderator') {
+  if (user.role !== "admin" && user.role !== "moderator") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i className="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+            <i className="fas fa-exclamation-triangle text-red-600 text-2xl" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600 mb-4">Admin privileges are required to access this page.</p>
-          <button
-            onClick={() => navigate('/')}
-            className="btn btn-primary"
-          >
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Access Denied
+          </h2>
+          <p className="text-gray-600 mb-4">
+            Admin privileges are required to access this page.
+          </p>
+          <button onClick={() => navigate("/")} className="btn btn-primary">
             Return to Homepage
           </button>
         </div>
@@ -3948,14 +4513,13 @@ const AdminPage = () => {
     );
   }
 
-
   if (error) {
     return (
       <div className="page">
         <div className="container mx-auto px-4 py-12">
           <div className="max-w-4xl mx-auto text-center">
             <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-              <i className="fas fa-exclamation-triangle text-red-500 text-2xl mb-3"></i>
+              <i className="fas fa-exclamation-triangle text-red-500 text-2xl mb-3" />
               <h2 className="text-xl font-semibold text-red-800 mb-2">Error</h2>
               <p className="text-red-600">{error}</p>
               <button
@@ -3972,50 +4536,82 @@ const AdminPage = () => {
   }
 
   const navItems = [
-    { label: 'Overview', icon: 'fas fa-tachometer-alt', tabName: 'overview' },
-    { label: 'Users', icon: 'fas fa-users', tabName: 'users' },
-    { label: 'Ministries', icon: 'fas fa-hands-helping', tabName: 'ministries' },
-    { label: 'Testimonials', icon: 'far fa-comment-dots', tabName: 'testimonials' },
-    { label: 'Blog', icon: 'far fa-newspaper', tabName: 'blog' },
-    { label: 'Events', icon: 'far fa-calendar-alt', tabName: 'events' },
-    { label: 'Sermons', icon: 'fas fa-microphone-alt', tabName: 'sermons' },
-    { label: 'Donations', icon: 'fas fa-hand-holding-usd', tabName: 'donations' },
-    { label: 'Prayer Requests', icon: 'fas fa-praying-hands', tabName: 'prayer' },
-    { label: 'Live Stream', icon: 'fas fa-broadcast-tower', tabName: 'live' },
-    { label: 'Settings', icon: 'fas fa-cog', tabName: 'settings' },
+    { label: "Overview", icon: "fas fa-tachometer-alt", tabName: "overview" },
+    { label: "Users", icon: "fas fa-users", tabName: "users" },
+    {
+      label: "Ministries",
+      icon: "fas fa-hands-helping",
+      tabName: "ministries",
+    },
+    {
+      label: "Testimonials",
+      icon: "far fa-comment-dots",
+      tabName: "testimonials",
+    },
+    { label: "Blog", icon: "far fa-newspaper", tabName: "blog" },
+    { label: "Events", icon: "far fa-calendar-alt", tabName: "events" },
+    { label: "Sermons", icon: "fas fa-microphone-alt", tabName: "sermons" },
+    {
+      label: "Donations",
+      icon: "fas fa-hand-holding-usd",
+      tabName: "donations",
+    },
+    {
+      label: "Prayer Requests",
+      icon: "fas fa-praying-hands",
+      tabName: "prayer",
+    },
+    { label: "Live Stream", icon: "fas fa-broadcast-tower", tabName: "live" },
+    { label: "Settings", icon: "fas fa-cog", tabName: "settings" },
   ];
 
   const eventColumns = [
-    { key: 'title', title: 'Event' },
-    { key: 'date', title: 'Date', render: (event) => formatDate(event.startTime) },
-    { key: 'time', title: 'Time', render: (event) => formatTime(event.startTime) },
-    { key: 'location', title: 'Location' },
-    { key: 'rsvps', title: 'RSVPs', render: (event) => event.rsvpCount || 0 },
+    { key: "title", title: "Event" },
     {
-      key: 'status',
-      title: 'Status',
+      key: "date",
+      title: "Date",
+      render: (event) => formatDate(event.startTime),
+    },
+    {
+      key: "time",
+      title: "Time",
+      render: (event) => formatTime(event.startTime),
+    },
+    { key: "location", title: "Location" },
+    { key: "rsvps", title: "RSVPs", render: (event) => event.rsvpCount || 0 },
+    {
+      key: "status",
+      title: "Status",
       render: (event) => (
-        <span className={`text-xs px-2 py-1 rounded ${event.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-          {event.status || 'Unknown'}
+        <span
+          className={`text-xs px-2 py-1 rounded ${event.status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}
+        >
+          {event.status || "Unknown"}
         </span>
-      )
-    }
+      ),
+    },
   ];
 
   const sermonColumns = [
-    { key: 'title', title: 'Title' },
-    { key: 'speaker', title: 'Speaker', render: (sermon) => sermon.speakerName || sermon.speaker },
-    { key: 'date', title: 'Date', render: (sermon) => formatDate(sermon.date) },
-    { key: 'scripture', title: 'Scripture' },
+    { key: "title", title: "Title" },
     {
-      key: 'type',
-      title: 'Type',
+      key: "speaker",
+      title: "Speaker",
+      render: (sermon) => sermon.speakerName || sermon.speaker,
+    },
+    { key: "date", title: "Date", render: (sermon) => formatDate(sermon.date) },
+    { key: "scripture", title: "Scripture" },
+    {
+      key: "type",
+      title: "Type",
       render: (sermon) => (
-        <span className={`text-xs px-2 py-1 rounded ${sermon.isLive ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
-          {sermon.isLive ? 'Live' : 'Recorded'}
+        <span
+          className={`text-xs px-2 py-1 rounded ${sermon.isLive ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"}`}
+        >
+          {sermon.isLive ? "Live" : "Recorded"}
         </span>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -4033,7 +4629,7 @@ const AdminPage = () => {
               <div className="bg-white rounded-lg shadow-md p-4">
                 <nav>
                   <ul className="space-y-1">
-                    {navItems.map(item => (
+                    {navItems.map((item) => (
                       <SidebarButton
                         key={item.tabName}
                         label={item.label}
@@ -4049,46 +4645,55 @@ const AdminPage = () => {
             </div>
 
             <div className="lg:w-4/5 lg:pl-8">
-              {activeTab === 'overview' && (
+              {activeTab === "overview" && (
                 <div>
                   <div className="mb-6">
-                    <h2 className="text-2xl font-bold mb-4">Dashboard Overview</h2>
-                    <p className="text-gray-600 mb-4">Welcome to the admin dashboard. Here's a summary of your church's activity.</p>
+                    <h2 className="text-2xl font-bold mb-4">
+                      Dashboard Overview
+                    </h2>
+                    <p className="text-gray-600 mb-4">
+                      Welcome to the admin dashboard. Here's a summary of your
+                      church's activity.
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <StatCard
                       title="Total Members"
-                      value={stats.totalMembers || '0'}
-                      change={stats.membersChange || '0% from last month'}
-                      changeType={stats.membersChangeType || 'increase'}
+                      value={stats.totalMembers || "0"}
+                      change={stats.membersChange || "0% from last month"}
+                      changeType={stats.membersChangeType || "increase"}
                       icon="fa-users"
                       iconBgColor="bg-blue-100"
                       iconTextColor="text-blue-500"
                     />
                     <StatCard
                       title="Weekly Attendance"
-                      value={stats.weeklyAttendance || '0'}
-                      change={stats.attendanceChange || '0% from last week'}
-                      changeType={stats.attendanceChangeType || 'increase'}
+                      value={stats.weeklyAttendance || "0"}
+                      change={stats.attendanceChange || "0% from last week"}
+                      changeType={stats.attendanceChangeType || "increase"}
                       icon="fa-user-check"
                       iconBgColor="bg-green-100"
                       iconTextColor="text-green-500"
                     />
                     <StatCard
                       title="Online Viewers"
-                      value={stats.onlineViewers || '0'}
-                      change={stats.viewersChange || '0% from last week'}
-                      changeType={stats.viewersChangeType || 'increase'}
+                      value={stats.onlineViewers || "0"}
+                      change={stats.viewersChange || "0% from last week"}
+                      changeType={stats.viewersChangeType || "increase"}
                       icon="fa-video"
                       iconBgColor="bg-purple-100"
                       iconTextColor="text-purple-500"
                     />
                     <StatCard
                       title="Weekly Giving"
-                      value={stats.weeklyGiving ? `$${stats.weeklyGiving.toLocaleString()}` : '$0'}
-                      change={stats.givingChange || '0% from last week'}
-                      changeType={stats.givingChangeType || 'increase'}
+                      value={
+                        stats.weeklyGiving
+                          ? `$${stats.weeklyGiving.toLocaleString()}`
+                          : "$0"
+                      }
+                      change={stats.givingChange || "0% from last week"}
+                      changeType={stats.givingChangeType || "increase"}
                       icon="fa-hand-holding-usd"
                       iconBgColor="bg-yellow-100"
                       iconTextColor="text-yellow-500"
@@ -4098,13 +4703,16 @@ const AdminPage = () => {
                   {liveStreamStatus && (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
                       <div className="flex items-center">
-                        <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></div>
-                        <span className="font-medium text-red-700">Live Stream is Active</span>
+                        <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2" />
+                        <span className="font-medium text-red-700">
+                          Live Stream is Active
+                        </span>
                         <button
-                          onClick={() => setActiveTab('live')}
+                          onClick={() => setActiveTab("live")}
                           className="ml-auto text-red-600 hover:text-red-800 text-sm font-medium"
                         >
-                          Manage Live Stream <i className="fas fa-arrow-right ml-1"></i>
+                          Manage Live Stream{" "}
+                          <i className="fas fa-arrow-right ml-1" />
                         </button>
                       </div>
                     </div>
@@ -4117,10 +4725,10 @@ const AdminPage = () => {
                         recentActivity.map((activity, index) => (
                           <ActivityItem
                             key={index}
-                            icon={activity.icon || 'fa-info-circle'}
-                            bgColor={activity.bgColor || 'bg-gray-100'}
-                            text={activity.text || 'Unknown activity'}
-                            time={activity.time || 'Unknown time'}
+                            icon={activity.icon || "fa-info-circle"}
+                            bgColor={activity.bgColor || "bg-gray-100"}
+                            text={activity.text || "Unknown activity"}
+                            time={activity.time || "Unknown time"}
                           />
                         ))
                       ) : (
@@ -4134,33 +4742,45 @@ const AdminPage = () => {
                       <div className="flex items-center justify-between mb-4">
                         <h4 className="font-semibold">Prayer Requests</h4>
                         <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <i className="fas fa-praying-hands text-blue-500"></i>
+                          <i className="fas fa-praying-hands text-blue-500" />
                         </div>
                       </div>
-                      <p className="text-3xl font-bold">{stats.prayerRequests || 0}</p>
-                      <p className="text-sm text-gray-500">Pending: {stats.pendingPrayers || 0}</p>
+                      <p className="text-3xl font-bold">
+                        {stats.prayerRequests || 0}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Pending: {stats.pendingPrayers || 0}
+                      </p>
                     </div>
 
                     <div className="bg-white rounded-lg shadow-md p-6">
                       <div className="flex items-center justify-between mb-4">
                         <h4 className="font-semibold">Events</h4>
                         <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                          <i className="far fa-calendar-alt text-green-500"></i>
+                          <i className="far fa-calendar-alt text-green-500" />
                         </div>
                       </div>
-                      <p className="text-3xl font-bold">{stats.upcomingEvents || 0}</p>
-                      <p className="text-sm text-gray-500">This week: {stats.thisWeekEvents || 0}</p>
+                      <p className="text-3xl font-bold">
+                        {stats.upcomingEvents || 0}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        This week: {stats.thisWeekEvents || 0}
+                      </p>
                     </div>
 
                     <div className="bg-white rounded-lg shadow-md p-6">
                       <div className="flex items-center justify-between mb-4">
                         <h4 className="font-semibold">Sermons</h4>
                         <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                          <i className="fas fa-microphone-alt text-purple-500"></i>
+                          <i className="fas fa-microphone-alt text-purple-500" />
                         </div>
                       </div>
-                      <p className="text-3xl font-bold">{stats.totalSermons || 0}</p>
-                      <p className="text-sm text-gray-500">This month: {stats.monthSermons || 0}</p>
+                      <p className="text-3xl font-bold">
+                        {stats.totalSermons || 0}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        This month: {stats.monthSermons || 0}
+                      </p>
                     </div>
                   </div>
 
@@ -4172,14 +4792,14 @@ const AdminPage = () => {
                           className="text-[#FF7E45] hover:text-[#F4B942]"
                           onClick={() => openEventModal()}
                         >
-                          <i className="fas fa-plus mr-1"></i> Add Event
+                          <i className="fas fa-plus mr-1" /> Add Event
                         </button>
                       </div>
                       <DataTable
                         columns={eventColumns}
                         data={(upcomingEvents || []).slice(0, 5)}
                         onEdit={openEventModal}
-                        onDelete={(event) => openDeleteModal(event, 'event')}
+                        onDelete={(event) => openDeleteModal(event, "event")}
                         emptyMessage="No upcoming events"
                       />
                     </div>
@@ -4191,14 +4811,14 @@ const AdminPage = () => {
                           className="text-[#FF7E45] hover:text-[#F4B942]"
                           onClick={() => openSermonModal()}
                         >
-                          <i className="fas fa-plus mr-1"></i> Add Sermon
+                          <i className="fas fa-plus mr-1" /> Add Sermon
                         </button>
                       </div>
                       <DataTable
                         columns={sermonColumns}
                         data={(sermons || []).slice(0, 5)}
                         onEdit={openSermonModal}
-                        onDelete={(sermon) => openDeleteModal(sermon, 'sermon')}
+                        onDelete={(sermon) => openDeleteModal(sermon, "sermon")}
                         emptyMessage="No sermons available"
                       />
                     </div>
@@ -4206,44 +4826,50 @@ const AdminPage = () => {
                 </div>
               )}
 
-              {activeTab === 'users' && (
+              {activeTab === "users" && (
                 <UsersManagement
                   users={users}
                   onUpdateUser={handleUpdateUser}
-                  onDeleteUser={(user) => openDeleteModal(user, 'user', 'moderator')}
+                  onDeleteUser={(user) =>
+                    openDeleteModal(user, "user", "moderator")
+                  }
                   onCreateUser={handleCreateUser}
                 />
               )}
 
-              {activeTab === 'ministries' && (
+              {activeTab === "ministries" && (
                 <MinistriesManagement
                   ministries={ministries}
                   users={users}
                   onUpdateMinistry={handleUpdateMinistry}
-                  onDeleteMinistry={(ministry) => openDeleteModal(ministry, 'ministry')}
+                  onDeleteMinistry={(ministry) =>
+                    openDeleteModal(ministry, "ministry")
+                  }
                   onCreateMinistry={handleCreateMinistry}
                 />
               )}
 
-              {activeTab === 'testimonials' && (
+              {activeTab === "testimonials" && (
                 <TestimonialsManagement
                   testimonials={testimonials}
                   onUpdateTestimonial={handleUpdateTestimonial}
-                  onDeleteTestimonial={(testimonial) => openDeleteModal(testimonial, 'testimonial')}
+                  onDeleteTestimonial={(testimonial) =>
+                    openDeleteModal(testimonial, "testimonial")
+                  }
                   onCreateTestimonial={handleCreateTestimonial}
                 />
               )}
 
-              {activeTab === 'blog' && (
+              {activeTab === "blog" && (
                 <BlogManagement
                   posts={blogPosts}
                   onUpdatePost={handleUpdateBlogPost}
-                  onDeletePost={(post) => openDeleteModal(post, 'blog')}
+                  onDeletePost={(post) => openDeleteModal(post, "blog")}
                   onCreatePost={handleCreateBlogPost}
                 />
               )}
 
-              {activeTab === 'events' && (
+              {activeTab === "events" && (
                 <div>
                   <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold">Events Management</h2>
@@ -4251,7 +4877,7 @@ const AdminPage = () => {
                       className="btn btn-primary"
                       onClick={() => openEventModal()}
                     >
-                      <i className="fas fa-plus mr-2"></i> Add New Event
+                      <i className="fas fa-plus mr-2" /> Add New Event
                     </button>
                   </div>
                   <div className="bg-white rounded-lg shadow-md p-6">
@@ -4259,14 +4885,14 @@ const AdminPage = () => {
                       columns={eventColumns}
                       data={upcomingEvents}
                       onEdit={openEventModal}
-                      onDelete={(event) => openDeleteModal(event, 'event')}
+                      onDelete={(event) => openDeleteModal(event, "event")}
                       emptyMessage="No events available. Add your first event to get started."
                     />
                   </div>
                 </div>
               )}
 
-              {activeTab === 'sermons' && (
+              {activeTab === "sermons" && (
                 <div>
                   <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold">Sermons Management</h2>
@@ -4274,7 +4900,7 @@ const AdminPage = () => {
                       className="btn btn-primary"
                       onClick={() => openSermonModal()}
                     >
-                      <i className="fas fa-plus mr-2"></i> Add New Sermon
+                      <i className="fas fa-plus mr-2" /> Add New Sermon
                     </button>
                   </div>
                   <div className="bg-white rounded-lg shadow-md p-6">
@@ -4282,33 +4908,39 @@ const AdminPage = () => {
                       columns={sermonColumns}
                       data={sermons}
                       onEdit={openSermonModal}
-                      onDelete={(sermon) => openDeleteModal(sermon, 'sermon')}
+                      onDelete={(sermon) => openDeleteModal(sermon, "sermon")}
                       emptyMessage="No sermons available. Add your first sermon to get started."
                     />
                   </div>
                 </div>
               )}
 
-              {activeTab === 'donations' && (
+              {activeTab === "donations" && (
                 <DonationsManagement
                   donations={donations}
                   onUpdateDonation={handleUpdateDonation}
                 />
               )}
 
-              {activeTab === 'prayer' && (
+              {activeTab === "prayer" && (
                 <PrayerRequestsManagement
                   prayerRequests={prayerRequests}
                   onUpdatePrayerRequest={handleUpdatePrayerRequest}
-                  onDeletePrayerRequest={(prayer) => openDeleteModal(prayer, 'prayer')}
+                  onDeletePrayerRequest={(prayer) =>
+                    openDeleteModal(prayer, "prayer")
+                  }
                 />
               )}
 
-              {activeTab === 'live' && (
+              {activeTab === "live" && (
                 <div>
                   <div className="mb-6">
-                    <h2 className="text-2xl font-bold mb-2">Live Stream Management</h2>
-                    <p className="text-gray-600">Manage your church's live streaming services.</p>
+                    <h2 className="text-2xl font-bold mb-2">
+                      Live Stream Management
+                    </h2>
+                    <p className="text-gray-600">
+                      Manage your church's live streaming services.
+                    </p>
                   </div>
 
                   <LiveStreamControl
@@ -4319,19 +4951,26 @@ const AdminPage = () => {
                   />
 
                   <div className="bg-white rounded-lg shadow-md p-6">
-                    <h3 className="text-xl font-bold mb-4">Quick Sermon Creation</h3>
+                    <h3 className="text-xl font-bold mb-4">
+                      Quick Sermon Creation
+                    </h3>
                     <p className="text-gray-600 mb-4">
-                      Create a sermon record for your live stream to make it available in the archive later.
+                      Create a sermon record for your live stream to make it
+                      available in the archive later.
                     </p>
                     <button
                       className="btn btn-primary"
-                      onClick={() => openSermonModal({
-                        isLive: true,
-                        date: new Date().toISOString().split('T')[0],
-                        title: 'Live Service - ' + new Date().toLocaleDateString()
-                      })}
+                      onClick={() =>
+                        openSermonModal({
+                          isLive: true,
+                          date: new Date().toISOString().split("T")[0],
+                          title:
+                            "Live Service - " + new Date().toLocaleDateString(),
+                        })
+                      }
                     >
-                      <i className="fas fa-plus mr-2"></i> Create Live Sermon Record
+                      <i className="fas fa-plus mr-2" /> Create Live Sermon
+                      Record
                     </button>
                   </div>
                 </div>
@@ -4339,7 +4978,7 @@ const AdminPage = () => {
 
               <div>
                 <button>
-                  {activeTab === 'settings' && (
+                  {activeTab === "settings" && (
                     <SettingsForm
                       setActiveTab={isSettingsModalOpen}
                       settings={settings}

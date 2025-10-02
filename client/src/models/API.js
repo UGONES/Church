@@ -3,7 +3,7 @@ export class BaseApiResponse {
   constructor(data = {}) {
     this.success = data.success || false;
     this.data = data.data || null;
-    this.message = data.message || '';
+    this.message = data.message || "";
     this.error = data.error || null;
   }
 }

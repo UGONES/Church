@@ -186,7 +186,6 @@ export const AUTH_ENDPOINTS = {
   SOCIAL_LOGIN: (provider) => `/auth/social/${provider}`,
 };
 
-
 // =============== PAYMENT ENDPOINTS ===============
 export const PAYMENT_ENDPOINTS = {
   CREATE_DONATION: "/donations/create",
@@ -206,6 +205,5 @@ export const SOCIAL_AUTH_ENDPOINTS = {
   VALIDATE_FACEBOOK: "/auth/social/validate/facebook",
   SUCCESS_REDIRECT: (token, userId) =>
     `${window.location.origin}/auth/success?token=${token}&userId=${userId}`,
-  FAILURE_REDIRECT: (error) =>
-    `${window.location.origin}/login?error=${error}`,
+  FAILURE_REDIRECT: (error) => `${window.location.origin}/login?error=${error}`,
 };

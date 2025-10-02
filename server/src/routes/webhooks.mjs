@@ -1,8 +1,8 @@
-import { Router, raw } from 'express';
+import { Router, raw } from "express";
+import { handleStripeWebhook } from "../controllers/webhookController.mjs";
 const router = Router();
-import { handleStripeWebhook } from '../controllers/webhookController.mjs';
 
 // Stripe webhook endpoint
-router.post('/stripe', raw({ type: 'application/json' }), handleStripeWebhook);
+router.post("/stripe", raw({ type: "application/json" }), handleStripeWebhook);
 
 export default router;

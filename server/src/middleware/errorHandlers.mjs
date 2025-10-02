@@ -3,24 +3,26 @@ const errorHandler = (err, req, res, next) => {
   console.error(err);
 
   let statusCode = err.statusCode || 500;
-  let message = err.message || 'Server Error';
+  let message = err.message || "Server Error";
 
-  if (err.name === 'ValidationError') {
-    message = Object.values(err.errors || {}).map(v => v.message).join(', ');
+  if (err.name === "ValidationError") {
+    message = Object.values(err.errors || {})
+      .map((v) => v.message)
+      .join(", ");
     statusCode = 400;
   }
 
   if (err.code === 11000) {
-    message = 'Duplicate key error';
+    message = "Duplicate key error";
     statusCode = 409;
   }
 
-  if (err.name === 'CastError') {
-    message = 'Resource not found';
+  if (err.name === "CastError") {
+    message = "Resource not found";
     statusCode = 404;
   }
 
-  if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+  if (err.name === "JsonWebTokenError" || err.name === "TokenExpiredError") {
     statusCode = 401;
   }
 
