@@ -30,7 +30,15 @@ const UserPage = lazy(() => import("./pages/UserPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 
 const App = () => {
-  const { user, token, isAuthenticated, refreshUser, loading: authLoading, login, logout } = useAuth();
+  const {
+    user,
+    token,
+    isAuthenticated,
+    refreshUser,
+    loading: authLoading,
+    login,
+    logout,
+  } = useAuth();
   const [showLoader, setShowLoader] = useState(true);
   const alert = useAlert();
   const location = useLocation();
@@ -70,7 +78,7 @@ const App = () => {
         size="large"
         color="#FF7E45"
         text="Loading St Michael's Church..."
-        fullScreen={true}
+        fullScreen
       />
     );
   }
@@ -80,7 +88,9 @@ const App = () => {
       <Header user={user} onLogout={handleLogout} />
 
       <main className="main-content">
-        <Suspense fallback={<PageLoader type="spinner" text="Loading page..." />}>
+        <Suspense
+          fallback={<PageLoader type="spinner" text="Loading page..." />}
+        >
           <Routes>
             {/* Public */}
             <Route path="/" element={<HomePage />} />
@@ -97,7 +107,10 @@ const App = () => {
             <Route path="/forgot-password" element={<PasswordPage />} />
             <Route path="/reset-password" element={<PasswordPage />} />
             <Route path="/change-password" element={<PasswordPage />} />
-            <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+            <Route
+              path="/login"
+              element={<LoginPage onLogin={handleLogin} />}
+            />
 
             {/* Errors */}
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
@@ -122,7 +135,7 @@ const App = () => {
             <Route
               path="/moderator/:id/dashboard"
               element={
-                <ProtectedRoute roles={["moderator"]} requireAdmin={true}>
+                <ProtectedRoute roles={["moderator"]} requireAdmin>
                   <UserPage />
                 </ProtectedRoute>
               }
@@ -132,7 +145,7 @@ const App = () => {
             <Route
               path="/profile/:id"
               element={
-                <ProtectedRoute requireAuth={true}>
+                <ProtectedRoute requireAuth>
                   <ProfilePage />
                 </ProtectedRoute>
               }
@@ -140,7 +153,7 @@ const App = () => {
             <Route
               path="/my-rsvps/:id"
               element={
-                <ProtectedRoute requireAuth={true}>
+                <ProtectedRoute requireAuth>
                   <MyRsvpsPage />
                 </ProtectedRoute>
               }
@@ -150,7 +163,7 @@ const App = () => {
             <Route
               path="/admin/*"
               element={
-                <ProtectedRoute requireAdmin={true}>
+                <ProtectedRoute requireAdmin>
                   <AdminPage />
                 </ProtectedRoute>
               }
@@ -166,8 +179,8 @@ const App = () => {
                       user.role === "admin"
                         ? `/admin/${user.id}/dashboard`
                         : user.role === "moderator"
-                        ? `/moderator/${user.id}/dashboard`
-                        : `/user/${user.id}/dashboard`
+                          ? `/moderator/${user.id}/dashboard`
+                          : `/user/${user.id}/dashboard`
                     }
                     replace
                   />

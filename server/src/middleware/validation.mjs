@@ -1,5 +1,5 @@
 // middleware/validation.mjs
-import { validationResult } from 'express-validator';
+import { validationResult } from "express-validator";
 
 export const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);

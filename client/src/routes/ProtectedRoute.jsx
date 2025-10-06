@@ -3,11 +3,10 @@ import {
   isAuthenticated,
   isAdminOrModerator,
   getStoredUser,
-  getUserRole
+  getUserRole,
 } from "../utils/auth";
 import useAuth from "../hooks/useAuth";
 import Loader from "../components/Loader";
-
 
 const ProtectedRoute = ({
   children,
@@ -27,8 +26,6 @@ const ProtectedRoute = ({
   const userRole = getUserRole();
   const location = useLocation();
 
-
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -46,7 +43,7 @@ const ProtectedRoute = ({
     authenticated,
     administrator,
     userRole,
-    hasUser: !!currentUser
+    hasUser: !!currentUser,
   });
 
   // Handle unauthenticated access
@@ -59,7 +56,7 @@ const ProtectedRoute = ({
         replace
         state={{
           from: location,
-          message: "Please log in to access this page"
+          message: "Please log in to access this page",
         }}
       />
     );
@@ -90,14 +87,14 @@ const ProtectedRoute = ({
     console.log("🔍 Role check:", {
       required: requiredRoleLower,
       current: currentUserRole,
-      user: currentUser
+      user: currentUser,
     });
 
     // Special case: moderators accessing admin routes
-    if (requiredRoleLower === 'admin' && currentUserRole === 'moderator') {
+    if (requiredRoleLower === "admin" && currentUserRole === "moderator") {
       // Allow moderators to access admin routes if requireAdmin is not strictly required
       console.log("⚠️ Moderator accessing admin route - allowed");
-    } 
+    }
     // Standard role check
     else if (currentUserRole !== requiredRoleLower) {
       console.log("❌ Insufficient permissions");

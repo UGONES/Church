@@ -45,7 +45,9 @@ const getValidAdminCodes = () => {
 
     return {
       admin: new Set(envCodes.admin.length ? envCodes.admin : envCodes.admin),
-      moderator: new Set(envCodes.moderator.length ? envCodes.moderator : envCodes.moderator),
+      moderator: new Set(
+        envCodes.moderator.length ? envCodes.moderator : envCodes.moderator,
+      ),
     };
   } catch (err) {
     console.error("⚠️ Error reading admin/mod codes:", err);
@@ -61,19 +63,22 @@ const ADMIN_SESSION_DURATION = 24 * 60 * 60 * 1000; // 24h
 
 // ----------------- TOKEN FORMAT -----------------
 export const isValidTokenFormat = (token) => {
-  if (!token || typeof token !== 'string') return false;
+  if (!token || typeof token !== "string") return false;
 
   // Basic JWT format validation (3 parts separated by dots)
-  const parts = token.split('.');
+  const parts = token.split(".");
   if (parts.length !== 3) return false;
 
   try {
     // Validate each part can be base64 decoded
-    parts.forEach(part => {
+    parts.forEach((part) => {
       // Handle URL-safe base64
-      const base64 = part.replace(/-/g, '+').replace(/_/g, '/');
+      const base64 = part.replace(/-/g, "+").replace(/_/g, "/");
       // Add padding if necessary
-      const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+      const padded = base64.padEnd(
+        base64.length + ((4 - (base64.length % 4)) % 4),
+        "=",
+      );
       atob(padded);
     });
     return true;
@@ -178,12 +183,10 @@ export const setAuthToken = (rawToken, extraUserData = {}) => {
     };
     localStorage.setItem(USER_KEY, JSON.stringify(finalUserData));
     console.log("🔑 Saving token:", token, "User:", finalUserData);
-
   } catch (error) {
     console.error("Error setting auth token:", error);
     throw new Error("Failed to set authentication token");
   }
-
 };
 
 export const getUserFromToken = (token) => {
@@ -198,7 +201,7 @@ export const getUserFromToken = (token) => {
       email: decoded.email,
       role: (decoded.role || "user").toLowerCase(),
       name: decoded.name || "",
-      emailVerified: decoded.emailVerified || false
+      emailVerified: decoded.emailVerified || false,
     };
   } catch (error) {
     console.error("Error decoding token:", error);
@@ -221,7 +224,7 @@ export const isTokenValid = (token) => {
 
     return true; // Token without exp is considered valid
   } catch (error) {
-    console.error('Token validation error:', error);
+    console.error("Token validation error:", error);
     return false;
   }
 };
@@ -254,8 +257,6 @@ export const removeAuthToken = () => {
     console.error("Error removing auth token:", error);
   }
 };
-
-
 
 export const getStoredUser = () => {
   try {
@@ -294,7 +295,7 @@ export const getAuthHeaders = () => {
   try {
     const token = getAuthToken();
     if (token && isTokenValid(token)) {
-      headers["Authorization"] = `Bearer ${token}`;
+      headers.Authorization = `Bearer ${token}`;
     }
   } catch (error) {
     console.error("Error preparing auth headers:", error);
