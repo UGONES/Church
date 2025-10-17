@@ -5,14 +5,26 @@ const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 12;
 const MIN_PASSWORD_LENGTH = Number(process.env.MIN_PASSWORD_LENGTH) || 8;
 const VALID_ROLES = ["user", "admin", "moderator"];
 
-const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/; 
+const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
 const phoneRegex = /^\+?[\d\s\-\(\)]{7,20}$/;
 
 const userSchema = new Schema(
   {
     name: { type: String, trim: true, minlength: 2 },
-    firstName: { type: String, required: true, trim: true, minlength: 2, default: "" },
-    lastName: { type: String, required: true, trim: true, minlength: 2, default: "" },
+    firstName: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 2,
+      default: "",
+    },
+    lastName: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 2,
+      default: "",
+    },
 
     email: {
       type: String,
@@ -49,10 +61,20 @@ const userSchema = new Schema(
 
     emailVerified: { type: Boolean, default: false },
 
-    verificationToken: { type: String, index: true, sparse: true, select: false },
+    verificationToken: {
+      type: String,
+      index: true,
+      sparse: true,
+      select: false,
+    },
     verificationExpires: Date,
 
-    resetPasswordToken: { type: String, index: true, sparse: true, select: false },
+    resetPasswordToken: {
+      type: String,
+      index: true,
+      sparse: true,
+      select: false,
+    },
     resetPasswordExpires: Date,
 
     role: {
@@ -69,7 +91,11 @@ const userSchema = new Schema(
     avatar: { type: String, default: "" },
     coverPhoto: { type: String, default: "" },
 
-    phone: { type: String, match: [phoneRegex, "Please enter a valid phone number"], default: "" },
+    phone: {
+      type: String,
+      match: [phoneRegex, "Please enter a valid phone number"],
+      default: "",
+    },
 
     address: {
       street: { type: String, default: "" },
@@ -160,7 +186,7 @@ const userSchema = new Schema(
         return ret;
       },
     },
-  }
+  },
 );
 
 // -------------------- Indexes --------------------
@@ -170,25 +196,41 @@ userSchema.index({ membershipStatus: 1 });
 
 // -------------------- Hooks --------------------
 // Enhanced password security in User model
-userSchema.pre('save', async function (next) {
+userSchema.pre("save", async function (next) {
   try {
-    if (!this.isModified('password') || !this.password) return next();
+    if (!this.isModified("password") || !this.password) return next();
 
     // Enhanced password validation
-    if (typeof this.password !== 'string' || this.password.length < MIN_PASSWORD_LENGTH) {
-      throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long`);
+    if (
+      typeof this.password !== "string" ||
+      this.password.length < MIN_PASSWORD_LENGTH
+    ) {
+      throw new Error(
+        `Password must be at least ${MIN_PASSWORD_LENGTH} characters long`,
+      );
     }
 
     // Check for common passwords (basic protection)
-    const commonPasswords = ['password', '12345678', 'qwerty', 'admin', 'church123'];
+    const commonPasswords = [
+      "password",
+      "12345678",
+      "qwerty",
+      "admin",
+      "church123",
+    ];
     if (commonPasswords.includes(this.password.toLowerCase())) {
-      throw new Error('Password is too common. Please choose a stronger password.');
+      throw new Error(
+        "Password is too common. Please choose a stronger password.",
+      );
     }
 
     // Check password strength
     const strength = this.calculatePasswordStrength(this.password);
-    if (strength < 3) { // 0-4 scale, 3 = good
-      throw new Error('Password is too weak. Include uppercase, lowercase, numbers, and special characters.');
+    if (strength < 3) {
+      // 0-4 scale, 3 = good
+      throw new Error(
+        "Password is too weak. Include uppercase, lowercase, numbers, and special characters.",
+      );
     }
 
     const salt = await bcrypt.genSalt(SALT_ROUNDS);
@@ -202,17 +244,17 @@ userSchema.pre('save', async function (next) {
 // Add password strength calculator
 userSchema.methods.calculatePasswordStrength = function (password) {
   let strength = 0;
-  
+
   // Length check
   if (password.length >= 12) strength += 2;
   else if (password.length >= 8) strength += 1;
-  
+
   // Character variety
   if (/[A-Z]/.test(password)) strength += 1;
   if (/[a-z]/.test(password)) strength += 1;
   if (/[0-9]/.test(password)) strength += 1;
   if (/[^A-Za-z0-9]/.test(password)) strength += 1;
-  
+
   return Math.min(strength, 4);
 };
 
@@ -287,7 +329,13 @@ userSchema.statics.findByEmail = function (email) {
  * Create local user with normalized inputs.
  * Returns saved user document.
  */
-userSchema.statics.createLocalUser = async function ({ name, email, password, role = "user", extra = {} }) {
+userSchema.statics.createLocalUser = async function ({
+  name,
+  email,
+  password,
+  role = "user",
+  extra = {},
+}) {
   const normalizedEmail = (email || "").toLowerCase().trim();
   const user = new this({
     name: (name || "").trim(),
@@ -304,7 +352,11 @@ userSchema.statics.createLocalUser = async function ({ name, email, password, ro
  * Safely update last login info (atomic).
  */
 userSchema.statics.touchLastLogin = function (userId) {
-  return this.findByIdAndUpdate(userId, { $set: { lastLogin: new Date() }, $inc: { loginCount: 1 } }, { new: true }).lean();
+  return this.findByIdAndUpdate(
+    userId,
+    { $set: { lastLogin: new Date() }, $inc: { loginCount: 1 } },
+    { new: true },
+  ).lean();
 };
 
 // -------------------- Export --------------------

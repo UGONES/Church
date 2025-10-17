@@ -15,8 +15,8 @@ export const USER_ENDPOINTS = {
   },
 
   // Only keep if backend supports them
-  COMMUNICATION: "/users/communication",        // implement or remove
-  DONATIONS: "/users/donations",                // implement or remove
+  COMMUNICATION: "/users/communication", // implement or remove
+  DONATIONS: "/users/donations", // implement or remove
   VOLUNTEER_APPLICATIONS: "/users/volunteers/applications", // implement or remove
 
   // Admin user management
@@ -25,13 +25,12 @@ export const USER_ENDPOINTS = {
     CREATE: "/users/admin/create",
     UPDATE: (id) => `/users/admin/update/${id}`,
     DELETE: (id) => `/users/admin/delete/${id}`,
-    ACTIVATE: (id) => `/users/admin/activate/${id}`,   // needs backend route
+    ACTIVATE: (id) => `/users/admin/activate/${id}`, // needs backend route
     DEACTIVATE: (id) => `/users/admin/deactivate/${id}`, // needs backend route
     ROLES: "/users/admin/roles",
     MEMBERSHIP_STATUSES: "/users/admin/membership-statuses",
   },
 };
-
 
 // =============== ADMIN ENDPOINTS ===============
 export const ADMIN_ENDPOINTS = {
@@ -183,7 +182,6 @@ export const AUTH_ENDPOINTS = {
   // SOCIAL_LOGIN: (provider) => `/auth/social/${provider}`,
 };
 
-
 // =============== PAYMENT ENDPOINTS ===============
 export const PAYMENT_ENDPOINTS = {
   CREATE_DONATION: "/donations/create",
@@ -203,6 +201,5 @@ export const SOCIAL_AUTH_ENDPOINTS = {
   VALIDATE_FACEBOOK: "/auth/social/facebook",
   SUCCESS_REDIRECT: (token, userId) =>
     `${window.location.origin}/auth/success?token=${token}&userId=${userId}`,
-  FAILURE_REDIRECT: (error) =>
-    `${window.location.origin}/login?error=${error}`,
+  FAILURE_REDIRECT: (error) => `${window.location.origin}/login?error=${error}`,
 };

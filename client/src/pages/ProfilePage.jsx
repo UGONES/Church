@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { authService, userService, donationService, eventService } from "../services/apiService";
+import {
+  authService,
+  userService,
+  donationService,
+  eventService,
+} from "../services/apiService";
 import Loader from "../components/Loader";
 import { useAuth } from "../hooks/useAuth";
 import { useAlert } from "../utils/Alert";
-
 
 const ProfilePage = () => {
   const { user, authLoading } = useAuth();
@@ -15,10 +19,17 @@ const ProfilePage = () => {
   const [userData, setUserData] = useState(null);
   const [donations, setDonations] = useState([]);
   const [rsvps, setRsvps] = useState([]);
-  const [favorites, setFavorites] = useState({ events: [], sermons: [], posts: [] });
+  const [favorites, setFavorites] = useState({
+    events: [],
+    sermons: [],
+    posts: [],
+  });
   const [familyMembers, setFamilyMembers] = useState([]);
   const [isAddingFamilyMember, setIsAddingFamilyMember] = useState(false);
-  const [newFamilyMember, setNewFamilyMember] = useState({ name: "", relationship: "" });
+  const [newFamilyMember, setNewFamilyMember] = useState({
+    name: "",
+    relationship: "",
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -45,7 +56,8 @@ const ProfilePage = () => {
   };
 
   useEffect(() => {
-    document.title = "SMC - Profile | St. Michael's & All Angels Church | Ifite-Awka";
+    document.title =
+      "SMC - Profile | St. Michael's & All Angels Church | Ifite-Awka";
   }, []);
 
   const fetchData = useCallback(() => {
@@ -64,33 +76,58 @@ const ProfilePage = () => {
       setError(null);
 
       const userResponse = await userService.getProfile();
-      if (!userResponse || !userResponse.data) throw new Error("Invalid user response");
+      if (!userResponse || !userResponse.data) {
+        throw new Error("Invalid user response");
+      }
 
       if (cancelled) return;
 
-      const profileData = normalizeUser(userResponse.data?.user || userResponse.data || userResponse);
+      const profileData = normalizeUser(
+        userResponse.data?.user || userResponse.data || userResponse,
+      );
       if (isMounted) setUserData(profileData);
       setUserData(profileData);
 
       // Load parallel extras
-      const [donationsRes, rsvpsRes, favsRes, famRes] = await Promise.allSettled([
-        donationService.getUserDonations(),
-        eventService.getUserRsvps(),
-        eventService.getUserFavorites(),
-        userService.getFamily(),
-      ]);
+      const [donationsRes, rsvpsRes, favsRes, famRes] =
+        await Promise.allSettled([
+          donationService.getUserDonations(),
+          eventService.getUserRsvps(),
+          eventService.getUserFavorites(),
+          userService.getFamily(),
+        ]);
       if (!isMounted) return;
 
       if (!cancelled) {
-        setDonations(donationsRes.status === "fulfilled" ? (donationsRes.value.donations || donationsRes.value.data || []) : []);
-        setRsvps(rsvpsRes.status === "fulfilled" ? (rsvpsRes.value.rsvps || rsvpsRes.value.data || []) : []);
-        setFavorites(favsRes.status === "fulfilled" ? (favsRes.value.favorites || favsRes.value.data || { events: [], sermons: [], posts: [] }) : { events: [], sermons: [], posts: [] });
-        setFamilyMembers(famRes.status === "fulfilled" ? famRes.value.familyMembers || famRes.value.data?.familyMembers || [] : []);
+        setDonations(
+          donationsRes.status === "fulfilled"
+            ? donationsRes.value.donations || donationsRes.value.data || []
+            : [],
+        );
+        setRsvps(
+          rsvpsRes.status === "fulfilled"
+            ? rsvpsRes.value.rsvps || rsvpsRes.value.data || []
+            : [],
+        );
+        setFavorites(
+          favsRes.status === "fulfilled"
+            ? favsRes.value.favorites ||
+                favsRes.value.data || { events: [], sermons: [], posts: [] }
+            : { events: [], sermons: [], posts: [] },
+        );
+        setFamilyMembers(
+          famRes.status === "fulfilled"
+            ? famRes.value.familyMembers ||
+                famRes.value.data?.familyMembers ||
+                []
+            : [],
+        );
       }
     } catch (err) {
       console.error("❌ Error fetching profile data:", err);
       if (err.response?.status !== 401) {
-        const errorMsg = err.response?.data?.message || "Failed to load profile data";
+        const errorMsg =
+          err.response?.data?.message || "Failed to load profile data";
         if (isMounted) {
           setError(errorMsg);
           alert.error(errorMsg);
@@ -100,7 +137,9 @@ const ProfilePage = () => {
       if (!cancelled) setLoading(false);
       if (isMounted) setLoading(false);
     }
-    return () => { cancelled = true, isMounted = false; };
+    return () => {
+      ((cancelled = true), (isMounted = false));
+    };
   };
 
   /**  ---------- Handlers ---------- */
@@ -120,7 +159,10 @@ const ProfilePage = () => {
       }
     } catch (err) {
       console.error("Error updating profile:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Failed to update profile";
+      const errorMsg =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to update profile";
       alert.error(errorMsg);
       return { success: false, message: errorMsg };
     }
@@ -133,7 +175,7 @@ const ProfilePage = () => {
       const newMember = response.data?.member || response.data || response;
 
       if (newMember) {
-        setFamilyMembers(prev => [...prev, newMember]);
+        setFamilyMembers((prev) => [...prev, newMember]);
         alert.success("Family member added successfully");
         return { success: true };
       } else {
@@ -141,7 +183,10 @@ const ProfilePage = () => {
       }
     } catch (err) {
       console.error("Error adding family member:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Failed to add family member";
+      const errorMsg =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to add family member";
       alert.error(errorMsg);
       return { success: false, message: errorMsg };
     }
@@ -150,14 +195,19 @@ const ProfilePage = () => {
   const handleRemoveFamilyMember = async (memberId) => {
     try {
       await userService.removeFamilyMember(memberId);
-      setFamilyMembers(prev => prev.filter(member =>
-        member._id !== memberId && member.id !== memberId
-      ));
+      setFamilyMembers((prev) =>
+        prev.filter(
+          (member) => member._id !== memberId && member.id !== memberId,
+        ),
+      );
       alert.success("Family member removed successfully");
       return { success: true };
     } catch (err) {
       console.error("Error removing family member:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Failed to remove family member";
+      const errorMsg =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to remove family member";
       alert.error(errorMsg);
       return { success: false, message: errorMsg };
     }
@@ -171,7 +221,10 @@ const ProfilePage = () => {
       return { success: true };
     } catch (err) {
       console.error("Error updating communication preferences:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Failed to update preferences";
+      const errorMsg =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to update preferences";
       alert.error(errorMsg);
       return { success: false, message: errorMsg };
     }
@@ -190,7 +243,10 @@ const ProfilePage = () => {
       }
     } catch (err) {
       console.error("Error changing password:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Failed to change password";
+      const errorMsg =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to change password";
       alert.error(errorMsg);
       return { success: false, message: errorMsg };
     }
@@ -198,7 +254,11 @@ const ProfilePage = () => {
 
   // Fixed account deletion
   const handleDeleteAccount = async () => {
-    if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete your account? This action cannot be undone.",
+      )
+    ) {
       try {
         // Note: You'll need to add this endpoint to your userService
         await userService.deleteAccount();
@@ -206,7 +266,10 @@ const ProfilePage = () => {
         window.location.href = "/";
       } catch (err) {
         console.error("Error deleting account:", err);
-        const errorMsg = err.response?.data?.message || err.message || "Failed to delete account";
+        const errorMsg =
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to delete account";
         setError(errorMsg);
         alert.error(errorMsg);
       }
@@ -245,17 +308,23 @@ const ProfilePage = () => {
       alert.success("Cover photo updated successfully!");
     } catch (err) {
       console.error("Cover upload failed:", err);
-      alert.error(err.response?.data?.message || "Failed to upload cover photo");
+      alert.error(
+        err.response?.data?.message || "Failed to upload cover photo",
+      );
     }
   };
 
   // Helper function for role display text
   const getRoleDisplayText = (role) => {
     switch (role) {
-      case "admin": return "Administrator";
-      case "moderator": return "Moderator";
-      case "user": return "Church Member";
-      default: return "Member";
+      case "admin":
+        return "Administrator";
+      case "moderator":
+        return "Moderator";
+      case "user":
+        return "Church Member";
+      default:
+        return "Member";
     }
   };
 
@@ -268,15 +337,16 @@ const ProfilePage = () => {
   const formatDate = (dateString) =>
     dateString
       ? new Date(dateString).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })
       : "N/A";
 
   // ---------- Render Logic ----------
-  if (authLoading || loading) return <Loader type="spinner" text="Loading your profile..." />;
-
+  if (authLoading || loading) {
+    return <Loader type="spinner" text="Loading your profile..." />;
+  }
 
   if (!user && !userData) {
     return (
@@ -331,16 +401,17 @@ const ProfilePage = () => {
                     className="absolute inset-0 w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="bg-gradient-to-r from-[#FF7E45] to-[#F4B942] w-full h-full"></div>
+                  <div className="bg-gradient-to-r from-[#FF7E45] to-[#F4B942] w-full h-full" />
                 )}
-                <div className="absolute inset-0 bg-black/10"></div>
+                <div className="absolute inset-0 bg-black/10" />
 
                 {/* Cover upload button */}
                 <label
                   htmlFor="cover-upload"
                   className="absolute top-3 right-3 bg-white/70 hover:bg-white text-gray-700 px-3 py-1 rounded-full text-sm shadow cursor-pointer"
                 >
-                  <i className="fas fa-camera mr-2"></i>Change Cover
+                  <i className="fas fa-camera mr-2" />
+                  Change Cover
                 </label>
                 <input
                   id="cover-upload"
@@ -361,7 +432,9 @@ const ProfilePage = () => {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span>{currentUser?.name?.charAt(0)?.toUpperCase() || "U"}</span>
+                    <span>
+                      {currentUser?.name?.charAt(0)?.toUpperCase() || "U"}
+                    </span>
                   )}
 
                   {/* Avatar upload button */}
@@ -370,7 +443,7 @@ const ProfilePage = () => {
                     className="absolute bottom-2 right-2 bg-[#FF7E45] hover:bg-[#F4B942] text-white p-2 rounded-full text-xs shadow-lg cursor-pointer"
                     title="Change profile photo"
                   >
-                    <i className="fas fa-camera rounded-full p-1"></i>
+                    <i className="fas fa-camera rounded-full p-1" />
                   </label>
                   <input
                     id="avatar-upload"
@@ -401,32 +474,33 @@ const ProfilePage = () => {
                 </div>
               </div>
 
-
               {/* Tabs */}
               <div className="border-b border-gray-200 mb-8">
                 <ul className="flex flex-wrap -mb-px">
-                  {['personal', 'involvement', 'communication', 'account'].map((tab) => (
-                    <li key={tab} className="mr-2">
-                      <button
-                        onClick={() => setActiveTab(tab)}
-                        className={`inline-block py-4 px-4 border-b-2 ${activeTab === tab
-                          ? 'border-[#FF7E45] text-[#FF7E45] font-medium'
-                          : 'border-transparent hover:text-gray-600 hover:border-gray-300'
+                  {["personal", "involvement", "communication", "account"].map(
+                    (tab) => (
+                      <li key={tab} className="mr-2">
+                        <button
+                          onClick={() => setActiveTab(tab)}
+                          className={`inline-block py-4 px-4 border-b-2 ${
+                            activeTab === tab
+                              ? "border-[#FF7E45] text-[#FF7E45] font-medium"
+                              : "border-transparent hover:text-gray-600 hover:border-gray-300"
                           }`}
-                      >
-                        {tab === 'personal' && 'Personal Information'}
-                        {tab === 'involvement' && 'Involvement'}
-                        {tab === 'communication' && 'Communication'}
-                        {tab === 'account' && 'Account Settings'}
-                      </button>
-                    </li>
-                  ))}
-
+                        >
+                          {tab === "personal" && "Personal Information"}
+                          {tab === "involvement" && "Involvement"}
+                          {tab === "communication" && "Communication"}
+                          {tab === "account" && "Account Settings"}
+                        </button>
+                      </li>
+                    ),
+                  )}
                 </ul>
               </div>
 
               {/* Tab Content */}
-              {activeTab === 'personal' && (
+              {activeTab === "personal" && (
                 <PersonalInfoTab
                   userData={currentUser}
                   familyMembers={familyMembers}
@@ -441,7 +515,7 @@ const ProfilePage = () => {
                 />
               )}
 
-              {activeTab === 'involvement' && (
+              {activeTab === "involvement" && (
                 <InvolvementTab
                   donations={donations}
                   rsvps={rsvps}
@@ -451,13 +525,13 @@ const ProfilePage = () => {
                 />
               )}
 
-              {activeTab === 'communication' && (
+              {activeTab === "communication" && (
                 <CommunicationTab
                   onUpdatePreferences={handleUpdateCommunicationPrefs}
                 />
               )}
 
-              {activeTab === 'account' && (
+              {activeTab === "account" && (
                 <AccountSettingsTab
                   onChangePassword={handleChangePassword}
                   onDeleteAccount={handleDeleteAccount}
@@ -483,37 +557,37 @@ const PersonalInfoTab = ({
   onRemoveFamilyMember,
   setIsAddingFamilyMember,
   setNewFamilyMember,
-  formatDate
+  formatDate,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: userData?.firstName || '',
-    lastName: userData?.lastName || '',
-    email: userData?.email || '',
-    phone: userData?.phone || '',
-    address: userData?.address || ''
+    firstName: userData?.firstName || "",
+    lastName: userData?.lastName || "",
+    email: userData?.email || "",
+    phone: userData?.phone || "",
+    address: userData?.address || "",
   });
 
-  const [saveStatus, setSaveStatus] = useState('');
+  const [saveStatus, setSaveStatus] = useState("");
 
   useEffect(() => {
     setFormData({
-      firstName: userData?.firstName || '',
-      lastName: userData?.lastName || '',
-      email: userData?.email || '',
-      phone: userData?.phone || '',
-      address: userData?.address || ''
+      firstName: userData?.firstName || "",
+      lastName: userData?.lastName || "",
+      email: userData?.email || "",
+      phone: userData?.phone || "",
+      address: userData?.address || "",
     });
   }, [userData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await onUpdateProfile(formData);
-    setSaveStatus(result.success ? 'success' : 'error');
+    setSaveStatus(result.success ? "success" : "error");
 
     if (result.success) {
       setIsEditing(false);
-      setTimeout(() => setSaveStatus(''), 3000);
+      setTimeout(() => setSaveStatus(""), 3000);
     }
   };
 
@@ -522,20 +596,20 @@ const PersonalInfoTab = ({
     if (!newFamilyMember.name || !newFamilyMember.relationship) return;
 
     const result = await onAddFamilyMember(newFamilyMember);
-    setSaveStatus(result.success ? 'success' : 'error');
-    setTimeout(() => setSaveStatus(''), 3000);
+    setSaveStatus(result.success ? "success" : "error");
+    setTimeout(() => setSaveStatus(""), 3000);
   };
 
   return (
     <div>
       {/* Status Messages */}
-      {saveStatus === 'success' && (
+      {saveStatus === "success" && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
           <p className="text-green-600">Operation completed successfully!</p>
         </div>
       )}
 
-      {saveStatus === 'error' && (
+      {saveStatus === "error" && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
           <p className="text-red-600">Operation failed. Please try again.</p>
         </div>
@@ -550,7 +624,7 @@ const PersonalInfoTab = ({
               onClick={() => setIsEditing(!isEditing)}
               className="text-[#FF7E45] hover:text-[#F4B942] text-sm"
             >
-              {isEditing ? 'Cancel' : 'Edit'}
+              {isEditing ? "Cancel" : "Edit"}
             </button>
           </div>
 
@@ -558,47 +632,65 @@ const PersonalInfoTab = ({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">First Name</label>
+                  <label className="block text-sm text-gray-600 mb-1">
+                    First Name
+                  </label>
                   <input
                     type="text"
                     value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, firstName: e.target.value })
+                    }
                     className="form-input"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Last Name</label>
+                  <label className="block text-sm text-gray-600 mb-1">
+                    Last Name
+                  </label>
                   <input
                     type="text"
                     value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lastName: e.target.value })
+                    }
                     className="form-input"
                     required
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Email</label>
+                <label className="block text-sm text-gray-600 mb-1">
+                  Email
+                </label>
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   className="form-input"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Phone</label>
+                <label className="block text-sm text-gray-600 mb-1">
+                  Phone
+                </label>
                 <input
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
                   className="form-input"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Address</label>
+                <label className="block text-sm text-gray-600 mb-1">
+                  Address
+                </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   <input
                     type="text"
@@ -607,7 +699,10 @@ const PersonalInfoTab = ({
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        address: { ...formData.address, street: e.target.value },
+                        address: {
+                          ...formData.address,
+                          street: e.target.value,
+                        },
                       })
                     }
                     className="form-input"
@@ -643,7 +738,10 @@ const PersonalInfoTab = ({
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        address: { ...formData.address, zipCode: e.target.value },
+                        address: {
+                          ...formData.address,
+                          zipCode: e.target.value,
+                        },
                       })
                     }
                     className="form-input"
@@ -655,7 +753,10 @@ const PersonalInfoTab = ({
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        address: { ...formData.address, country: e.target.value },
+                        address: {
+                          ...formData.address,
+                          country: e.target.value,
+                        },
                       })
                     }
                     className="form-input"
@@ -672,26 +773,42 @@ const PersonalInfoTab = ({
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Name</label>
                 <p className="font-medium">
-                  {userData?.name || 'Not provided'}
+                  {userData?.name || "Not provided"}
                 </p>
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Email Address</label>
-                <p className="font-medium">{userData?.email || 'Not provided'}</p>
+                <label className="block text-sm text-gray-600 mb-1">
+                  Email Address
+                </label>
+                <p className="font-medium">
+                  {userData?.email || "Not provided"}
+                </p>
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Phone Number</label>
-                <p className="font-medium">{userData?.phone || 'Not provided'}</p>
+                <label className="block text-sm text-gray-600 mb-1">
+                  Phone Number
+                </label>
+                <p className="font-medium">
+                  {userData?.phone || "Not provided"}
+                </p>
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Address</label>
+                <label className="block text-sm text-gray-600 mb-1">
+                  Address
+                </label>
                 {userData?.address ? (
                   <div className="font-medium space-y-1">
-                    {userData.address.street && <p>{userData.address.street}</p>}
+                    {userData.address.street && (
+                      <p>{userData.address.street}</p>
+                    )}
                     {userData.address.city && <p>{userData.address.city}</p>}
                     {userData.address.state && <p>{userData.address.state}</p>}
-                    {userData.address.zipCode && <p>{userData.address.zipCode}</p>}
-                    {userData.address.country && <p>{userData.address.country}</p>}
+                    {userData.address.zipCode && (
+                      <p>{userData.address.zipCode}</p>
+                    )}
+                    {userData.address.country && (
+                      <p>{userData.address.country}</p>
+                    )}
                   </div>
                 ) : (
                   <p className="font-medium">Not provided</p>
@@ -706,16 +823,30 @@ const PersonalInfoTab = ({
           <h2 className="text-xl font-bold mb-4">Church Membership</h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Member Since</label>
-              <p className="font-medium">{userData?.memberSince ? formatDate(userData.memberSince) : 'Not specified'}</p>
+              <label className="block text-sm text-gray-600 mb-1">
+                Member Since
+              </label>
+              <p className="font-medium">
+                {userData?.memberSince
+                  ? formatDate(userData.memberSince)
+                  : "Not specified"}
+              </p>
             </div>
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Membership Status</label>
-              <p className="font-medium capitalize">{userData?.membershipStatus || 'Active'}</p>
+              <label className="block text-sm text-gray-600 mb-1">
+                Membership Status
+              </label>
+              <p className="font-medium capitalize">
+                {userData?.membershipStatus || "Active"}
+              </p>
             </div>
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Small Group</label>
-              <p className="font-medium">{userData?.smallGroup || 'Not currently in a small group'}</p>
+              <label className="block text-sm text-gray-600 mb-1">
+                Small Group
+              </label>
+              <p className="font-medium">
+                {userData?.smallGroup || "Not currently in a small group"}
+              </p>
             </div>
           </div>
         </div>
@@ -729,28 +860,43 @@ const PersonalInfoTab = ({
             className="btn btn-outline text-sm"
             onClick={() => setIsAddingFamilyMember(true)}
           >
-            <i className="fas fa-plus mr-2"></i> Add Family Member
+            <i className="fas fa-plus mr-2" /> Add Family Member
           </button>
         </div>
 
         {isAddingFamilyMember && (
-          <form onSubmit={handleAddFamilyMemberSubmit} className="mb-4 p-4 bg-gray-50 rounded-lg">
+          <form
+            onSubmit={handleAddFamilyMemberSubmit}
+            className="mb-4 p-4 bg-gray-50 rounded-lg"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Name</label>
                 <input
                   type="text"
                   value={newFamilyMember.name}
-                  onChange={(e) => setNewFamilyMember({ ...newFamilyMember, name: e.target.value })}
+                  onChange={(e) =>
+                    setNewFamilyMember({
+                      ...newFamilyMember,
+                      name: e.target.value,
+                    })
+                  }
                   className="form-input"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Relationship</label>
+                <label className="block text-sm text-gray-600 mb-1">
+                  Relationship
+                </label>
                 <select
                   value={newFamilyMember.relationship}
-                  onChange={(e) => setNewFamilyMember({ ...newFamilyMember, relationship: e.target.value })}
+                  onChange={(e) =>
+                    setNewFamilyMember({
+                      ...newFamilyMember,
+                      relationship: e.target.value,
+                    })
+                  }
                   className="form-input"
                   required
                 >
@@ -792,23 +938,30 @@ const PersonalInfoTab = ({
         {familyMembers.length > 0 ? (
           <div className="space-y-3">
             {familyMembers.map((member) => (
-              <div key={member.id || member._id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <div
+                key={member.id || member._id}
+                className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+              >
                 <div>
                   <p className="font-medium">{member.name}</p>
-                  <p className="text-sm text-gray-600 capitalize">{member.relationship}</p>
+                  <p className="text-sm text-gray-600 capitalize">
+                    {member.relationship}
+                  </p>
                 </div>
                 <button
                   onClick={() => onRemoveFamilyMember(member.id || member._id)}
                   className="text-red-500 hover:text-red-700"
                   title="Remove family member"
                 >
-                  <i className="fas fa-trash"></i>
+                  <i className="fas fa-trash" />
                 </button>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-gray-600 mb-4">No family members linked to your account.</p>
+          <p className="text-gray-600 mb-4">
+            No family members linked to your account.
+          </p>
         )}
       </div>
     </div>
@@ -816,7 +969,13 @@ const PersonalInfoTab = ({
 };
 
 // Involvement Tab Component
-const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDate }) => {
+const InvolvementTab = ({
+  donations,
+  rsvps,
+  favorites,
+  formatCurrency,
+  formatDate,
+}) => {
   return (
     <div className="space-y-8">
       {/* Donations */}
@@ -837,14 +996,24 @@ const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDat
                 <tbody>
                   {donations.slice(0, 5).map((donation) => (
                     <tr key={donation.id || donation._id} className="border-b">
-                      <td className="py-3 font-medium">{formatCurrency(donation.amount)}</td>
-                      <td className="py-3">{formatDate(donation.date || donation.createdAt)}</td>
-                      <td className="py-3 capitalize">{donation.frequency || 'One-time'}</td>
+                      <td className="py-3 font-medium">
+                        {formatCurrency(donation.amount)}
+                      </td>
                       <td className="py-3">
-                        <span className={`px-2 py-1 rounded-full text-xs ${donation.status === 'completed' || donation.status === 'succeeded'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                          }`}>
+                        {formatDate(donation.date || donation.createdAt)}
+                      </td>
+                      <td className="py-3 capitalize">
+                        {donation.frequency || "One-time"}
+                      </td>
+                      <td className="py-3">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs ${
+                            donation.status === "completed" ||
+                            donation.status === "succeeded"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
                           {donation.status}
                         </span>
                       </td>
@@ -855,7 +1024,10 @@ const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDat
             </div>
             {donations.length > 5 && (
               <p className="text-sm text-gray-600 mt-3">
-                Showing 5 of {donations.length} donations. <a href="/donations" className="text-[#FF7E45]">View all</a>
+                Showing 5 of {donations.length} donations.{" "}
+                <a href="/donations" className="text-[#FF7E45]">
+                  View all
+                </a>
               </p>
             )}
           </div>
@@ -863,7 +1035,11 @@ const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDat
           <div className="bg-gray-50 rounded-lg p-6">
             <p className="text-gray-600">You haven't made any donations yet.</p>
             <p className="text-gray-600 mt-2">
-              Support our ministry by making a <a href="/donate" className="text-[#FF7E45]">donation</a>.
+              Support our ministry by making a{" "}
+              <a href="/donate" className="text-[#FF7E45]">
+                donation
+              </a>
+              .
             </p>
           </div>
         )}
@@ -875,18 +1051,29 @@ const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDat
         {rsvps && rsvps.length > 0 ? (
           <div className="space-y-3">
             {rsvps.slice(0, 3).map((rsvp) => (
-              <div key={rsvp.id || rsvp._id} className="bg-gray-50 rounded-lg p-4">
+              <div
+                key={rsvp.id || rsvp._id}
+                className="bg-gray-50 rounded-lg p-4"
+              >
                 <h3 className="font-medium">{rsvp.eventTitle}</h3>
-                <p className="text-sm text-gray-600">{formatDate(rsvp.eventDate)}</p>
+                <p className="text-sm text-gray-600">
+                  {formatDate(rsvp.eventDate)}
+                </p>
                 <p className="text-sm text-gray-600">{rsvp.eventTime}</p>
               </div>
             ))}
           </div>
         ) : (
           <div className="bg-gray-50 rounded-lg p-6">
-            <p className="text-gray-600">You haven't RSVP'd to any upcoming events.</p>
+            <p className="text-gray-600">
+              You haven't RSVP'd to any upcoming events.
+            </p>
             <p className="text-gray-600 mt-2">
-              Check our <a href="/events" className="text-[#FF7E45]">events calendar</a> to find upcoming activities.
+              Check our{" "}
+              <a href="/events" className="text-[#FF7E45]">
+                events calendar
+              </a>{" "}
+              to find upcoming activities.
             </p>
           </div>
         )}
@@ -896,17 +1083,24 @@ const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDat
       <div>
         <h2 className="text-xl font-bold mb-4">Your Favorites</h2>
         {(favorites.events && favorites.events.length > 0) ||
-          (favorites.sermons && favorites.sermons.length > 0) ||
-          (favorites.posts && favorites.posts.length > 0) ? (
+        (favorites.sermons && favorites.sermons.length > 0) ||
+        (favorites.posts && favorites.posts.length > 0) ? (
           <div className="space-y-4">
             {favorites.events && favorites.events.length > 0 && (
               <div>
-                <h3 className="font-medium mb-2">Events ({favorites.events.length})</h3>
+                <h3 className="font-medium mb-2">
+                  Events ({favorites.events.length})
+                </h3>
                 <div className="space-y-2">
                   {favorites.events.slice(0, 2).map((event) => (
-                    <div key={event.id || event._id} className="bg-gray-50 rounded-lg p-3">
+                    <div
+                      key={event.id || event._id}
+                      className="bg-gray-50 rounded-lg p-3"
+                    >
                       <p className="font-medium">{event.title}</p>
-                      <p className="text-sm text-gray-600">{formatDate(event.date)}</p>
+                      <p className="text-sm text-gray-600">
+                        {formatDate(event.date)}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -915,10 +1109,15 @@ const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDat
 
             {favorites.sermons && favorites.sermons.length > 0 && (
               <div>
-                <h3 className="font-medium mb-2">Sermons ({favorites.sermons.length})</h3>
+                <h3 className="font-medium mb-2">
+                  Sermons ({favorites.sermons.length})
+                </h3>
                 <div className="space-y-2">
                   {favorites.sermons.slice(0, 2).map((sermon) => (
-                    <div key={sermon.id || sermon._id} className="bg-gray-50 rounded-lg p-3">
+                    <div
+                      key={sermon.id || sermon._id}
+                      className="bg-gray-50 rounded-lg p-3"
+                    >
                       <p className="font-medium">{sermon.title}</p>
                       <p className="text-sm text-gray-600">{sermon.speaker}</p>
                     </div>
@@ -929,10 +1128,15 @@ const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDat
 
             {favorites.posts && favorites.posts.length > 0 && (
               <div>
-                <h3 className="font-medium mb-2">Posts ({favorites.posts.length})</h3>
+                <h3 className="font-medium mb-2">
+                  Posts ({favorites.posts.length})
+                </h3>
                 <div className="space-y-2">
                   {favorites.posts.slice(0, 2).map((post) => (
-                    <div key={post.id || post._id} className="bg-gray-50 rounded-lg p-3">
+                    <div
+                      key={post.id || post._id}
+                      className="bg-gray-50 rounded-lg p-3"
+                    >
                       <p className="font-medium">{post.title}</p>
                       <p className="text-sm text-gray-600">By {post.author}</p>
                     </div>
@@ -943,10 +1147,19 @@ const InvolvementTab = ({ donations, rsvps, favorites, formatCurrency, formatDat
           </div>
         ) : (
           <div className="bg-gray-50 rounded-lg p-6">
-            <p className="text-gray-600">You haven't saved any favorites yet.</p>
+            <p className="text-gray-600">
+              You haven't saved any favorites yet.
+            </p>
             <p className="text-gray-600 mt-2">
-              Browse our <a href="/sermons" className="text-[#FF7E45]">sermons</a> or{' '}
-              <a href="/events" className="text-[#FF7E45]">events</a> and click the heart icon to add items to your favorites.
+              Browse our{" "}
+              <a href="/sermons" className="text-[#FF7E45]">
+                sermons
+              </a>{" "}
+              or{" "}
+              <a href="/events" className="text-[#FF7E45]">
+                events
+              </a>{" "}
+              and click the heart icon to add items to your favorites.
             </p>
           </div>
         )}
@@ -962,32 +1175,34 @@ const CommunicationTab = ({ onUpdatePreferences }) => {
     smsNotifications: false,
     newsletter: true,
     eventReminders: true,
-    prayerUpdates: true
+    prayerUpdates: true,
   });
 
-  const [saveStatus, setSaveStatus] = useState('');
+  const [saveStatus, setSaveStatus] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await onUpdatePreferences(preferences);
-    setSaveStatus(result.success ? 'success' : 'error');
+    setSaveStatus(result.success ? "success" : "error");
 
-    setTimeout(() => setSaveStatus(''), 3000);
+    setTimeout(() => setSaveStatus(""), 3000);
   };
 
   return (
     <div>
       <h2 className="text-xl font-bold mb-4">Communication Preferences</h2>
 
-      {saveStatus === 'success' && (
+      {saveStatus === "success" && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
           <p className="text-green-600">Preferences updated successfully!</p>
         </div>
       )}
 
-      {saveStatus === 'error' && (
+      {saveStatus === "error" && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-          <p className="text-red-600">Failed to update preferences. Please try again.</p>
+          <p className="text-red-600">
+            Failed to update preferences. Please try again.
+          </p>
         </div>
       )}
 
@@ -995,12 +1210,19 @@ const CommunicationTab = ({ onUpdatePreferences }) => {
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div>
             <label className="font-medium">Email Notifications</label>
-            <p className="text-sm text-gray-600">Receive important updates via email</p>
+            <p className="text-sm text-gray-600">
+              Receive important updates via email
+            </p>
           </div>
           <input
             type="checkbox"
             checked={preferences.emailNotifications}
-            onChange={(e) => setPreferences({ ...preferences, emailNotifications: e.target.checked })}
+            onChange={(e) =>
+              setPreferences({
+                ...preferences,
+                emailNotifications: e.target.checked,
+              })
+            }
             className="form-checkbox h-5 w-5 text-[#FF7E45]"
           />
         </div>
@@ -1013,7 +1235,12 @@ const CommunicationTab = ({ onUpdatePreferences }) => {
           <input
             type="checkbox"
             checked={preferences.smsNotifications}
-            onChange={(e) => setPreferences({ ...preferences, smsNotifications: e.target.checked })}
+            onChange={(e) =>
+              setPreferences({
+                ...preferences,
+                smsNotifications: e.target.checked,
+              })
+            }
             className="form-checkbox h-5 w-5 text-[#FF7E45]"
           />
         </div>
@@ -1021,12 +1248,16 @@ const CommunicationTab = ({ onUpdatePreferences }) => {
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div>
             <label className="font-medium">Weekly Newsletter</label>
-            <p className="text-sm text-gray-600">Receive our weekly church newsletter</p>
+            <p className="text-sm text-gray-600">
+              Receive our weekly church newsletter
+            </p>
           </div>
           <input
             type="checkbox"
             checked={preferences.newsletter}
-            onChange={(e) => setPreferences({ ...preferences, newsletter: e.target.checked })}
+            onChange={(e) =>
+              setPreferences({ ...preferences, newsletter: e.target.checked })
+            }
             className="form-checkbox h-5 w-5 text-[#FF7E45]"
           />
         </div>
@@ -1034,12 +1265,19 @@ const CommunicationTab = ({ onUpdatePreferences }) => {
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div>
             <label className="font-medium">Event Reminders</label>
-            <p className="text-sm text-gray-600">Get reminders for events you RSVP to</p>
+            <p className="text-sm text-gray-600">
+              Get reminders for events you RSVP to
+            </p>
           </div>
           <input
             type="checkbox"
             checked={preferences.eventReminders}
-            onChange={(e) => setPreferences({ ...preferences, eventReminders: e.target.checked })}
+            onChange={(e) =>
+              setPreferences({
+                ...preferences,
+                eventReminders: e.target.checked,
+              })
+            }
             className="form-checkbox h-5 w-5 text-[#FF7E45]"
           />
         </div>
@@ -1047,12 +1285,19 @@ const CommunicationTab = ({ onUpdatePreferences }) => {
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div>
             <label className="font-medium">Prayer Updates</label>
-            <p className="text-sm text-gray-600">Receive updates on prayer requests</p>
+            <p className="text-sm text-gray-600">
+              Receive updates on prayer requests
+            </p>
           </div>
           <input
             type="checkbox"
             checked={preferences.prayerUpdates}
-            onChange={(e) => setPreferences({ ...preferences, prayerUpdates: e.target.checked })}
+            onChange={(e) =>
+              setPreferences({
+                ...preferences,
+                prayerUpdates: e.target.checked,
+              })
+            }
             className="form-checkbox h-5 w-5 text-[#FF7E45]"
           />
         </div>
@@ -1066,13 +1311,17 @@ const CommunicationTab = ({ onUpdatePreferences }) => {
 };
 
 // Account Settings Tab Component
-const AccountSettingsTab = ({ onChangePassword, onDeleteAccount, userRole }) => {
+const AccountSettingsTab = ({
+  onChangePassword,
+  onDeleteAccount,
+  userRole,
+}) => {
   const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
-  const [passwordMessage, setPasswordMessage] = useState('');
+  const [passwordMessage, setPasswordMessage] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1088,8 +1337,12 @@ const AccountSettingsTab = ({ onChangePassword, onDeleteAccount, userRole }) => 
 
     const result = await onChangePassword(passwordData);
     if (result.success) {
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setPasswordMessage('Password changed successfully');
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setPasswordMessage("Password changed successfully");
     } else {
       setPasswordMessage(result.message);
     }
@@ -1102,26 +1355,37 @@ const AccountSettingsTab = ({ onChangePassword, onDeleteAccount, userRole }) => 
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
         <h3 className="font-medium text-yellow-800 mb-2">Security</h3>
         <p className="text-yellow-700 text-sm">
-          For your security, please keep your password confidential and update it regularly.
+          For your security, please keep your password confidential and update
+          it regularly.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
         {passwordMessage && (
-          <div className={`p-3 rounded-lg ${passwordMessage.includes('success')
-            ? 'bg-green-50 text-green-700'
-            : 'bg-red-50 text-red-700'
-            }`}>
+          <div
+            className={`p-3 rounded-lg ${
+              passwordMessage.includes("success")
+                ? "bg-green-50 text-green-700"
+                : "bg-red-50 text-red-700"
+            }`}
+          >
             {passwordMessage}
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-medium mb-2">Current Password</label>
+          <label className="block text-sm font-medium mb-2">
+            Current Password
+          </label>
           <input
             type="password"
             value={passwordData.currentPassword}
-            onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+            onChange={(e) =>
+              setPasswordData({
+                ...passwordData,
+                currentPassword: e.target.value,
+              })
+            }
             className="form-input"
             required
           />
@@ -1132,7 +1396,9 @@ const AccountSettingsTab = ({ onChangePassword, onDeleteAccount, userRole }) => 
           <input
             type="password"
             value={passwordData.newPassword}
-            onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+            onChange={(e) =>
+              setPasswordData({ ...passwordData, newPassword: e.target.value })
+            }
             className="form-input"
             required
             minLength="8"
@@ -1140,11 +1406,18 @@ const AccountSettingsTab = ({ onChangePassword, onDeleteAccount, userRole }) => 
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Confirm New Password</label>
+          <label className="block text-sm font-medium mb-2">
+            Confirm New Password
+          </label>
           <input
             type="password"
             value={passwordData.confirmPassword}
-            onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+            onChange={(e) =>
+              setPasswordData({
+                ...passwordData,
+                confirmPassword: e.target.value,
+              })
+            }
             className="form-input"
             required
           />
@@ -1161,20 +1434,22 @@ const AccountSettingsTab = ({ onChangePassword, onDeleteAccount, userRole }) => 
           className="btn bg-red-500 text-white hover:bg-red-600"
           onClick={onDeleteAccount}
         >
-          <i className="fas fa-trash mr-2"></i>
+          <i className="fas fa-trash mr-2" />
           Delete Account
         </button>
         <p className="text-sm text-gray-600 mt-2">
-          This action cannot be undone. All your data will be permanently removed.
+          This action cannot be undone. All your data will be permanently
+          removed.
         </p>
       </div>
 
       {/* Admin note */}
-      {userRole === 'admin' && (
+      {userRole === "admin" && (
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <h3 className="font-medium text-blue-800 mb-2">Admin Note</h3>
           <p className="text-blue-700 text-sm">
-            As an administrator, your account has special privileges. Please be cautious when making changes.
+            As an administrator, your account has special privileges. Please be
+            cautious when making changes.
           </p>
         </div>
       )}

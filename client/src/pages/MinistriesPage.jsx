@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { ministryService } from "../services/apiService";
-import Loader from '../components/Loader';
-import { useAlert } from '../utils/Alert';
-import { Ministry } from '../models/Ministry';
-import { Volunteer } from '../models/Volunteer';
+import Loader from "../components/Loader";
+import { useAlert } from "../utils/Alert";
+import { Ministry } from "../models/Ministry";
+import { Volunteer } from "../models/Volunteer";
 import { useAuth } from "../hooks/useAuth";
 
 const MinistriesPage = () => {
@@ -26,15 +26,16 @@ const MinistriesPage = () => {
   const [ministryStats, setMinistryStats] = useState(null);
   const [ministryVolunteers, setMinistryVolunteers] = useState({});
 
-  const [showVolunteerOpportunities, setShowVolunteerOpportunities] = useState(false);
+  const [showVolunteerOpportunities, setShowVolunteerOpportunities] =
+    useState(false);
   const [showUserMinistries, setShowUserMinistries] = useState(false);
 
   const isAdmin = user?.role === "admin" || user?.role === "moderator";
   const isAuthenticated = !!user;
 
-
   useEffect(() => {
-    document.title = "SMC: - MInistries | St. Micheal`s & All Angels Church | Ifite-Awka";
+    document.title =
+      "SMC: - MInistries | St. Micheal`s & All Angels Church | Ifite-Awka";
     fetchMinistries();
     fetchVolunteerOpportunities();
     if (isAdmin) fetchMinistryStats();
@@ -48,23 +49,20 @@ const MinistriesPage = () => {
       const joined = ministries.filter((m) =>
         Array.isArray(m.members)
           ? m.members.some(
-            (member) =>
-              member.user?._id === user._id || member.userId === user._id
-          )
-          : false
+              (member) =>
+                member.user?._id === user._id || member.userId === user._id,
+            )
+          : false,
       );
       setUserMinistries(joined);
     }
 
     // Derive volunteer opportunities automatically
     const availableVolunteers = ministries.filter(
-      (m) =>
-        Array.isArray(m.volunteerNeeds) &&
-        m.volunteerNeeds.length > 0
+      (m) => Array.isArray(m.volunteerNeeds) && m.volunteerNeeds.length > 0,
     );
     setVolunteerOpportunities(availableVolunteers);
   }, [ministries, user, isAuthenticated]);
-
 
   const fetchMinistries = async () => {
     try {
@@ -107,7 +105,7 @@ const MinistriesPage = () => {
       }
 
       const processed = ministriesData.map((m) =>
-        m instanceof Ministry ? m : new Ministry(m)
+        m instanceof Ministry ? m : new Ministry(m),
       );
 
       console.log(`✅ Loaded ${processed.length} ministries`);
@@ -131,11 +129,10 @@ const MinistriesPage = () => {
     }
   };
 
-
   const fetchVolunteerOpportunities = async () => {
     try {
       const response = await ministryService.getVolunteerOpportunities();
-      console.log('📥 Volunteer Opportunities Response:', response); // Debug log
+      console.log("📥 Volunteer Opportunities Response:", response); // Debug log
 
       if (response && response.success) {
         setVolunteerOpportunities(response.data || []);
@@ -145,7 +142,7 @@ const MinistriesPage = () => {
         setVolunteerOpportunities([]);
       }
     } catch (error) {
-      console.error('❌ Error fetching volunteer opportunities:', error);
+      console.error("❌ Error fetching volunteer opportunities:", error);
       setVolunteerOpportunities([]);
     }
   };
@@ -153,7 +150,7 @@ const MinistriesPage = () => {
   const fetchUserMinistries = async () => {
     try {
       const response = await ministryService.getUserMinistries();
-      console.log('📥 User Ministries Response:', response); // Debug log
+      console.log("📥 User Ministries Response:", response); // Debug log
 
       if (response && response.success) {
         setUserMinistries(response.data || []);
@@ -163,7 +160,7 @@ const MinistriesPage = () => {
         setUserMinistries([]);
       }
     } catch (error) {
-      console.error('❌ Error fetching user ministries:', error);
+      console.error("❌ Error fetching user ministries:", error);
       setUserMinistries([]);
     }
   };
@@ -171,17 +168,17 @@ const MinistriesPage = () => {
   const fetchMinistryStats = async () => {
     try {
       const response = await ministryService.getStats();
-      console.log('📥 Ministry Stats Response:', response); // Debug log
+      console.log("📥 Ministry Stats Response:", response); // Debug log
 
       if (response && response.success) {
         setMinistryStats(response.data || {});
-      } else if (typeof response === 'object') {
+      } else if (typeof response === "object") {
         setMinistryStats(response);
       } else {
         setMinistryStats({});
       }
     } catch (error) {
-      console.error('❌ Error fetching ministry stats:', error);
+      console.error("❌ Error fetching ministry stats:", error);
       setMinistryStats({});
     }
   };
@@ -189,7 +186,7 @@ const MinistriesPage = () => {
   const fetchMinistryVolunteers = async (ministryId) => {
     try {
       const response = await ministryService.getVolunteers(ministryId);
-      console.log('📥 Ministry Volunteers Response:', response); // Debug log
+      console.log("📥 Ministry Volunteers Response:", response); // Debug log
 
       let volunteersData = [];
 
@@ -199,23 +196,23 @@ const MinistriesPage = () => {
         volunteersData = response;
       }
 
-      setMinistryVolunteers(prev => ({
+      setMinistryVolunteers((prev) => ({
         ...prev,
-        [ministryId]: volunteersData
+        [ministryId]: volunteersData,
       }));
 
       return volunteersData;
     } catch (error) {
-      console.error('❌ Error fetching ministry volunteers:', error);
+      console.error("❌ Error fetching ministry volunteers:", error);
       const emptyArray = [];
-      setMinistryVolunteers(prev => ({
+      setMinistryVolunteers((prev) => ({
         ...prev,
-        [ministryId]: emptyArray
+        [ministryId]: emptyArray,
       }));
       return emptyArray;
     }
   };
-  /**====================== HANDLERS ====================== */
+  /** ====================== HANDLERS ====================== */
   const handleVolunteer = async (ministryId, formData) => {
     if (!isAuthenticated) {
       alert.info("Please log in to volunteer");
@@ -229,11 +226,17 @@ const MinistriesPage = () => {
         userId: user?.id || user?._id,
       });
 
-      const response = await ministryService.volunteer(ministryId, volunteerData);
-      console.log('📥 Volunteer Response:', response); // Debug log
+      const response = await ministryService.volunteer(
+        ministryId,
+        volunteerData,
+      );
+      console.log("📥 Volunteer Response:", response); // Debug log
 
       if (response && response.success) {
-        alert.success(response.message || "Thank you for volunteering! We'll be in touch soon.");
+        alert.success(
+          response.message ||
+            "Thank you for volunteering! We'll be in touch soon.",
+        );
         setShowVolunteerModal(false);
         if (isAdmin) {
           fetchMinistryVolunteers(ministryId);
@@ -245,8 +248,11 @@ const MinistriesPage = () => {
         throw new Error(response?.message || "Volunteer request failed");
       }
     } catch (error) {
-      console.error('❌ Error volunteering:', error);
-      alert.error(error.response?.data?.message || "Failed to submit volunteer request. Please try again.");
+      console.error("❌ Error volunteering:", error);
+      alert.error(
+        error.response?.data?.message ||
+          "Failed to submit volunteer request. Please try again.",
+      );
     }
   };
 
@@ -256,10 +262,10 @@ const MinistriesPage = () => {
         message,
         userId: user?.id || user?._id,
         userName: user?.name,
-        userEmail: user?.email
+        userEmail: user?.email,
       });
 
-      console.log('📥 Contact Leaders Response:', response); // Debug log
+      console.log("📥 Contact Leaders Response:", response); // Debug log
 
       if (response && response.success) {
         alert.success(response.message || "Message sent successfully!");
@@ -269,8 +275,11 @@ const MinistriesPage = () => {
         throw new Error(response?.message || "Message sending failed");
       }
     } catch (error) {
-      console.error('❌ Error contacting leaders:', error);
-      alert.error(error.response?.data?.message || "Failed to send message. Please try again.");
+      console.error("❌ Error contacting leaders:", error);
+      alert.error(
+        error.response?.data?.message ||
+          "Failed to send message. Please try again.",
+      );
     }
   };
 
@@ -302,9 +311,13 @@ const MinistriesPage = () => {
       };
 
       const response = await ministryService.create(payload);
-      console.log('📥 Create Ministry Response:', response); // Debug log
+      console.log("📥 Create Ministry Response:", response); // Debug log
 
-      let newMinistry = response.data?.ministry || response.data?.data || response.data || response;
+      let newMinistry =
+        response.data?.ministry ||
+        response.data?.data ||
+        response.data ||
+        response;
 
       if (!newMinistry) {
         throw new Error("No ministry data returned from server");
@@ -312,12 +325,12 @@ const MinistriesPage = () => {
 
       // Ensure the new ministry has proper structure
       if (!newMinistry._id && !newMinistry.id) {
-        console.warn('⚠️ New ministry missing ID:', newMinistry);
+        console.warn("⚠️ New ministry missing ID:", newMinistry);
         // If no ID, generate a temporary one for UI
         newMinistry = {
           ...newMinistry,
           _id: `temp-${Date.now()}`,
-          id: `temp-${Date.now()}`
+          id: `temp-${Date.now()}`,
         };
       }
 
@@ -337,10 +350,12 @@ const MinistriesPage = () => {
       setTimeout(() => {
         fetchMinistries();
       }, 500);
-
     } catch (error) {
       console.error("❌ Error creating ministry:", error);
-      const message = error.response?.data?.message || error.message || "Failed to create ministry";
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to create ministry";
       alert.error(message);
     }
   };
@@ -357,9 +372,13 @@ const MinistriesPage = () => {
       };
 
       const response = await ministryService.update(ministryId, payload);
-      console.log('📥 Update Ministry Response:', response); // Debug log
+      console.log("📥 Update Ministry Response:", response); // Debug log
 
-      let updatedMinistry = response.data?.ministry || response.data?.data || response.data || response;
+      const updatedMinistry =
+        response.data?.ministry ||
+        response.data?.data ||
+        response.data ||
+        response;
 
       if (!updatedMinistry) {
         throw new Error("No updated ministry data returned from server");
@@ -368,8 +387,10 @@ const MinistriesPage = () => {
       // Update local state immediately
       setMinistries((prev) =>
         prev.map((m) =>
-          (m._id === ministryId || m.id === ministryId) ? new Ministry(updatedMinistry) : m
-        )
+          m._id === ministryId || m.id === ministryId
+            ? new Ministry(updatedMinistry)
+            : m,
+        ),
       );
 
       alert.success("✅ Ministry updated successfully!");
@@ -380,36 +401,43 @@ const MinistriesPage = () => {
       setTimeout(() => {
         fetchMinistries();
       }, 500);
-
     } catch (error) {
       console.error("❌ Error updating ministry:", error);
-      const message = error.response?.data?.message || error.message || "Failed to update ministry";
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to update ministry";
       alert.error(message);
     }
   };
 
   const handleDeleteMinistry = async (ministryId) => {
-    if (!window.confirm("Are you sure you want to delete this ministry?")) return;
+    if (!window.confirm("Are you sure you want to delete this ministry?")) {
+      return;
+    }
 
     try {
       const response = await ministryService.delete(ministryId);
-      console.log('📥 Delete Ministry Response:', response); // Debug log
+      console.log("📥 Delete Ministry Response:", response); // Debug log
 
-      const success = response?.data?.success !== false && response?.status !== 400;
+      const success =
+        response?.data?.success !== false && response?.status !== 400;
 
       if (success) {
         // Remove from local state immediately
         setMinistries((prev) =>
-          prev.filter((m) => (m._id !== ministryId && m.id !== ministryId))
+          prev.filter((m) => m._id !== ministryId && m.id !== ministryId),
         );
 
         // Update active ministry if needed
         if (activeMinistry === ministryId && ministries.length > 1) {
-          const remainingMinistries = ministries.filter(m =>
-            (m._id !== ministryId && m.id !== ministryId)
+          const remainingMinistries = ministries.filter(
+            (m) => m._id !== ministryId && m.id !== ministryId,
           );
           if (remainingMinistries.length > 0) {
-            setActiveMinistry(remainingMinistries[0]._id || remainingMinistries[0].id);
+            setActiveMinistry(
+              remainingMinistries[0]._id || remainingMinistries[0].id,
+            );
           } else {
             setActiveMinistry(null);
           }
@@ -423,7 +451,10 @@ const MinistriesPage = () => {
       }
     } catch (error) {
       console.error("❌ Error deleting ministry:", error);
-      const message = error.response?.data?.message || error.message || "Failed to delete ministry";
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to delete ministry";
       alert.error(message);
     }
   };
@@ -459,7 +490,8 @@ const MinistriesPage = () => {
   }
 
   const currentMinistry = ministries.find(
-    (ministry) => (ministry.id === activeMinistry || ministry._id === activeMinistry)
+    (ministry) =>
+      ministry.id === activeMinistry || ministry._id === activeMinistry,
   );
 
   return (
@@ -479,14 +511,14 @@ const MinistriesPage = () => {
                 onClick={() => setShowUserMinistries(true)}
                 className="bg-white text-[#FF7E45] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
               >
-                <i className="fas fa-user-check mr-2"></i>
+                <i className="fas fa-user-check mr-2" />
                 My Ministries({userMinistries.length})
               </button>
               <button
                 onClick={() => setShowVolunteerOpportunities(true)}
                 className="bg-white text-[#FF7E45] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
               >
-                <i className="fas fa-hands-helping mr-2"></i>
+                <i className="fas fa-hands-helping mr-2" />
                 Volunteer Opportunities ({volunteerOpportunities.length})
               </button>
             </div>
@@ -498,14 +530,14 @@ const MinistriesPage = () => {
                 onClick={() => setShowAdminDashboard(true)}
                 className="bg-white text-[#FF7E45] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
               >
-                <i className="fas fa-chart-bar mr-2"></i>
+                <i className="fas fa-chart-bar mr-2" />
                 Moderator Dashboard
               </button>
               <button
                 onClick={handleNewMinistry}
                 className="bg-white text-[#FF7E45] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
               >
-                <i className="fas fa-plus mr-2"></i>
+                <i className="fas fa-plus mr-2" />
                 New Ministry
               </button>
             </div>
@@ -560,8 +592,8 @@ const MinistriesPage = () => {
                   Array.from({ length: 3 }).map((_, index) => (
                     <li key={index}>
                       <div className="w-full px-4 py-3 rounded-md flex items-center animate-pulse">
-                        <div className="w-6 h-6 bg-gray-200 rounded-full mr-3"></div>
-                        <div className="h-4 bg-gray-200 rounded flex-1"></div>
+                        <div className="w-6 h-6 bg-gray-200 rounded-full mr-3" />
+                        <div className="h-4 bg-gray-200 rounded flex-1" />
                       </div>
                     </li>
                   ))
@@ -574,18 +606,22 @@ const MinistriesPage = () => {
                     return (
                       <li key={ministryId}>
                         <button
-                          className={`w-full text-left px-4 py-3 rounded-md flex items-center transition-colors duration-200 ${isActive
-                            ? "bg-[#FFF5F0] text-[#FF7E45] font-semibold"
-                            : "hover:bg-gray-50 text-gray-700"
-                            }`}
+                          className={`w-full text-left px-4 py-3 rounded-md flex items-center transition-colors duration-200 ${
+                            isActive
+                              ? "bg-[#FFF5F0] text-[#FF7E45] font-semibold"
+                              : "hover:bg-gray-50 text-gray-700"
+                          }`}
                           onClick={() => setActiveMinistry(ministryId)}
                         >
                           <i
-                            className={`fas fa-${ministry.icon || "users"} mr-3 ${isActive ? "text-[#FF7E45]" : "text-gray-400"
-                              }`}
-                          ></i>
-                          <span className="flex-1 text-left">{ministry.name}</span>
-                          {ministry.status && ministry.status !== 'active' && (
+                            className={`fas fa-${ministry.icon || "users"} mr-3 ${
+                              isActive ? "text-[#FF7E45]" : "text-gray-400"
+                            }`}
+                          />
+                          <span className="flex-1 text-left">
+                            {ministry.name}
+                          </span>
+                          {ministry.status && ministry.status !== "active" && (
                             <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
                               {ministry.status}
                             </span>
@@ -598,8 +634,10 @@ const MinistriesPage = () => {
                   // Empty state
                   <li>
                     <div className="text-center py-4">
-                      <i className="fas fa-hands-helping text-gray-300 text-2xl mb-2"></i>
-                      <p className="text-gray-500 italic">No ministries available</p>
+                      <i className="fas fa-hands-helping text-gray-300 text-2xl mb-2" />
+                      <p className="text-gray-500 italic">
+                        No ministries available
+                      </p>
                       {isAdmin && (
                         <button
                           onClick={() => setShowManageModal(true)}
@@ -620,13 +658,13 @@ const MinistriesPage = () => {
             {isLoading ? (
               // Loading state for ministry details
               <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                <div className="relative h-64 bg-gray-200 animate-pulse"></div>
+                <div className="relative h-64 bg-gray-200 animate-pulse" />
                 <div className="p-6">
-                  <div className="h-6 bg-gray-200 rounded w-1/3 mb-4 animate-pulse"></div>
+                  <div className="h-6 bg-gray-200 rounded w-1/3 mb-4 animate-pulse" />
                   <div className="space-y-2">
-                    <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                    <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
-                    <div className="h-4 bg-gray-200 rounded w-4/6 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse" />
+                    <div className="h-4 bg-gray-200 rounded w-4/6 animate-pulse" />
                   </div>
                 </div>
               </div>
@@ -648,12 +686,12 @@ const MinistriesPage = () => {
                         "https://cdn.pixabay.com/photo/2016/11/14/05/29/children-1822704_1280.jpg";
                     }}
                   />
-                  <div className="absolute inset-0 bg-black/30"></div>
+                  <div className="absolute inset-0 bg-black/30" />
                   <div className="absolute bottom-0 p-6 text-white">
                     <div className="flex items-center mb-2">
                       <i
                         className={`fas fa-${currentMinistry.icon || "users"} text-[#FF7E45] text-2xl mr-3`}
-                      ></i>
+                      />
                       <h2 className="text-3xl font-bold">
                         {currentMinistry.name}
                       </h2>
@@ -682,7 +720,9 @@ const MinistriesPage = () => {
                   {/* Vision Statement */}
                   {currentMinistry.visionStatement && (
                     <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                      <h3 className="text-xl font-bold mb-3 text-blue-800">Our Vision</h3>
+                      <h3 className="text-xl font-bold mb-3 text-blue-800">
+                        Our Vision
+                      </h3>
                       <p className="text-blue-700 leading-relaxed">
                         {currentMinistry.visionStatement}
                       </p>
@@ -690,13 +730,17 @@ const MinistriesPage = () => {
                   )}
 
                   {/* Contact Information */}
-                  {(currentMinistry.contactEmail || currentMinistry.contactPhone || currentMinistry.meetingSchedule) && (
+                  {(currentMinistry.contactEmail ||
+                    currentMinistry.contactPhone ||
+                    currentMinistry.meetingSchedule) && (
                     <div className="mb-8 p-4 bg-gray-50 rounded-lg">
-                      <h3 className="text-xl font-bold mb-3">Contact & Meeting Info</h3>
+                      <h3 className="text-xl font-bold mb-3">
+                        Contact & Meeting Info
+                      </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {currentMinistry.contactEmail && (
                           <div className="flex items-center">
-                            <i className="fas fa-envelope text-[#FF7E45] mr-3"></i>
+                            <i className="fas fa-envelope text-[#FF7E45] mr-3" />
                             <div>
                               <p className="text-sm text-gray-600">Email</p>
                               <a
@@ -710,7 +754,7 @@ const MinistriesPage = () => {
                         )}
                         {currentMinistry.contactPhone && (
                           <div className="flex items-center">
-                            <i className="fas fa-phone text-[#FF7E45] mr-3"></i>
+                            <i className="fas fa-phone text-[#FF7E45] mr-3" />
                             <div>
                               <p className="text-sm text-gray-600">Phone</p>
                               <a
@@ -724,19 +768,25 @@ const MinistriesPage = () => {
                         )}
                         {currentMinistry.meetingSchedule && (
                           <div className="flex items-center md:col-span-2">
-                            <i className="far fa-clock text-[#FF7E45] mr-3"></i>
+                            <i className="far fa-clock text-[#FF7E45] mr-3" />
                             <div>
-                              <p className="text-sm text-gray-600">Meeting Schedule</p>
-                              <p className="text-gray-700">{currentMinistry.meetingSchedule}</p>
+                              <p className="text-sm text-gray-600">
+                                Meeting Schedule
+                              </p>
+                              <p className="text-gray-700">
+                                {currentMinistry.meetingSchedule}
+                              </p>
                             </div>
                           </div>
                         )}
                         {currentMinistry.meetingLocation && (
                           <div className="flex items-center md:col-span-2">
-                            <i className="fas fa-map-marker-alt text-[#FF7E45] mr-3"></i>
+                            <i className="fas fa-map-marker-alt text-[#FF7E45] mr-3" />
                             <div>
                               <p className="text-sm text-gray-600">Location</p>
-                              <p className="text-gray-700">{currentMinistry.meetingLocation}</p>
+                              <p className="text-gray-700">
+                                {currentMinistry.meetingLocation}
+                              </p>
                             </div>
                           </div>
                         )}
@@ -745,115 +795,132 @@ const MinistriesPage = () => {
                   )}
 
                   {/* Programs */}
-                  {currentMinistry.programs && currentMinistry.programs.length > 0 && (
-                    <div className="mb-8">
-                      <h3 className="text-xl font-bold mb-4">Programs & Activities</h3>
-                      <div className="space-y-4">
-                        {currentMinistry.programs.map((program, idx) => (
-                          <div
-                            key={idx}
-                            className="bg-gray-50 p-4 rounded-lg border border-gray-100"
-                          >
-                            <h4 className="font-semibold text-gray-800 mb-2">
-                              {program.name || "Unnamed Program"}
-                            </h4>
-                            {program.description && (
-                              <p className="text-gray-700 mb-2">{program.description}</p>
-                            )}
-                            <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                              {program.schedule && (
-                                <span className="flex items-center">
-                                  <i className="far fa-clock mr-1"></i>
-                                  {program.schedule}
-                                </span>
-                              )}
-                              {program.location && (
-                                <span className="flex items-center">
-                                  <i className="fas fa-map-marker-alt mr-1"></i>
-                                  {program.location}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Volunteer Needs */}
-                  {currentMinistry.volunteerNeeds && currentMinistry.volunteerNeeds.length > 0 && (
-                    <div className="mb-8">
-                      <h3 className="text-xl font-bold mb-4">Volunteer Opportunities</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {currentMinistry.volunteerNeeds.map((need, idx) => (
-                          <div
-                            key={idx}
-                            className="border border-[#FFF5F0] bg-[#FFF5F0] p-4 rounded-lg"
-                          >
-                            <h4 className="font-semibold text-[#FF7E45] mb-2">
-                              {typeof need === 'object' ? need.role : need}
-                            </h4>
-                            {typeof need === 'object' && need.description && (
-                              <p className="text-gray-700 text-sm mb-2">{need.description}</p>
-                            )}
-                            <div className="flex flex-wrap gap-2 text-xs">
-                              {typeof need === 'object' && need.timeCommitment && (
-                                <span className="bg-white text-[#FF7E45] px-2 py-1 rounded">
-                                  ⏱️ {need.timeCommitment}
-                                </span>
-                              )}
-                              {typeof need === 'object' && need.requirements && (
-                                <span className="bg-white text-[#FF7E45] px-2 py-1 rounded">
-                                  📋 {need.requirements}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Leadership */}
-                  {currentMinistry.leaders && currentMinistry.leaders.length > 0 && (
-                    <div className="mb-8">
-                      <h3 className="text-xl font-bold mb-4">Leadership</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {currentMinistry.leaders.map((leader, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-start bg-gray-50 rounded-lg p-4"
-                          >
-                            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
-                              <i className="fas fa-user text-gray-400 text-xl"></i>
-                            </div>
-                            <div className="ml-4 flex-1">
-                              <h4 className="font-bold text-gray-800">
-                                {leader.user?.name || leader.name || "Unnamed Leader"}
+                  {currentMinistry.programs &&
+                    currentMinistry.programs.length > 0 && (
+                      <div className="mb-8">
+                        <h3 className="text-xl font-bold mb-4">
+                          Programs & Activities
+                        </h3>
+                        <div className="space-y-4">
+                          {currentMinistry.programs.map((program, idx) => (
+                            <div
+                              key={idx}
+                              className="bg-gray-50 p-4 rounded-lg border border-gray-100"
+                            >
+                              <h4 className="font-semibold text-gray-800 mb-2">
+                                {program.name || "Unnamed Program"}
                               </h4>
-                              <p className="text-sm text-gray-600 mb-1">
-                                {leader.role || leader.title || "Leader"}
-                              </p>
-                              {leader.isPrimary && (
-                                <span className="inline-block bg-[#FF7E45] text-white text-xs px-2 py-1 rounded mb-2">
-                                  Primary Leader
-                                </span>
-                              )}
-                              {leader.bio && (
-                                <p className="text-sm text-gray-700 mt-2">{leader.bio}</p>
-                              )}
-                              {leader.user?.email && (
-                                <p className="text-sm text-[#FF7E45] mt-2">
-                                  <i className="fas fa-envelope mr-1"></i>
-                                  {leader.user.email}
+                              {program.description && (
+                                <p className="text-gray-700 mb-2">
+                                  {program.description}
                                 </p>
                               )}
+                              <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                                {program.schedule && (
+                                  <span className="flex items-center">
+                                    <i className="far fa-clock mr-1" />
+                                    {program.schedule}
+                                  </span>
+                                )}
+                                {program.location && (
+                                  <span className="flex items-center">
+                                    <i className="fas fa-map-marker-alt mr-1" />
+                                    {program.location}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+
+                  {/* Volunteer Needs */}
+                  {currentMinistry.volunteerNeeds &&
+                    currentMinistry.volunteerNeeds.length > 0 && (
+                      <div className="mb-8">
+                        <h3 className="text-xl font-bold mb-4">
+                          Volunteer Opportunities
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {currentMinistry.volunteerNeeds.map((need, idx) => (
+                            <div
+                              key={idx}
+                              className="border border-[#FFF5F0] bg-[#FFF5F0] p-4 rounded-lg"
+                            >
+                              <h4 className="font-semibold text-[#FF7E45] mb-2">
+                                {typeof need === "object" ? need.role : need}
+                              </h4>
+                              {typeof need === "object" && need.description && (
+                                <p className="text-gray-700 text-sm mb-2">
+                                  {need.description}
+                                </p>
+                              )}
+                              <div className="flex flex-wrap gap-2 text-xs">
+                                {typeof need === "object" &&
+                                  need.timeCommitment && (
+                                    <span className="bg-white text-[#FF7E45] px-2 py-1 rounded">
+                                      ⏱️ {need.timeCommitment}
+                                    </span>
+                                  )}
+                                {typeof need === "object" &&
+                                  need.requirements && (
+                                    <span className="bg-white text-[#FF7E45] px-2 py-1 rounded">
+                                      📋 {need.requirements}
+                                    </span>
+                                  )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Leadership */}
+                  {currentMinistry.leaders &&
+                    currentMinistry.leaders.length > 0 && (
+                      <div className="mb-8">
+                        <h3 className="text-xl font-bold mb-4">Leadership</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {currentMinistry.leaders.map((leader, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-start bg-gray-50 rounded-lg p-4"
+                            >
+                              <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i className="fas fa-user text-gray-400 text-xl" />
+                              </div>
+                              <div className="ml-4 flex-1">
+                                <h4 className="font-bold text-gray-800">
+                                  {leader.user?.name ||
+                                    leader.name ||
+                                    "Unnamed Leader"}
+                                </h4>
+                                <p className="text-sm text-gray-600 mb-1">
+                                  {leader.role || leader.title || "Leader"}
+                                </p>
+                                {leader.isPrimary && (
+                                  <span className="inline-block bg-[#FF7E45] text-white text-xs px-2 py-1 rounded mb-2">
+                                    Primary Leader
+                                  </span>
+                                )}
+                                {leader.bio && (
+                                  <p className="text-sm text-gray-700 mt-2">
+                                    {leader.bio}
+                                  </p>
+                                )}
+                                {leader.user?.email && (
+                                  <p className="text-sm text-[#FF7E45] mt-2">
+                                    <i className="fas fa-envelope mr-1" />
+                                    {leader.user.email}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                   {/* Tags/Categories */}
                   {currentMinistry.tags && currentMinistry.tags.length > 0 && (
@@ -865,7 +932,7 @@ const MinistriesPage = () => {
                             key={idx}
                             className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium"
                           >
-                            {typeof tag === 'object' ? tag.name : tag}
+                            {typeof tag === "object" ? tag.name : tag}
                           </span>
                         ))}
                       </div>
@@ -878,7 +945,7 @@ const MinistriesPage = () => {
                       onClick={() => handleGetInvolved(currentMinistry)}
                       className="bg-[#FF7E45] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#FFA76A] transition-colors flex items-center justify-center"
                     >
-                      Get Involved <i className="fas fa-arrow-right ml-2"></i>
+                      Get Involved <i className="fas fa-arrow-right ml-2" />
                     </button>
                     <button
                       onClick={() => {
@@ -894,7 +961,7 @@ const MinistriesPage = () => {
                         onClick={() => handleEditMinistry(currentMinistry)}
                         className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center"
                       >
-                        <i className="fas fa-edit mr-2"></i>
+                        <i className="fas fa-edit mr-2" />
                         Edit Ministry
                       </button>
                     )}
@@ -904,19 +971,20 @@ const MinistriesPage = () => {
             ) : (
               // No ministry selected state
               <div className="bg-white rounded-lg shadow-md p-12 text-center">
-                <i className="fas fa-hands-helping text-gray-300 text-6xl mb-4"></i>
+                <i className="fas fa-hands-helping text-gray-300 text-6xl mb-4" />
                 <h3 className="text-xl font-semibold text-gray-600 mb-2">
                   Select a Ministry
                 </h3>
                 <p className="text-gray-500 mb-4">
-                  Choose a ministry from the sidebar to view its details and get involved.
+                  Choose a ministry from the sidebar to view its details and get
+                  involved.
                 </p>
                 {ministries.length === 0 && isAdmin && (
                   <button
                     onClick={() => setShowManageModal(true)}
                     className="bg-[#FF7E45] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#FFA76A] transition-colors"
                   >
-                    <i className="fas fa-plus mr-2"></i>
+                    <i className="fas fa-plus mr-2" />
                     Create First Ministry
                   </button>
                 )}
@@ -1005,29 +1073,43 @@ const UserMinistriesModal = ({ userMinistries, onClose }) => {
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-2xl font-bold">My Ministries</h3>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-              <i className="fas fa-times text-xl"></i>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <i className="fas fa-times text-xl" />
             </button>
           </div>
 
           {userMinistries.length === 0 ? (
             <div className="text-center py-8">
-              <i className="fas fa-inbox text-4xl text-gray-300 mb-4"></i>
-              <p className="text-gray-600">You haven't joined any ministries yet.</p>
-              <p className="text-gray-500 text-sm mt-2">Explore our ministries and get involved!</p>
+              <i className="fas fa-inbox text-4xl text-gray-300 mb-4" />
+              <p className="text-gray-600">
+                You haven't joined any ministries yet.
+              </p>
+              <p className="text-gray-500 text-sm mt-2">
+                Explore our ministries and get involved!
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {userMinistries.map((ministry) => (
-                <div key={ministry._id || ministry.id} className="border rounded-lg p-4">
+                <div
+                  key={ministry._id || ministry.id}
+                  className="border rounded-lg p-4"
+                >
                   <div className="flex items-center mb-3">
-                    <i className={`fas fa-${ministry.icon || 'users'} text-[#FF7E45] text-xl mr-3`}></i>
+                    <i
+                      className={`fas fa-${ministry.icon || "users"} text-[#FF7E45] text-xl mr-3`}
+                    />
                     <h4 className="font-semibold">{ministry.name}</h4>
                   </div>
-                  <p className="text-sm text-gray-600 mb-3">{ministry.description}</p>
+                  <p className="text-sm text-gray-600 mb-3">
+                    {ministry.description}
+                  </p>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-[#FF7E45]">
-                      <i className="fas fa-user-check mr-1"></i>
+                      <i className="fas fa-user-check mr-1" />
                       Member
                     </span>
                     <span className="text-sm text-gray-500">
@@ -1045,48 +1127,72 @@ const UserMinistriesModal = ({ userMinistries, onClose }) => {
 };
 
 // Volunteer Opportunities Modal Component
-const VolunteerOpportunitiesModal = ({ opportunities, onClose, onVolunteer }) => {
+const VolunteerOpportunitiesModal = ({
+  opportunities,
+  onClose,
+  onVolunteer,
+}) => {
   return (
     <div className="fixed inset-0 bg-[#333333e9] bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-2xl font-bold">Volunteer Opportunities</h3>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-              <i className="fas fa-times text-xl"></i>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <i className="fas fa-times text-xl" />
             </button>
           </div>
 
           {opportunities.length === 0 ? (
             <div className="text-center py-8">
-              <i className="fas fa-hands-helping text-4xl text-gray-300 mb-4"></i>
-              <p className="text-gray-600">No volunteer opportunities available at the moment.</p>
-              <p className="text-gray-500 text-sm mt-2">Check back later for new opportunities!</p>
+              <i className="fas fa-hands-helping text-4xl text-gray-300 mb-4" />
+              <p className="text-gray-600">
+                No volunteer opportunities available at the moment.
+              </p>
+              <p className="text-gray-500 text-sm mt-2">
+                Check back later for new opportunities!
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {opportunities.map((opportunity) => (
-                <div key={opportunity._id || opportunity.id} className="border rounded-lg p-4">
+                <div
+                  key={opportunity._id || opportunity.id}
+                  className="border rounded-lg p-4"
+                >
                   <div className="flex items-center mb-3">
-                    <i className={`fas fa-${opportunity.icon || 'hands-helping'} text-[#FF7E45] text-xl mr-3`}></i>
-                    <h4 className="font-semibold">{opportunity.ministryName}</h4>
+                    <i
+                      className={`fas fa-${opportunity.icon || "hands-helping"} text-[#FF7E45] text-xl mr-3`}
+                    />
+                    <h4 className="font-semibold">
+                      {opportunity.ministryName}
+                    </h4>
                   </div>
-                  <h5 className="font-medium text-gray-800 mb-2">{opportunity.role}</h5>
-                  <p className="text-sm text-gray-600 mb-3">{opportunity.description}</p>
+                  <h5 className="font-medium text-gray-800 mb-2">
+                    {opportunity.role}
+                  </h5>
+                  <p className="text-sm text-gray-600 mb-3">
+                    {opportunity.description}
+                  </p>
 
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center text-sm text-gray-500">
-                      <i className="fas fa-clock mr-2"></i>
+                      <i className="fas fa-clock mr-2" />
                       <span>Time commitment: {opportunity.timeCommitment}</span>
                     </div>
                     <div className="flex items-center text-sm text-gray-500">
-                      <i className="fas fa-calendar mr-2"></i>
+                      <i className="fas fa-calendar mr-2" />
                       <span>Duration: {opportunity.duration}</span>
                     </div>
                     {opportunity.skillsRequired && (
                       <div className="flex items-center text-sm text-gray-500">
-                        <i className="fas fa-tools mr-2"></i>
-                        <span>Skills: {opportunity.skillsRequired.join(', ')}</span>
+                        <i className="fas fa-tools mr-2" />
+                        <span>
+                          Skills: {opportunity.skillsRequired.join(", ")}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -1095,7 +1201,7 @@ const VolunteerOpportunitiesModal = ({ opportunities, onClose, onVolunteer }) =>
                     onClick={() => onVolunteer(opportunity)}
                     className="w-full bg-[#FF7E45] text-white py-2 rounded-lg hover:bg-[#FFA76A] transition-colors"
                   >
-                    <i className="fas fa-hand-paper mr-2"></i>
+                    <i className="fas fa-hand-paper mr-2" />
                     Volunteer Now
                   </button>
                 </div>
@@ -1109,30 +1215,46 @@ const VolunteerOpportunitiesModal = ({ opportunities, onClose, onVolunteer }) =>
 };
 
 // Admin Dashboard Component
-const AdminDashboard = ({ ministries, stats, volunteers, onClose, onViewVolunteers, onEditMinistry }) => {
+const AdminDashboard = ({
+  ministries,
+  stats,
+  volunteers,
+  onClose,
+  onViewVolunteers,
+  onEditMinistry,
+}) => {
   return (
     <div className="fixed inset-0 bg-[#333333e9] bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-2xl font-bold">Ministry Admin Dashboard</h3>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-              <i className="fas fa-times text-xl"></i>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <i className="fas fa-times text-xl" />
             </button>
           </div>
 
           {stats && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               <div className="bg-blue-50 p-4 rounded-lg text-center">
-                <div className="text-3xl font-bold text-blue-600">{stats.totalMinistries}</div>
+                <div className="text-3xl font-bold text-blue-600">
+                  {stats.totalMinistries}
+                </div>
                 <div className="text-sm text-blue-800">Total Ministries</div>
               </div>
               <div className="bg-green-50 p-4 rounded-lg text-center">
-                <div className="text-3xl font-bold text-green-600">{stats.totalVolunteers}</div>
+                <div className="text-3xl font-bold text-green-600">
+                  {stats.totalVolunteers}
+                </div>
                 <div className="text-sm text-green-800">Total Volunteers</div>
               </div>
               <div className="bg-orange-50 p-4 rounded-lg text-center">
-                <div className="text-3xl font-bold text-orange-600">{stats.pendingRequests}</div>
+                <div className="text-3xl font-bold text-orange-600">
+                  {stats.pendingRequests}
+                </div>
                 <div className="text-sm text-orange-800">Pending Requests</div>
               </div>
             </div>
@@ -1140,26 +1262,32 @@ const AdminDashboard = ({ ministries, stats, volunteers, onClose, onViewVoluntee
 
           <div className="space-y-4">
             <h4 className="text-lg font-semibold">Manage Ministries</h4>
-            {ministries.map(ministry => (
-              <div key={ministry._id || ministry.id} className="border rounded-lg p-4">
+            {ministries.map((ministry) => (
+              <div
+                key={ministry._id || ministry.id}
+                className="border rounded-lg p-4"
+              >
                 <div className="flex justify-between items-center">
                   <div>
                     <h5 className="font-semibold">{ministry.name}</h5>
-                    <p className="text-sm text-gray-600">{ministry.description}</p>
+                    <p className="text-sm text-gray-600">
+                      {ministry.description}
+                    </p>
                   </div>
                   <div className="flex space-x-2">
                     <button
                       onClick={() => onViewVolunteers(ministry)}
                       className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm"
                     >
-                      <i className="fas fa-users mr-1"></i>
-                      Volunteers ({volunteers[ministry._id || ministry.id]?.length || 0})
+                      <i className="fas fa-users mr-1" />
+                      Volunteers (
+                      {volunteers[ministry._id || ministry.id]?.length || 0})
                     </button>
                     <button
                       onClick={() => onEditMinistry(ministry)}
                       className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm"
                     >
-                      <i className="fas fa-edit mr-1"></i>
+                      <i className="fas fa-edit mr-1" />
                       Edit
                     </button>
                   </div>
@@ -1174,20 +1302,29 @@ const AdminDashboard = ({ ministries, stats, volunteers, onClose, onViewVoluntee
 };
 
 // Ministry Management Modal Component
-const MinistryManagementModal = ({ ministry, onClose, onCreate, onUpdate, onDelete }) => {
+const MinistryManagementModal = ({
+  ministry,
+  onClose,
+  onCreate,
+  onUpdate,
+  onDelete,
+}) => {
   const [formData, setFormData] = useState({
-    name: ministry?.name || '',
-    description: ministry?.description || '',
-    icon: ministry?.icon || 'users',
-    imageUrl: ministry?.imageUrl || '',
-    volunteerNeeds: ministry?.volunteerNeeds?.join(', ') || ''
+    name: ministry?.name || "",
+    description: ministry?.description || "",
+    icon: ministry?.icon || "users",
+    imageUrl: ministry?.imageUrl || "",
+    volunteerNeeds: ministry?.volunteerNeeds?.join(", ") || "",
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const submitData = {
       ...formData,
-      volunteerNeeds: formData.volunteerNeeds.split(',').map(item => item.trim()).filter(Boolean)
+      volunteerNeeds: formData.volunteerNeeds
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
     };
 
     if (ministry) {
@@ -1202,54 +1339,74 @@ const MinistryManagementModal = ({ ministry, onClose, onCreate, onUpdate, onDele
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div className="p-6">
           <h3 className="text-xl font-bold mb-4">
-            {ministry ? 'Edit Ministry' : 'Create New Ministry'}
+            {ministry ? "Edit Ministry" : "Create New Ministry"}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Ministry Name</label>
+              <label className="block text-sm font-medium mb-2">
+                Ministry Name
+              </label>
               <input
                 type="text"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF7E45]"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Description</label>
+              <label className="block text-sm font-medium mb-2">
+                Description
+              </label>
               <textarea
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 rows="3"
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF7E45]"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Icon Name</label>
+              <label className="block text-sm font-medium mb-2">
+                Icon Name
+              </label>
               <input
                 type="text"
                 value={formData.icon}
-                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, icon: e.target.value })
+                }
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF7E45]"
                 placeholder="users, heart, hands-helping"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Image URL</label>
+              <label className="block text-sm font-medium mb-2">
+                Image URL
+              </label>
               <input
                 type="url"
                 value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, imageUrl: e.target.value })
+                }
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF7E45]"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Volunteer Needs (comma-separated)</label>
+              <label className="block text-sm font-medium mb-2">
+                Volunteer Needs (comma-separated)
+              </label>
               <input
                 type="text"
                 value={formData.volunteerNeeds}
-                onChange={(e) => setFormData({ ...formData, volunteerNeeds: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, volunteerNeeds: e.target.value })
+                }
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF7E45]"
                 placeholder="Teaching, Music, Hospitality"
               />
@@ -1261,7 +1418,7 @@ const MinistryManagementModal = ({ ministry, onClose, onCreate, onUpdate, onDele
                   onClick={() => onDelete(ministry._id || ministry.id)}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                 >
-                  <i className="fas fa-trash mr-2"></i>
+                  <i className="fas fa-trash mr-2" />
                   Delete
                 </button>
               )}
@@ -1277,7 +1434,7 @@ const MinistryManagementModal = ({ ministry, onClose, onCreate, onUpdate, onDele
                   type="submit"
                   className="px-4 py-2 bg-[#FF7E45] text-white rounded-lg hover:bg-[#FFA76A] transition-colors"
                 >
-                  {ministry ? 'Update' : 'Create'} Ministry
+                  {ministry ? "Update" : "Create"} Ministry
                 </button>
               </div>
             </div>
@@ -1301,10 +1458,14 @@ const ContactModal = ({ ministry, onClose, onSubmit, user }) => {
     <div className="fixed inset-0 bg-[#333333e9] bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div className="p-6">
-          <h3 className="text-xl font-bold mb-4">Contact {ministry.name} Leaders</h3>
+          <h3 className="text-xl font-bold mb-4">
+            Contact {ministry.name} Leaders
+          </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Your Message</label>
+              <label className="block text-sm font-medium mb-2">
+                Your Message
+              </label>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -1342,7 +1503,7 @@ const VolunteerModal = ({ ministry, onClose, onSubmit, user }) => {
     interests: [],
     availability: [],
     experience: "",
-    message: ""
+    message: "",
   });
 
   const handleSubmit = (e) => {
@@ -1350,20 +1511,31 @@ const VolunteerModal = ({ ministry, onClose, onSubmit, user }) => {
     onSubmit(ministry._id || ministry.id, formData);
   };
 
-  const availabilityOptions = ["Weekdays", "Weekends", "Mornings", "Afternoons", "Evenings"];
+  const availabilityOptions = [
+    "Weekdays",
+    "Weekends",
+    "Mornings",
+    "Afternoons",
+    "Evenings",
+  ];
 
   return (
     <div className="fixed inset-0 bg-[#333333e9] bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div className="p-6">
-          <h3 className="text-xl font-bold mb-4">Volunteer for {ministry.name}</h3>
+          <h3 className="text-xl font-bold mb-4">
+            Volunteer for {ministry.name}
+          </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Fix: Safely render volunteer needs whether they are strings or objects */}
             <div>
-              <label className="block text-sm font-medium mb-2">Areas of Interest</label>
+              <label className="block text-sm font-medium mb-2">
+                Areas of Interest
+              </label>
               <div className="space-y-2">
                 {(ministry.volunteerNeeds || []).map((need, idx) => {
-                  const labelText = typeof need === "string" ? need : need.role || "Volunteer";
+                  const labelText =
+                    typeof need === "string" ? need : need.role || "Volunteer";
                   return (
                     <label key={idx} className="flex items-center">
                       <input
@@ -1386,7 +1558,9 @@ const VolunteerModal = ({ ministry, onClose, onSubmit, user }) => {
 
             {/* Availability */}
             <div>
-              <label className="block text-sm font-medium mb-2">Availability</label>
+              <label className="block text-sm font-medium mb-2">
+                Availability
+              </label>
               <div className="space-y-2">
                 {availabilityOptions.map((option) => (
                   <label key={option} className="flex items-center">
@@ -1409,7 +1583,9 @@ const VolunteerModal = ({ ministry, onClose, onSubmit, user }) => {
 
             {/* Experience */}
             <div>
-              <label className="block text-sm font-medium mb-2">Experience</label>
+              <label className="block text-sm font-medium mb-2">
+                Experience
+              </label>
               <textarea
                 value={formData.experience}
                 onChange={(e) =>
@@ -1423,7 +1599,9 @@ const VolunteerModal = ({ ministry, onClose, onSubmit, user }) => {
 
             {/* Additional Message */}
             <div>
-              <label className="block text-sm font-medium mb-2">Additional Message</label>
+              <label className="block text-sm font-medium mb-2">
+                Additional Message
+              </label>
               <textarea
                 value={formData.message}
                 onChange={(e) =>

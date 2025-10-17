@@ -17,7 +17,7 @@ const connectDB = async (retries = 5, delay = 5000) => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 10000, // 10s timeout for server selection
-      socketTimeoutMS: 45000,          // 45s socket timeout
+      socketTimeoutMS: 45000, // 45s socket timeout
     });
 
     console.log(`🚀 MongoDB Connected: ${conn.connection.host}`);

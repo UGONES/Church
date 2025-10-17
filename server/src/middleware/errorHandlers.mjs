@@ -19,7 +19,7 @@ const errorHandler = (err, req, res, next) => {
   if (err.name === "ValidationError") {
     statusCode = 400;
     message = "Validation failed";
-    details = Object.values(err.errors || {}).map(v => v.message);
+    details = Object.values(err.errors || {}).map((v) => v.message);
   }
 
   // 🧩 MongoDB Duplicate Key Error
