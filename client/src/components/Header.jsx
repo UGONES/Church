@@ -1,7 +1,7 @@
 // src/components/layouts/Header.jsx
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth"; // ✅ corrected import (your hooks are in src/hooks)
+import { useAuth } from "../hooks/useAuth";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -33,7 +33,7 @@ const Header = () => {
   const dashboardPath = getDashboardPath();
 
   return (
-    <header className="bg-white shadow-md">
+    <header className="bg-white shadow-md w-full">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
@@ -45,29 +45,29 @@ const Header = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex">
-            <ul className="flex space-x-1">
-              <li><Link to="/" className={`nav-link ${isActive("/")}`}>Home</Link></li>
-              <li><Link to="/events" className={`nav-link ${isActive("/events")}`}>Events</Link></li>
-              <li><Link to="/sermons" className={`nav-link ${isActive("/sermons")}`}>Sermons</Link></li>
-              <li><Link to="/donate" className={`nav-link ${isActive("/donate")}`}>Donate</Link></li>
-              <li><Link to="/blog" className={`nav-link ${isActive("/blog")}`}>Blog</Link></li>
-              <li><Link to="/ministries" className={`nav-link ${isActive("/ministries")}`}>Ministries</Link></li>
-              <li><Link to="/testimonials" className={`nav-link ${isActive("/testimonials")}`}>Testimonials</Link></li>
-              <li><Link to="/prayer" className={`nav-link ${isActive("/prayer")}`}>Prayer</Link></li>
+          <nav className="hidden md:flex flex-4 justify-center mx-4">
+            <ul className="flex space-x-1 flex-wrap text-semi-bold justify-center max-w-4xl">
+              <li><Link to="/" className={`nav-link ${isActive("/")} px-3 py-2 whitespace-nowrap`}>Home</Link></li>
+              <li><Link to="/events" className={`nav-link ${isActive("/events")} px-3 py-2 whitespace-nowrap`}>Events</Link></li>
+              <li><Link to="/sermons" className={`nav-link ${isActive("/sermons")} px-3 py-2 whitespace-nowrap`}>Sermons</Link></li>
+              <li><Link to="/donate" className={`nav-link ${isActive("/donate")} px-3 py-2 whitespace-nowrap`}>Donate</Link></li>
+              <li><Link to="/blog" className={`nav-link ${isActive("/blog")} px-3 py-2 whitespace-nowrap`}>Blog</Link></li>
+              <li><Link to="/ministries" className={`nav-link ${isActive("/ministries")} px-3 py-2 whitespace-nowrap`}>Ministries</Link></li>
+              <li><Link to="/testimonials" className={`nav-link ${isActive("/testimonials")} px-3 py-2 whitespace-nowrap`}>Testimonials</Link></li>
+              <li><Link to="/prayer" className={`nav-link ${isActive("/prayer")} px-3 py-2 whitespace-nowrap`}>Prayer</Link></li>
 
               {/* Role-aware Dashboard */}
               {dashboardPath && (
                 <li>
                   <Link
                     to={dashboardPath}
-                    className={`nav-link ${isActive(dashboardPath)}`}
+                    className={`nav-link ${isActive(dashboardPath)} px-3 py-2 whitespace-nowrap`}
                   >
                     {userRole === "admin"
                       ? "Admin"
                       : userRole === "moderator"
-                      ? "Moderator"
-                      : "Dashboard"}
+                        ? "Moderator"
+                        : "Dashboard"}
                   </Link>
                 </li>
               )}
@@ -75,16 +75,16 @@ const Header = () => {
           </nav>
 
           {/* Right Section */}
-          <div className="hidden md:block">
+          <div className="hidden md:flex flex-shrink-0 min-w-[120px] justify-end">
             {!isAuthenticated ? (
-              <Link to="/login" className="btn btn-primary">
+              <Link to="/login" className="btn btn-primary whitespace-nowrap">
                 Login
               </Link>
             ) : (
               <div className="relative group">
-                <button className="flex items-center space-x-1 btn btn-outline">
+                <button className="flex items-center space-x-1 btn btn-outline whitespace-nowrap">
                   <i className="fas fa-user"></i>
-                  <span>{userName}</span>
+                  <span className="truncate max-w-[80px]">{userName}</span>
                 </button>
 
                 {/* Dropdown */}
@@ -112,7 +112,7 @@ const Header = () => {
                     )}
                     <button
                       onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-600 transition-colors duration-200"
                     >
                       Logout
                     </button>
@@ -124,7 +124,7 @@ const Header = () => {
 
           {/* Mobile Toggle */}
           <button
-            className="md:hidden text-gray-600"
+            className="md:hidden text-gray-600 flex-shrink-0 ml-2"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle mobile menu"
             aria-expanded={mobileMenuOpen}
@@ -141,41 +141,39 @@ const Header = () => {
           onClick={() => setMobileMenuOpen(false)}
         ></div>
         <nav
-          className={`fixed top-0 left-0 bottom-0 w-64 bg-white z-50 transform ${
-            mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-          } transition-transform duration-300 ease-in-out`}
+          className={`fixed top-0 left-0 bottom-0 w-64 bg-white z-50 transform ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+            } transition-transform duration-300 ease-in-out overflow-y-auto`}
         >
           <div className="p-4 border-b">
-            <Link to="/" onClick={() => setMobileMenuOpen(false)}>
+            <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center">
               <i className="fas fa-church text-[#FF7E45] text-xl mr-2"></i>
-              <h2 className="font-bold text-lg">St. Michael&apos;s Church</h2>
+              <h2 className="font-bold text-lg truncate">St. Michael&apos;s Church</h2>
             </Link>
           </div>
           <ul className="p-4 space-y-2">
-            {/* public links... */}
-            <li><Link to="/" className="block p-2 hover:text-[#FF7E45]" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-home mr-2"></i>Home</Link></li>
-            <li><Link to="/events" className="block p-2 hover:text-[#FF7E45]" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-calendar-alt mr-2"></i>Events</Link></li>
-            <li><Link to="/sermons" className="block p-2 hover:text-[#FF7E45]" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-video mr-2"></i>Sermons</Link></li>
-            <li><Link to="/donate" className="block p-2 hover:text-[#FF7E45]" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-dollar-sign mr-2"></i>Donate</Link></li>
-            <li><Link to="/blog" className="block p-2 hover:text-[#FF7E45]" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-blog mr-2"></i>Blog</Link></li>
-            <li><Link to="/ministries" className="block p-2 hover:text-[#FF7E45]" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-people-carry mr-2"></i>Ministries</Link></li>
-            <li><Link to="/testimonials" className="block p-2 hover:text-[#FF7E45]" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-comments mr-2"></i>Testimonials</Link></li>
-            <li><Link to="/prayer" className="block p-2 hover:text-[#FF7E45]" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-praying-hands mr-2"></i>Prayer</Link></li>
+            <li><Link to="/" className="block p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-home mr-2"></i>Home</Link></li>
+            <li><Link to="/events" className="block p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-calendar-alt mr-2"></i>Events</Link></li>
+            <li><Link to="/sermons" className="block p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-video mr-2"></i>Sermons</Link></li>
+            <li><Link to="/donate" className="block p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-dollar-sign mr-2"></i>Donate</Link></li>
+            <li><Link to="/blog" className="block p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-blog mr-2"></i>Blog</Link></li>
+            <li><Link to="/ministries" className="block p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-people-carry mr-2"></i>Ministries</Link></li>
+            <li><Link to="/testimonials" className="block p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-comments mr-2"></i>Testimonials</Link></li>
+            <li><Link to="/prayer" className="block p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-praying-hands mr-2"></i>Prayer</Link></li>
 
             {/* role-aware dashboard */}
             {dashboardPath && (
               <li>
                 <Link
                   to={dashboardPath}
-                  className="block p-2 hover:text-[#FF7E45]"
+                  className="block p-2 hover:text-[#FF7E45] whitespace-nowrap"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <i className="fas fa-cog mr-2"></i>
                   {userRole === "admin"
                     ? "Admin Dashboard"
                     : userRole === "moderator"
-                    ? "Moderator Dashboard"
-                    : "User Dashboard"}
+                      ? "Moderator Dashboard"
+                      : "User Dashboard"}
                 </Link>
               </li>
             )}
@@ -185,29 +183,29 @@ const Header = () => {
             {!isAuthenticated ? (
               <Link
                 to="/login"
-                className="w-full btn btn-primary flex items-center justify-center"
+                className="w-full btn btn-primary flex items-center justify-center whitespace-nowrap"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <i className="fas fa-sign-in-alt mr-2"></i>Login
               </Link>
             ) : (
               <div className="space-y-2">
-                <p className="font-medium flex items-center">
+                <p className="font-medium flex items-center whitespace-nowrap">
                   <i className="fas fa-user-circle mr-2 text-[#FF7E45]"></i>
-                  {userName}
+                  <span className="truncate">{userName}</span>
                 </p>
                 {userId && (
                   <>
-                    <Link to={`/profile/${userId}`} className="w-full btn btn-outline flex items-center justify-center hover:text-[#FF7E45]" onClick={() => setMobileMenuOpen(false)}>
+                    <Link to={`/profile/${userId}`} className="w-full btn btn-outline flex items-center justify-center hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}>
                       <i className="fas fa-user mr-2"></i>Profile
                     </Link>
-                    <Link to={`/my-rsvps/${userId}`} className="w-full btn btn-outline flex items-center justify-center hover:text-[#FF7E45]" onClick={() => setMobileMenuOpen(false)}>
+                    <Link to={`/my-rsvps/${userId}`} className="w-full btn btn-outline flex items-center justify-center hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}>
                       <i className="fas fa-calendar-check mr-2"></i>My RSVPs
                     </Link>
                   </>
                 )}
                 <button
-                  className="w-full btn btn-primary flex items-center justify-center hover:text-[#e74c3c]"
+                  className="w-full bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-900 transition-colors duration-200 flex items-center justify-center font-medium"
                   onClick={handleLogout}
                 >
                   <i className="fas fa-sign-out-alt mr-2"></i>Logout

@@ -9,24 +9,22 @@ import {
   SOCIAL_AUTH_ENDPOINTS,
 } from "../constants/API";
 
-// ================= MINISTRIES =================
+// ================= MINISTRIES =================TRIES),
 export const ministryService = {
   getAll: () => apiClient.get(PUBLIC_ENDPOINTS.MINISTRIES),
-  getVolunteerOpportunities: () =>
-    apiClient.get(PUBLIC_ENDPOINTS.MINISTRIES_VOLUNTEER),
+  getVolunteerOpportunities: () => apiClient.get(PUBLIC_ENDPOINTS.MINISTRIES_VOLUNTEER),
   getUserMinistries: () => apiClient.get(PUBLIC_ENDPOINTS.MINISTRIES_USER),
-  volunteer: (id, formData) =>
-    apiClient.post(PUBLIC_ENDPOINTS.MINISTRIES_VOLUNTEER_ACTION(id), formData),
-  contactLeaders: (id, message) =>
-    apiClient.post(PUBLIC_ENDPOINTS.MINISTRIES_CONTACT(id), { message }),
+  volunteer: (id, formData) => apiClient.post(PUBLIC_ENDPOINTS.MINISTRIES_VOLUNTEER_ACTION(id), formData),
+  contactLeaders: (id, message) => apiClient.post(PUBLIC_ENDPOINTS.MINISTRIES_CONTACT(id), { message }),
+  getCategories: () => apiClient.get(PUBLIC_ENDPOINTS.MINISTRIES_CATEGORIES),
 
   // Admin
   create: (data) => apiClient.post(ADMIN_ENDPOINTS.MINISTRIES.CREATE, data),
   update: (id, data) => apiClient.put(ADMIN_ENDPOINTS.MINISTRIES.UPDATE(id), data),
   delete: (id) => apiClient.delete(ADMIN_ENDPOINTS.MINISTRIES.DELETE(id)),
+  createCategory: (data) => apiClient.post(ADMIN_ENDPOINTS.MINISTRIES.CATEGORIES, data),
   getVolunteers: (id) => apiClient.get(ADMIN_ENDPOINTS.MINISTRIES.VOLUNTEERS(id)),
   getStats: () => apiClient.get(ADMIN_ENDPOINTS.MINISTRIES.STATS),
-  getCategories: () => apiClient.get(ADMIN_ENDPOINTS.MINISTRIES.CATEGORIES),
 };
 
 // ================= SERMONS =================
@@ -51,7 +49,6 @@ export const sermonService = {
   stopLiveStream: () => apiClient.post(ADMIN_ENDPOINTS.SERMONS.LIVE_STOP),
 
 };
-
 // ================= EVENTS =================
 export const eventService = {
   getAll: (params = {}) => apiClient.get(PUBLIC_ENDPOINTS.EVENTS, { params }),
@@ -75,29 +72,21 @@ export const eventService = {
 
 // ================= TESTIMONIALS =================
 export const testimonialService = {
+  // Public
   getAll: (params = {}) => apiClient.get(PUBLIC_ENDPOINTS.TESTIMONIALS, { params }),
-  getApproved: (limit = 6) =>
-    apiClient.get(PUBLIC_ENDPOINTS.TESTIMONIALS_APPROVED, { params: { limit } }),
+  getApproved: (limit = 6) => apiClient.get(PUBLIC_ENDPOINTS.TESTIMONIALS_APPROVED, { params: { limit } }),
   getVideos: () => apiClient.get(PUBLIC_ENDPOINTS.TESTIMONIALS_VIDEOS),
   getCategories: () => apiClient.get(PUBLIC_ENDPOINTS.TESTIMONIALS_CATEGORIES),
-  submit: (data) =>
-    apiClient.post(PUBLIC_ENDPOINTS.TESTIMONIALS, data, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
+  submit: (data) => apiClient.post(PUBLIC_ENDPOINTS.TESTIMONIALS, data, { headers: { "Content-Type": "multipart/form-data" },}),
 
   // Admin
-  getAllAdmin: () => apiClient.get(ADMIN_ENDPOINTS.TESTIMONIALS.ALL),
-  create: (data) =>
-    apiClient.post(ADMIN_ENDPOINTS.TESTIMONIALS.CREATE, data, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
-  update: (id, data) =>
-    apiClient.put(ADMIN_ENDPOINTS.TESTIMONIALS.UPDATE(id), data, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
+  getAllAdmin: (params = {}) => apiClient.get(ADMIN_ENDPOINTS.TESTIMONIALS.ALL, { params }),
+  create: (data) => apiClient.post(ADMIN_ENDPOINTS.TESTIMONIALS.CREATE, data, { headers: { "Content-Type": "multipart/form-data" },}),
+  update: (id, data) =>apiClient.put(ADMIN_ENDPOINTS.TESTIMONIALS.UPDATE(id), data, { headers: { "Content-Type": "multipart/form-data" }, }),
   delete: (id) => apiClient.delete(ADMIN_ENDPOINTS.TESTIMONIALS.DELETE(id)),
   getStats: () => apiClient.get(ADMIN_ENDPOINTS.TESTIMONIALS.STATS),
 };
+
 
 // ================= PRAYERS =================
 export const prayerService = {
@@ -117,21 +106,21 @@ export const prayerService = {
 
 // ================= BLOG =================
 export const blogService = {
-  getAll: (params = {}) => apiClient.get(PUBLIC_ENDPOINTS.BLOG, { params }),
-  getCategories: () => apiClient.get(PUBLIC_ENDPOINTS.BLOG_CATEGORIES),
-  getFavorites: () => apiClient.get(PUBLIC_ENDPOINTS.BLOG_FAVORITES),
-  addFavorite: (id) => apiClient.post(PUBLIC_ENDPOINTS.BLOG_FAVORITE_ACTION(id)),
+  getAll: (params = {}) => apiClient.get(PUBLIC_ENDPOINTS.BLOGS, { params }),
+  getCategories: () => apiClient.get(PUBLIC_ENDPOINTS.BLOGS_CATEGORIES),
+  getFavorites: () => apiClient.get(PUBLIC_ENDPOINTS.BLOGS_FAVORITES),
+  addFavorite: (id) => apiClient.post(PUBLIC_ENDPOINTS.BLOGS_FAVORITE_ACTION(id)),
   removeFavorite: (id) =>
-    apiClient.delete(PUBLIC_ENDPOINTS.BLOG_FAVORITE_ACTION(id)),
+    apiClient.delete(PUBLIC_ENDPOINTS.BLOGS_FAVORITE_ACTION(id)),
   subscribeNewsletter: (email) =>
-    apiClient.post("/api/blog/newsletter/subscribe", { email }),
+    apiClient.post("/api/blogs/newsletter/subscribe", { email }),
 
   // Admin
-  create: (data) => apiClient.post(ADMIN_ENDPOINTS.BLOG.CREATE, data),
-  update: (id, data) => apiClient.put(ADMIN_ENDPOINTS.BLOG.UPDATE(id), data),
-  delete: (id) => apiClient.delete(ADMIN_ENDPOINTS.BLOG.DELETE(id)),
-  getAllAdmin: () => apiClient.get(ADMIN_ENDPOINTS.BLOG.BASE),
-  getCategoriesAdmin: () => apiClient.get(ADMIN_ENDPOINTS.BLOG.CATEGORIES),
+  create: (data) => apiClient.post(ADMIN_ENDPOINTS.BLOGS.CREATE, data),
+  update: (id, data) => apiClient.put(ADMIN_ENDPOINTS.BLOGS.UPDATE(id), data),
+  delete: (id) => apiClient.delete(ADMIN_ENDPOINTS.BLOGS.DELETE(id)),
+  getAllAdmin: () => apiClient.get(ADMIN_ENDPOINTS.BLOGS.BASE),
+  getCategoriesAdmin: () => apiClient.get(ADMIN_ENDPOINTS.BLOGS.CATEGORIES),
 };
 
 // ================= DONATIONS =================
@@ -161,6 +150,10 @@ export const userService = {
   getProfile: () => apiClient.get(USER_ENDPOINTS.PROFILE),
   updateProfile: (data) => apiClient.put(USER_ENDPOINTS.UPDATE_PROFILE, data),
   getDashboard: () => apiClient.get(USER_ENDPOINTS.DASHBOARD),
+  addAvatar: (data) => apiClient.post(USER_ENDPOINTS.AVATAR, data,
+    { headers: { "Content-Type": "multipart/form-data" }, }),
+  addCoverPhoto: (data) => apiClient.post(USER_ENDPOINTS.COVERPHOTO, data,
+    { headers: { "Content-Type": "multipart/form-data" },}),
   getFamily: () => apiClient.get(USER_ENDPOINTS.FAMILY.BASE),
   addFamilyMember: (data) => apiClient.post(USER_ENDPOINTS.FAMILY.BASE, data),
   removeFamilyMember: (id) => apiClient.delete(USER_ENDPOINTS.FAMILY.MEMBER(id)),
@@ -185,8 +178,8 @@ export const volunteerService = {
   getStats: () => apiClient.get(ADMIN_ENDPOINTS.VOLUNTEERS.STATS),
   getById: (id) => apiClient.get(ADMIN_ENDPOINTS.VOLUNTEERS.BY_ID(id)),
   updateStatus: (id, data) => apiClient.put(ADMIN_ENDPOINTS.VOLUNTEERS.UPDATE_STATUS(id), data),
-  getUserApplications: () => apiClient.get("/api/volunteers/user/applications"),
-  getMinistryVolunteers: (id) => apiClient.get(`/api/volunteers/ministry/${id}`),
+  getUserApplications: () => apiClient.get(USER_ENDPOINTS.VOLUNTEER_APPLICATIONS),
+  getMinistryVolunteers: (id) => apiClient.get(`/volunteers/ministry/${id}`),
 };
 
 // ================= ADMIN SERVICE =================
@@ -204,11 +197,11 @@ export const adminService = {
   getMinistryCategories: () => apiClient.get(ADMIN_ENDPOINTS.MINISTRIES.CATEGORIES),
 
   // Blog
-  getBlogPosts: () => apiClient.get(ADMIN_ENDPOINTS.BLOG.BASE),
-  createBlogPost: (data) => apiClient.post(ADMIN_ENDPOINTS.BLOG.CREATE, data),
-  updateBlogPost: (id, data) => apiClient.put(ADMIN_ENDPOINTS.BLOG.UPDATE(id), data),
-  deleteBlogPost: (id) => apiClient.delete(ADMIN_ENDPOINTS.BLOG.DELETE(id)),
-  getBlogCategories: () => apiClient.get(ADMIN_ENDPOINTS.BLOG.CATEGORIES),
+  getBlogPosts: () => apiClient.get(ADMIN_ENDPOINTS.BLOGS.BASE),
+  createBlogPost: (data) => apiClient.post(ADMIN_ENDPOINTS.BLOGS.CREATE, data),
+  updateBlogPost: (id, data) => apiClient.put(ADMIN_ENDPOINTS.BLOGS.UPDATE(id), data),
+  deleteBlogPost: (id) => apiClient.delete(ADMIN_ENDPOINTS.BLOGS.DELETE(id)),
+  getBlogCategories: () => apiClient.get(ADMIN_ENDPOINTS.BLOGS.CATEGORIES),
 
   // Testimonials
   getTestimonials: () => apiClient.get(ADMIN_ENDPOINTS.TESTIMONIALS.ALL),
@@ -263,8 +256,8 @@ export const socialAuthService = {
   googleLogin: () => { window.location.href = `${import.meta.env.VITE_API_URL}${SOCIAL_AUTH_ENDPOINTS.GOOGLE}`; },
   facebookLogin: () => { window.location.href = `${import.meta.env.VITE_API_URL}${SOCIAL_AUTH_ENDPOINTS.FACEBOOK}`; },
 
-  validateGoogleToken: (token) => apiClient.post(SOCIAL_AUTH_ENDPOINTS.VALIDATE_GOOGLE, { token }),
-  validateFacebookToken: (token) => apiClient.post(SOCIAL_AUTH_ENDPOINTS.VALIDATE_FACEBOOK, { token }),
+  validateGoogleToken: (token) => apiClient.get(SOCIAL_AUTH_ENDPOINTS.VALIDATE_GOOGLE, { token }),
+  validateFacebookToken: (token) => apiClient.get(SOCIAL_AUTH_ENDPOINTS.VALIDATE_FACEBOOK, { token }),
 
   linkAccount: (data) => apiClient.post(SOCIAL_AUTH_ENDPOINTS.LINK_ACCOUNT, data),
   unlinkAccount: (provider) => apiClient.delete(SOCIAL_AUTH_ENDPOINTS.UNLINK_ACCOUNT(provider)),

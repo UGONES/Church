@@ -28,15 +28,25 @@ const LoginPage = () => {
 
   // ✅ Redirect if already logged in
   useEffect(() => {
-    document.title = `SMC: | ${!isRegistering ? "Sign In" : "Register"} | St. Michael's & All Angels Church | Ifite-Awka`;
+    document.title = `SMC | ${!isRegistering ? "Sign In" : "Register"} | St. Michael's & All Angels Church | Ifite-Awka`;
 
     if (user && user.id) {
-      const redirectTo =
-        location.state?.from?.pathname ||
-        (["admin", "moderator"].includes(user.role)
-          ? `/admin/${user.id}/dashboard`
-          : `/user/${user.id}/dashboard`);
-      navigate(redirectTo, { replace: true });
+      // Determine redirect destination safely
+      let redirectTo = location.state?.from?.pathname;
+
+      if (!redirectTo) {
+        if (user.role === "admin") {
+          redirectTo = `/admin/${user.id}/dashboard`;
+        } else if (user.role === "moderator") {
+          redirectTo = `/moderator/${user.id}/dashboard`;
+        } else {
+          redirectTo = `/user/${user.id}/dashboard`;
+        }
+      }
+
+      // Delay slightly to allow context state sync
+      const timer = setTimeout(() => navigate(redirectTo, { replace: true }), 300);
+      return () => clearTimeout(timer);
     }
   }, [user, isRegistering, navigate, location]);
 
@@ -241,10 +251,11 @@ const LoginPage = () => {
               <form onSubmit={handleLogin} className="space-y-6 bg-transparent">
                 {/* Email */}
                 <div>
-                  <label className="block text-sm font-medium text-dark-700">Email</label>
+                  <label htmlFor="email" className="block text-sm font-medium text-dark-700">Email</label>
                   <input
                     type="email"
                     name="email"
+                    id="email"
                     autoComplete="true"
                     required
                     className="mt-1 w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent"
@@ -254,11 +265,12 @@ const LoginPage = () => {
 
                 {/* Password */}
                 <div>
-                  <label className="block text-sm font-medium text-dark-700">Password</label>
+                  <label htmlFor="password" className="block text-sm font-medium text-dark-700">Password</label>
                   <div className="relative">
                     <input
                       type={showPassword.login ? "text" : "password"}
                       name="password"
+                      id="password"
                       autoComplete="true"
                       required
                       className="mt-1 w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent pr-10"
@@ -288,11 +300,12 @@ const LoginPage = () => {
 
                   {showAdminCode && (
                     <div className="mt-2">
-                      <label className="block text-sm font-medium">Admin Code</label>
+                      <label htmlFor="adminCode" className="block text-sm font-medium">Admin Code</label>
                       <div className="relative">
                         <input
                           type={showPassword.admin ? "text" : "password"}
                           name="adminCode"
+                          id="adminCode"
                           autoComplete="true"
                           className="mt-1 w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent pr-10"
                           placeholder="Enter admin code"
@@ -313,11 +326,12 @@ const LoginPage = () => {
 
                 {/* Forgot + Remember */}
                 <div className="flex items-center justify-between">
-                  <label className="flex items-center">
+                  <label htmlFor="remember" className="flex items-center">
                     <input
                       type="checkbox"
                       autoComplete="true"
                       name="remember"
+                      id="remember"
                       className="h-4 w-4 text-[#FF7E45] border-gray-300 rounded"
                     />
                     <span className="ml-2 text-sm text-gray-600">Remember me</span>
@@ -358,32 +372,34 @@ const LoginPage = () => {
                   </p>
                 </div>
                 { /*Social Login - Using the new component */}
-                {/* <SocialLoginButtons
+                <SocialLoginButtons
                   onSuccess={handleSocialSuccess}
                   onError={handleSocialError}
                   loading={isLoading}
-                /> */}
+                />
               </form>
             ) : (
               // sign up page
               <form onSubmit={handleRegister} className="space-y-6">
                 {/* Name */}
                 <div>
-                  <label className="block text-sm font-medium text-dark-700">First Name</label>
+                  <label htmlFor="firstName" className="block text-sm font-medium text-dark-700">First Name</label>
                   <input
                     type="text"
                     name="firstName"
+                    id="firstName"
                     autoComplete="true"
                     required
                     className="mt-1 w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent"
                     placeholder="Enter your full name"
                   />
-                </div> 
-                  <div>
-                  <label className="block text-sm font-medium text-dark-700">Last Name</label>
+                </div>
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-dark-700">Last Name</label>
                   <input
                     type="text"
                     name="lastName"
+                    id="lastName"
                     autoComplete="true"
                     required
                     className="mt-1 w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent"
@@ -392,11 +408,12 @@ const LoginPage = () => {
                 </div>
                 {/* Email */}
                 <div>
-                  <label className="block text-sm font-medium text-dark-700">Email</label>
+                  <label htmlFor="email" className="block text-sm font-medium text-dark-700">Email</label>
                   <input
                     type="email"
                     autoComplete="true"
                     name="email"
+                    id="email"
                     required
                     className="mt-1 w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent"
                     placeholder="Enter your email"
@@ -404,11 +421,12 @@ const LoginPage = () => {
                 </div>
                 {/* Password */}
                 <div>
-                  <label className="block text-sm font-medium text-dark-700">Password</label>
+                  <label htmlFor="password" className="block text-sm font-medium text-dark-700">Password</label>
                   <div className="relative">
                     <input
                       type={showPassword.register ? "text" : "password"}
                       name="password"
+                      id="password"
                       minLength="8"
                       autoComplete="true"
                       required
@@ -426,11 +444,12 @@ const LoginPage = () => {
                 </div>
                 {/* Confirm */}
                 <div>
-                  <label className="block text-sm font-medium text-dark-700">Confirm Password</label>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-dark-700">Confirm Password</label>
                   <div className="relative">
                     <input
                       type={showPassword.confirm ? "text" : "password"}
                       name="confirmPassword"
+                      id="confirmPassword"
                       autoComplete="true"
                       required
                       className="mt-1 w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent pr-10"
@@ -457,13 +476,14 @@ const LoginPage = () => {
                   </button>
                   {showAdminCode && (
                     <div className="mt-2">
-                      <label className="block text-sm font-medium ">
+                      <label htmlFor="adminCode" className="block text-sm font-medium ">
                         Admin Code (for staff only)
                       </label>
                       <input
                         type="password"
                         autoComplete="true"
                         name="adminCode"
+                        id="adminCode"
                         className="mt-1 w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent"
                         placeholder="Enter admin code"
                       />

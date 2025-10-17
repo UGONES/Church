@@ -15,11 +15,11 @@ const blogPostSchema = new Schema({
     type: String,
     required: true
   },
-author: {
-  type: Schema.Types.ObjectId,
-  ref: 'User',
-  required: true
-},
+  author: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   category: {
     type: String,
     enum: ['announcements', 'devotional', 'testimony', 'teaching', 'news', 'events'],
@@ -65,7 +65,15 @@ author: {
     type: String,
     unique: true,
     lowercase: true
-  }
+  },
+  readTime: {
+    type: String,
+    default: "5 min read"
+  },
+  author: {
+    type: Schema.Types.ObjectId,
+    ref: "User"
+  },
 }, {
   timestamps: true
 });
@@ -78,7 +86,7 @@ blogPostSchema.index({ createdAt: -1 });
 blogPostSchema.index({ slug: 1 });
 
 // Generate slug before saving
-blogPostSchema.pre('save', function(next) {
+blogPostSchema.pre('save', function (next) {
   if (this.isModified('title') && this.title) {
     this.slug = this.title
       .toLowerCase()

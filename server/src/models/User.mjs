@@ -1,14 +1,6 @@
 import { Schema, model } from "mongoose";
 import bcrypt from "bcryptjs";
 
-/**
- * User schema
- * - Robust validation and secure password handling
- * - Exposes getPublicProfile() which always includes id (string)
- * - toJSON removes sensitive fields and maps _id -> id
- */
-
-// Config
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 12;
 const MIN_PASSWORD_LENGTH = Number(process.env.MIN_PASSWORD_LENGTH) || 8;
 const VALID_ROLES = ["user", "admin", "moderator"];
@@ -75,6 +67,7 @@ const userSchema = new Schema(
     adminCode: { type: String, select: false, default: undefined },
 
     avatar: { type: String, default: "" },
+    coverPhoto: { type: String, default: "" },
 
     phone: { type: String, match: [phoneRegex, "Please enter a valid phone number"], default: "" },
 

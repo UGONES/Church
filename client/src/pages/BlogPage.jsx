@@ -17,7 +17,7 @@ const BlogPage = () => {
   const [categories, setCategories] = useState([]);
   const [tagInput, setTagInput] = useState('');
 
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || user?.role === "moderator";
   const isAuthenticated = user?.isLoggedIn;
   const alert = useAlert();
 
@@ -30,41 +30,33 @@ const BlogPage = () => {
     }
   }, [isAuthenticated]);
 
-  const fetchBlogPosts = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await blogService.getAll();
-      if (response.success) {
-        setPosts(response.data.map(post => new BlogPost(post)));
-      } else {
-        throw new Error(response.message || 'Failed to fetch posts');
-      }
-    } catch (error) {
-      console.error('Error fetching blog posts:', error);
-      setError('Failed to load blog posts. Please try again later.');
-      alert.error('Failed to load blog posts. Please try again later.');
-      // Fallback to sample data
-      setPosts([
-        new BlogPost({
-          id: 1,
-          title: "Summer Camp Registration Now Open",
-          excerpt: "Register your children for our annual summer camp experience. Limited spots available!",
-          content: "Full article content would go here...",
-          category: "events",
-          date: "2025-06-01",
-          imageUrl: "https://cdn.pixabay.com/photo/2017/08/06/12/06/people-2591874_1280.jpg",
-          author: "Youth Ministry Team",
-          status: "published",
-          readTime: "5 min read",
-          tags: ["summer", "camp", "youth"]
-        }),
-        // ... other sample posts
-      ]);
-    } finally {
-      setIsLoading(false);
+const fetchBlogPosts = async () => {
+  try {
+    setIsLoading(true);
+    setError(null);
+    const response = await blogService.getAll();
+
+    const postsData =
+      response?.data?.data || // if Axios wraps data twice
+      response?.data?.posts ||
+      response?.data ||
+      [];
+
+    if (Array.isArray(postsData) && postsData.length >= 0) {
+      setPosts(postsData.map(post => new BlogPost(post)));
+    } else {
+      throw new Error('Unexpected response structure');
     }
-  };
+  } catch (error) {
+    console.error('Error fetching blog posts:', error);
+    setError('Failed to load blog posts. Please try again later.');
+    alert.error('Failed to load blog posts. Please try again later.');
+    // fallback
+    setPosts([new BlogPost()]);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const fetchCategories = async () => {
     try {
@@ -578,7 +570,7 @@ const BlogPostModal = ({ post, onSave, onClose, isEdit, tagInput, setTagInput })
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-[#333333e9] bg-opacity-75 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <h2 className="text-2xl font-bold mb-6">

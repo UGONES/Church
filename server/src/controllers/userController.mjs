@@ -1,4 +1,16 @@
-import User from '../models/User.mjs';
+import cloudinary from "../config/cloudinary.mjs";
+import fs from "fs";
+
+import User from "../models/User.mjs";
+import Donation from "../models/Donation.mjs";
+import Event from "../models/Event.mjs";
+import RSVP from "../models/RSVP.mjs";
+import Favorite from "../models/Favorite.mjs";
+import Volunteer from "../models/Volunteer.mjs";
+import Prayer from "../models/Prayer.mjs";
+import BlogPost from "../models/BlogPost.mjs";
+
+
 
 /* ================================
    Get current user profile
@@ -6,15 +18,12 @@ import User from '../models/User.mjs';
 export async function getCurrentUser(req, res) {
   try {
     const user = await User.findById(req.user._id)
-      .select('-password -verificationToken -resetPasswordToken -adminCode');
-    
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+      .select("-password -verificationToken -resetPasswordToken -adminCode");
 
+    if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -23,35 +32,39 @@ export async function getCurrentUser(req, res) {
 ================================= */
 export async function updateProfile(req, res) {
   try {
-    const { 
-      firstName, 
-      lastName, 
-      phone, 
-      address, 
-      communicationPreferences,
-      volunteerProfile
-    } = req.body;
-
     const updateData = {};
-    if (firstName !== undefined) updateData.firstName = firstName;
-    if (lastName !== undefined) updateData.lastName = lastName;
-    if (phone !== undefined) updateData.phone = phone;
-    if (address !== undefined) updateData.address = address;
-    if (communicationPreferences !== undefined) updateData.communicationPreferences = communicationPreferences;
-    if (volunteerProfile !== undefined) updateData.volunteerProfile = volunteerProfile;
-
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      updateData,
-      { new: true, runValidators: true }
-    ).select('-password -verificationToken -resetPasswordToken -adminCode');
-
-    res.json({
-      message: 'Profile updated successfully',
-      user
+    const fields = [
+      "firstName", "lastName", "phone", "address",
+      "communicationPreferences", "volunteerProfile", "avatar"
+    ];
+    fields.forEach(f => {
+      if (req.body[f] !== undefined) updateData[f] = req.body[f];
     });
+
+    const user = await User.findByIdAndUpdate(req.user._id, updateData, {
+      new: true,
+      runValidators: true
+    }).select("-password -verificationToken -resetPasswordToken -adminCode");
+
+    res.json({ message: "Profile updated successfully", user });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
+
+/*===============================
+  Get family member
+=================================*/
+export const getFamily =  async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({ familyMembers: user.familyMembers || [] });
+  } catch (err) {
+    console.error("❌ Family fetch error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 }
 
@@ -61,19 +74,15 @@ export async function updateProfile(req, res) {
 export async function addFamilyMember(req, res) {
   try {
     const { name, relationship, age } = req.body;
-
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { $push: { familyMembers: { name, relationship, age } } },
       { new: true, runValidators: true }
-    ).select('familyMembers');
+    ).select("familyMembers");
 
-    res.json({
-      message: 'Family member added successfully',
-      familyMembers: user.familyMembers
-    });
+    res.json({ message: "Family member added", familyMembers: user.familyMembers });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -83,19 +92,15 @@ export async function addFamilyMember(req, res) {
 export async function removeFamilyMember(req, res) {
   try {
     const { memberId } = req.params;
-
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { $pull: { familyMembers: { _id: memberId } } },
       { new: true }
-    ).select('familyMembers');
+    ).select("familyMembers");
 
-    res.json({
-      message: 'Family member removed successfully',
-      familyMembers: user.familyMembers
-    });
+    res.json({ message: "Family member removed", familyMembers: user.familyMembers });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -105,18 +110,22 @@ export async function removeFamilyMember(req, res) {
 export async function getUserDashboard(req, res) {
   try {
     const user = await User.findById(req.user._id)
-      .select('name firstName lastName email role avatar memberSince membershipStatus smallGroup familyMembers volunteerStats');
-    
+      .select("name firstName lastName email role avatar memberSince membershipStatus smallGroup familyMembers volunteerStats");
+
+    const donationCount = await Donation.countDocuments({ user: req.user._id });
+    const rsvpCount = await RSVP.countDocuments({ user: req.user._id });
+    const volunteerCount = await Volunteer.countDocuments({ user: req.user._id });
+
     res.json({
       user,
       stats: {
-        donationCount: 0, // Would come from donations service
-        eventCount: 0,    // Would come from events service
-        volunteerApplications: 0 // Would come from volunteer service
+        donationCount,
+        eventCount: rsvpCount,
+        volunteerApplications: volunteerCount
       }
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -127,7 +136,7 @@ export async function trackLoginActivity(userId) {
   try {
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { 
+      {
         $set: { lastLogin: new Date() },
         $inc: { loginCount: 1 }
       },
@@ -141,12 +150,108 @@ export async function trackLoginActivity(userId) {
 }
 
 /* ================================
+   User RSVPs
+================================= */
+export async function getUserRSVPs(req, res) {
+  try {
+    const rsvps = await RSVP.find({ user: req.user._id }).populate("event", "title date location");
+    res.json(rsvps);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
+/* ================================
+   User Favorites
+================================= */
+export async function getUserFavorites(req, res) {
+  try {
+    const favorites = await Favorite.find({ user: req.user._id }).populate("event", "title date location");
+    res.json(favorites);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
+/* ================================
+   User Donations
+================================= */
+export async function getUserDonations(req, res) {
+  try {
+    const donations = await Donation.find({ user: req.user._id }).sort({ createdAt: -1 });
+    res.json(donations);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
+/* ================================
+   User Volunteer Applications
+================================= */
+export async function getUserVolunteers(req, res) {
+  try {
+    const volunteers = await Volunteer.find({ user: req.user._id }).populate("ministry", "name");
+    res.json(volunteers);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
+/* ================================
+   User Prayers
+================================= */
+export async function getUserPrayers(req, res) {
+  try {
+    const prayers = await Prayer.find({ user: req.user._id }).sort({ createdAt: -1 });
+    res.json(prayers);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
+/* ================================
+   Moderator Functions
+================================= */
+export async function getPendingVolunteers(req, res) {
+  try {
+    const volunteers = await Volunteer.find({ status: "pending" }).populate("user ministry");
+    res.json(volunteers);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
+export async function moderatePrayer(req, res) {
+  try {
+    const { id } = req.params;
+    const { approved } = req.body;
+    const prayer = await Prayer.findByIdAndUpdate(id, { approved }, { new: true });
+    if (!prayer) return res.status(404).json({ message: "Prayer not found" });
+    res.json({ message: "Prayer updated", prayer });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
+export async function moderateBlog(req, res) {
+  try {
+    const { id } = req.params;
+    const { approved } = req.body;
+    const blog = await BlogPost.findByIdAndUpdate(id, { approved }, { new: true });
+    if (!blog) return res.status(404).json({ message: "Blog not found" });
+    res.json({ message: "Blog updated", blog });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
+/* ================================
    Admin Functions
 ================================= */
 export async function getAllUsers(req, res) {
   try {
     const { page = 1, limit = 10, role, search, membershipStatus } = req.query;
-    
+
     const query = {};
     if (role) query.role = role;
     if (membershipStatus) query.membershipStatus = membershipStatus;
@@ -252,7 +357,7 @@ export async function deleteUser(req, res) {
     }
 
     const user = await User.findByIdAndDelete(id);
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -278,5 +383,64 @@ export async function getMembershipStatuses(req, res) {
     res.json(statuses);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+}
+
+/* ================================
+   Upload Avatar
+================================ */
+export async function uploadAvatar(req, res) {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+    const upload = await cloudinary.uploader.upload(req.file.path, {
+      folder: "church/avatars",
+      width: 400,
+      height: 400,
+      crop: "fill",
+      gravity: "face",
+    });
+
+    // Update user
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { photoUrl: upload.secure_url },
+      { new: true }
+    ).select("-password -verificationToken -resetPasswordToken");
+
+    fs.unlinkSync(req.file.path); // clean temp file
+
+    res.json({ message: "Avatar updated successfully", user });
+  } catch (error) {
+    console.error("Avatar upload error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
+/* ================================
+   Upload Cover Photo
+================================ */
+export async function uploadCoverPhoto(req, res) {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+    const upload = await cloudinary.uploader.upload(req.file.path, {
+      folder: "church/covers",
+      width: 1200,
+      height: 400,
+      crop: "fill",
+    });
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { coverPhoto: upload.secure_url },
+      { new: true }
+    ).select("-password -verificationToken -resetPasswordToken");
+
+    fs.unlinkSync(req.file.path);
+    res.json({ message: "Cover photo updated successfully", user });
+  } catch (error) {
+    console.error("Cover upload error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }

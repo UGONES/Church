@@ -25,26 +25,6 @@ export const userValidation = () => {
   ];
 };
 
-// Login validation rules
-export const loginValidation = () => {
-  return [
-    body('email')
-      .isEmail()
-      .normalizeEmail()
-      .withMessage('Please provide a valid email'),
-    body("password")
-      .isLength({ min: 8, max: 100 })
-      .withMessage("Password must be at least 8 characters")
-      .matches(/[A-Z]/)
-      .withMessage("Password must contain at least one uppercase letter")
-      .matches(/[a-z]/)
-      .withMessage("Password must contain at least one lowercase letter")
-      .matches(/[0-9]/)
-      .withMessage("Password must contain at least one number")
-      .matches(/[@$!%*?&]/)
-      .withMessage("Password must contain at least one special character"),
-  ];
-};
 
 // Donation validation rules
 export const donationValidation = () => {
@@ -103,33 +83,36 @@ export const sermonValidation = () => {
   ];
 };
 
-export const registerValidation = () => {
-  return [
-    body("name")
-      .trim()
-      .isLength({ min: 2, max: 50 })
-      .withMessage("Name must be between 2 and 50 characters")
-      .matches(/^[a-zA-Z\s'-]+$/)
-      .withMessage("Name contains invalid characters"),
+export const loginValidation = () => [
+  body("email")
+    .isString()
+    .trim()
+    .isEmail()
+    .normalizeEmail()
+    .withMessage("Valid email required"),
+  body("password")
+    .isString()
+    .isLength({ min: 8 })
+    .withMessage("Password must be at least 8 characters"),
+];
 
-    body("email")
-      .normalizeEmail()
-      .isEmail()
-      .withMessage("Please enter a valid email"),
+export const registerValidation = () => [
+  body("name")
+    .isString()
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage("Name must be 2–50 chars long"),
+  body("email")
+    .isString()
+    .isEmail()
+    .normalizeEmail()
+    .withMessage("Valid email required"),
+  body("password")
+    .isString()
+    .isLength({ min: 8 })
+    .withMessage("Password must be at least 8 characters"),
+];
 
-    body("password")
-      .isLength({ min: 8, max: 100 })
-      .withMessage("Password must be at least 8 characters")
-      .matches(/[A-Z]/)
-      .withMessage("Password must contain at least one uppercase letter")
-      .matches(/[a-z]/)
-      .withMessage("Password must contain at least one lowercase letter")
-      .matches(/[0-9]/)
-      .withMessage("Password must contain at least one number")
-      .matches(/[@$!%*?&]/)
-      .withMessage("Password must contain at least one special character"),
-  ];
-};
 
 
 export const forgotPasswordValidation = () => {

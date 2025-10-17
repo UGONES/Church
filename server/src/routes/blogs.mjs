@@ -18,12 +18,12 @@ import { moderatorCheck } from '../middleware/adminCheck.mjs';
 import { uploadImage } from '../middleware/upload.mjs';
 
 // Public routes
-router.get('/posts', optionalAuth, getAllBlogPosts);
-router.get('/categories', optionalAuth, getBlogCategories);
-router.post('/newsletter/subscribe', optionalAuth, subscribeToNewsletter);
+router.get('/posts',  getAllBlogPosts);
+router.get('/categories',  getBlogCategories);
+router.post('/newsletter/subscribe', subscribeToNewsletter);
 
 // Authenticated routes
-router.get('/favorites', optionalAuth, getFavoriteBlogPosts);
+router.get('/favorites', auth, getFavoriteBlogPosts);
 router.post('/favorites/:id', auth, addFavoriteBlogPost);
 router.delete('/favorites/:id', auth, removeFavoriteBlogPost);
 

@@ -2,34 +2,36 @@ import Event from '../models/Event.mjs'; // FIXED: Only import models
 import RSVP from '../models/RSVP.mjs';
 import Favorite from '../models/Favorite.mjs';
 
-// Get all events
+// ===================== GET ALL EVENTS =====================
 export async function getAllEvents(req, res) {
     try {
         const { page = 1, limit = 10, category, upcoming } = req.query;
-
         const query = {};
-        if (category) query.category = category;
-        if (upcoming === 'true') {
-            query.startTime = { $gte: new Date() };
-        }
 
-        // FIXED: Use Event.find() instead of find()
+        if (category) query.category = category;
+        if (upcoming === 'true') query.startTime = { $gte: new Date() };
+
         const events = await Event.find(query)
             .sort({ startTime: 1 })
-            .limit(limit * 1)
-            .skip((page - 1) * limit);
+            .limit(Number(limit))
+            .skip((page - 1) * Number(limit));
 
-        // FIXED: Use Event.countDocuments() instead of countDocuments()
         const total = await Event.countDocuments(query);
 
-        res.json({
-            events,
+        return res.json({
+            success: true,
+            events, // 👈 matches frontend expectation
+            total,
             totalPages: Math.ceil(total / limit),
-            currentPage: page,
-            total
+            currentPage: Number(page),
         });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        console.error('❌ Error fetching events:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Server error fetching events',
+            error: error.message,
+        });
     }
 }
 
@@ -40,7 +42,7 @@ export async function getUpcomingEvents(req, res) {
         // FIXED: Use Event.find() instead of find()
         const events = await Event.find({
             startTime: { $gte: new Date() },
-            status: 'scheduled'
+            status: { $in: ['scheduled', 'draft'] }
         })
             .sort({ startTime: 1 })
             .limit(parseInt(limit));
@@ -208,7 +210,7 @@ export async function removeFavoriteEvent(req, res) {
     }
 }
 
-// Create event (Admin)
+// ===================== CREATE EVENT (ADMIN) =====================
 export async function createEvent(req, res) {
     try {
         const eventData = req.body;
@@ -217,15 +219,24 @@ export async function createEvent(req, res) {
             eventData.imageUrl = req.file.path;
         }
 
+        if (!eventData.status) eventData.status = 'scheduled';
+
         const event = new Event(eventData);
         await event.save();
+        console.log("✅ Event saved:", event._id, event.title);
 
-        res.status(201).json({
+        return res.status(201).json({
+            success: true,
             message: 'Event created successfully',
-            event
+            event,
         });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        console.error('❌ Event creation error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to create event',
+            error: error.message,
+        });
     }
 }
 

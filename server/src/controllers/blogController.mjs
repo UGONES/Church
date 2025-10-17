@@ -1,168 +1,230 @@
-import BlogPost from '../models/BlogPost.mjs';
-import Favorite from '../models/Favorite.mjs';
+import BlogPost from "../models/BlogPost.mjs";
+import Favorite from "../models/Favorite.mjs";
 
-// Get all blog posts
+/**
+ * 🧠 Helper – Uniform success response
+ */
+const sendSuccess = (res, data, message = "Success", status = 200) => {
+  return res.status(status).json({ success: true, message, data });
+};
+
+/**
+ * 🧠 Helper – Uniform error response
+ */
+const sendError = (res, error, message = "Server error", status = 500) => {
+  console.error("❌ Blog Controller Error:", error);
+  return res.status(status).json({ success: false, message, error: error?.message || message, });
+};
+
+/* ============================================================================
+   📜 PUBLIC ROUTES
+============================================================================ */
+
+/**
+ * GET /api/blogs/posts
+ * Fetch all published blog posts
+ */
 export async function getAllBlogPosts(req, res) {
   try {
-    const { page = 1, limit = 10, category, status = 'published' } = req.query;
-    
+    const { page = 1, limit = 10, category, status = "published" } = req.query;
+
     const query = { status };
     if (category) query.category = category;
 
     const blogPosts = await BlogPost.find(query)
-      .populate('author', 'name avatar')
+      .populate("author", "name avatar")
       .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .limit(Number(limit))
+      .skip((page - 1) * Number(limit));
 
     const total = await BlogPost.countDocuments(query);
 
-    res.json({
-      blogPosts,
+    return sendSuccess(res, {
+      posts: blogPosts,
+      total,
       totalPages: Math.ceil(total / limit),
-      currentPage: page,
-      total
+      currentPage: Number(page),
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return sendError(res, error);
   }
 }
 
-// Get blog categories
+/**
+ * GET /api/blogs/categories
+ * Fetch all unique categories
+ */
 export async function getBlogCategories(req, res) {
   try {
-    const categories = await BlogPost.distinct('category');
-    res.json(categories);
+    const categories = await BlogPost.distinct("category");
+    return sendSuccess(res, categories);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return sendError(res, error);
   }
 }
 
-// Get favorite blog posts
+/**
+ * GET /api/blogs/favorites
+ * Get user’s favorite blog posts
+ */
 export async function getFavoriteBlogPosts(req, res) {
   try {
     const favorites = await Favorite.find({
       userId: req.user._id,
-      itemType: 'blog'
-    }).populate('itemId');
+      itemType: "blog",
+    }).populate("itemId");
 
-    res.json(favorites.map(fav => fav.itemId));
+    const favPosts = favorites.map((fav) => fav.itemId);
+    return sendSuccess(res, favPosts);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return sendError(res, error);
   }
 }
 
-// Add favorite blog post
+/**
+ * POST /api/blogs/favorites/:id
+ * Add a blog post to favorites
+ */
 export async function addFavoriteBlogPost(req, res) {
   try {
     const { id } = req.params;
 
     const existingFavorite = await Favorite.findOne({
       userId: req.user._id,
-      itemType: 'blog',
-      itemId: id
+      itemType: "blog",
+      itemId: id,
     });
 
     if (existingFavorite) {
-      return res.status(400).json({ message: 'Blog post already in favorites' });
+      return sendError(res, null, "Blog post already in favorites", 400);
     }
 
     const favorite = new Favorite({
       userId: req.user._id,
-      itemType: 'blog',
-      itemId: id
+      itemType: "blog",
+      itemId: id,
     });
 
     await favorite.save();
-    res.status(201).json({ message: 'Blog post added to favorites' });
+    return sendSuccess(res, favorite, "Blog post added to favorites", 201);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return sendError(res, error);
   }
 }
 
-// Remove favorite blog post
+/**
+ * DELETE /api/blogs/favorites/:id
+ * Remove a blog post from favorites
+ */
 export async function removeFavoriteBlogPost(req, res) {
   try {
     const { id } = req.params;
 
     await Favorite.findOneAndDelete({
       userId: req.user._id,
-      itemType: 'blog',
-      itemId: id
+      itemType: "blog",
+      itemId: id,
     });
 
-    res.json({ message: 'Blog post removed from favorites' });
+    return sendSuccess(res, null, "Blog post removed from favorites");
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return sendError(res, error);
   }
 }
 
-// Subscribe to newsletter
+/**
+ * POST /api/blogs/subscribe
+ * Subscribe to newsletter
+ */
 export async function subscribeToNewsletter(req, res) {
   try {
     const { email } = req.body;
+    if (!email)
+      return sendError(res, null, "Email is required", 400);
 
-    // In a real application, you would add this email to your newsletter service
-    res.json({ message: 'Successfully subscribed to newsletter' });
+    // Placeholder — integrate Mailchimp or SendGrid here
+    console.log("📬 Newsletter subscriber:", email);
+
+    return sendSuccess(res, { email }, "Successfully subscribed to newsletter!");
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return sendError(res, error);
   }
 }
 
-// Get all blog posts (Admin)
+/* ============================================================================
+   🛠️ ADMIN & MODERATOR ROUTES
+============================================================================ */
+
+/**
+ * GET /api/blogs/admin
+ * Fetch all blog posts (admin & moderator)
+ */
 export async function getAllBlogPostsAdmin(req, res) {
   try {
     const { page = 1, limit = 10, status } = req.query;
-    
+
     const query = {};
     if (status) query.status = status;
 
     const blogPosts = await BlogPost.find(query)
-      .populate('author', 'name email')
+      .populate("author", "name email")
       .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .limit(Number(limit))
+      .skip((page - 1) * Number(limit));
 
     const total = await BlogPost.countDocuments(query);
 
-    res.json({
-      blogPosts,
+    return sendSuccess(res, {
+      posts: blogPosts,
+      total,
       totalPages: Math.ceil(total / limit),
-      currentPage: page,
-      total
+      currentPage: Number(page),
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return sendError(res, error);
   }
 }
 
-// Create blog post (Admin)
+/**
+ * POST /api/blogs/admin/create
+ * Create new blog post (admin or moderator)
+ */
 export async function createBlogPost(req, res) {
   try {
+    const user = req.user;
+
+    if (!["admin", "moderator"].includes(user.role)) {
+      return sendError(res, null, "Unauthorized access", 403);
+    }
+
     const blogData = req.body;
-    
+    blogData.author = user._id;
+
     if (req.file) {
       blogData.imageUrl = req.file.path;
     }
 
-    blogData.author = req.user._id;
+    const blogPost = await BlogPost.create(blogData);
+    await blogPost.populate("author", "name email");
 
-    const blogPost = new BlogPost(blogData);
-    await blogPost.save();
-    await blogPost.populate('author', 'name email');
-
-    res.status(201).json({
-      message: 'Blog post created successfully',
-      blogPost
-    });
+    return sendSuccess(res, blogPost, "Blog post created successfully", 201);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return sendError(res, error);
   }
 }
 
-// Update blog post (Admin)
+/**
+ * PUT /api/blogs/admin/:id
+ * Update blog post (admin or moderator)
+ */
 export async function updateBlogPost(req, res) {
   try {
+    const user = req.user;
+
+    if (!["admin", "moderator"].includes(user.role)) {
+      return sendError(res, null, "Unauthorized access", 403);
+    }
+
     const { id } = req.params;
     const blogData = req.body;
 
@@ -172,58 +234,58 @@ export async function updateBlogPost(req, res) {
 
     const blogPost = await BlogPost.findByIdAndUpdate(id, blogData, {
       new: true,
-      runValidators: true
-    }).populate('author', 'name email');
+      runValidators: true,
+    }).populate("author", "name email");
 
     if (!blogPost) {
-      return res.status(404).json({ message: 'Blog post not found' });
+      return sendError(res, null, "Blog post not found", 404);
     }
 
-    res.json({
-      message: 'Blog post updated successfully',
-      blogPost
-    });
+    return sendSuccess(res, blogPost, "Blog post updated successfully");
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return sendError(res, error);
   }
 }
 
-// Delete blog post (Admin)
+/**
+ * DELETE /api/blogs/admin/:id
+ * Delete blog post (admin or moderator)
+ */
 export async function deleteBlogPost(req, res) {
   try {
+    const user = req.user;
+
+    if (!["admin", "moderator"].includes(user.role)) {
+      return sendError(res, null, "Unauthorized access", 403);
+    }
+
     const { id } = req.params;
 
     const blogPost = await BlogPost.findByIdAndDelete(id);
-    
     if (!blogPost) {
-      return res.status(404).json({ message: 'Blog post not found' });
+      return sendError(res, null, "Blog post not found", 404);
     }
 
-    await Favorite.deleteMany({ itemType: 'blog', itemId: id });
-
-    res.json({ message: 'Blog post deleted successfully' });
+    await Favorite.deleteMany({ itemType: "blog", itemId: id });
+    return sendSuccess(res, null, "Blog post deleted successfully");
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return sendError(res, error);
   }
 }
 
-// Get blog categories (Admin)
+/**
+ * GET /api/blogs/admin/categories
+ * Get category list with post count (admin/moderator)
+ */
 export async function getBlogCategoriesAdmin(req, res) {
   try {
     const categories = await BlogPost.aggregate([
-      {
-        $group: {
-          _id: '$category',
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { count: -1 }
-      }
+      { $group: { _id: "$category", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
     ]);
 
-    res.json(categories);
+    return sendSuccess(res, categories);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return sendError(res, error);
   }
 }

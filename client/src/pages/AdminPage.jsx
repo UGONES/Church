@@ -9,7 +9,8 @@ import {
   testimonialService,
   prayerService,
   blogService,
-  utilityService
+  utilityService,
+  ministryService
 } from '../services/apiService';
 import Loader from '../components/Loader';
 import { useAlert } from '../utils/Alert';
@@ -135,7 +136,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-[#333333e9] bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div
         className={`bg-white rounded-lg w-full ${sizeClasses[size]} max-h-[90vh] overflow-y-auto`}
         role="dialog"
@@ -180,15 +181,43 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
   );
 };
 
+const TabContentWrapper = ({ children, activeTab, tabName }) => {
+  const [hasBeenActive, setHasBeenActive] = useState(false);
+  const [localState, setLocalState] = useState({});
+
+  // Reset local state when tab becomes inactive
+  useEffect(() => {
+    if (activeTab === tabName && !hasBeenActive) {
+      setHasBeenActive(true);
+    } else if (activeTab !== tabName && hasBeenActive) {
+      // Store current state before deactivating
+      setLocalState({});
+      setHasBeenActive(false);
+    }
+  }, [activeTab, tabName, hasBeenActive]);
+
+  // Only render content if tab is active or has been active recently
+  if (activeTab !== tabName && !hasBeenActive) {
+    return null;
+  }
+
+  return (
+    <div className={activeTab !== tabName ? 'hidden' : ''}>
+      {children}
+    </div>
+  );
+};
+
 /* ====================================== Components for Each Tab ====================================== */
 
 // Users Management Component
-const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) => {
+const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [loading, setLoading] = useState(false);
   const alert = useAlert();
 
   const { values, handleChange, setValues, resetForm } = useForm({
@@ -202,46 +231,82 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
     notes: ''
   });
 
+  // Normalize user status
+  const getNormalizedStatus = (status) => {
+    if (status === true) return 'active';
+    if (status === false) return 'inactive';
+    const validStatuses = ['active', 'inactive', 'suspended'];
+    const normalized = (status || '').toString().toLowerCase();
+    return validStatuses.includes(normalized) ? normalized : 'inactive';
+  };
+
+  // Prefill form when editing
   useEffect(() => {
-    if (selectedUser) {
+    if (showCreateModal && selectedUser) {
       setValues({
         name: selectedUser.name || '',
         email: selectedUser.email || '',
         phone: selectedUser.phone || '',
         role: selectedUser.role || 'user',
-        status: selectedUser.status || 'active',
+        status: getNormalizedStatus(selectedUser.status),
         joinDate: selectedUser.joinDate ? new Date(selectedUser.joinDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         address: selectedUser.address || '',
         notes: selectedUser.notes || ''
       });
+    } else if (showCreateModal && !selectedUser) {
+      resetForm();
     }
-  }, [selectedUser, setValues]);
+  }, [showCreateModal, selectedUser, setValues, resetForm]);
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  // Filter users
+  const filteredUsers = users
+    .map((user) => ({
+      ...user,
+      status: getNormalizedStatus(user.status),
+    }))
+    .filter((user) => {
+      const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+      const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+      return matchesSearch && matchesRole && matchesStatus;
+    });
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+
     try {
+      const normalizedValues = {
+        ...values,
+        status: getNormalizedStatus(values.status),
+      };
+
+      let result;
       if (selectedUser) {
-        await onUpdateUser(selectedUser._id, values);
+        result = await onUpdateUser(selectedUser._id, normalizedValues);
       } else {
-        await onCreateUser(values);
+        result = await onCreateUser(normalizedValues);
       }
-      setShowCreateModal(false);
-      setSelectedUser(null);
-      resetForm();
-      alert.success(`User ${selectedUser ? 'updated' : 'created'} successfully`);
+
+      if (result.success) {
+        alert.success(`User ${selectedUser ? 'updated' : 'created'} successfully`);
+        setShowCreateModal(false);
+        setSelectedUser(null);
+        resetForm();
+      } else {
+        alert.error(result.message || `Failed to ${selectedUser ? 'update' : 'create'} user`);
+      }
     } catch (error) {
+      console.error('User operation error:', error);
       alert.error(`Failed to ${selectedUser ? 'update' : 'create'} user`);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // User table columns
   const userColumns = [
     {
       key: 'user',
@@ -253,10 +318,12 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
           </div>
           <div className="ml-4">
             <div className="text-sm font-medium text-gray-900">{user.name}</div>
-            <div className="text-sm text-gray-500">Joined: {new Date(user.createdAt).toLocaleDateString()}</div>
+            <div className="text-sm text-gray-500">
+              Joined: {new Date(user.createdAt || user.joinDate).toLocaleDateString()}
+            </div>
           </div>
         </div>
-      )
+      ),
     },
     { key: 'email', title: 'Email' },
     {
@@ -270,26 +337,30 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
           }`}>
           {user.role}
         </span>
-      )
+      ),
     },
     {
       key: 'status',
       title: 'Status',
-      render: (user) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${user.status === 'active'
-          ? 'bg-green-100 text-green-800'
-          : user.status === 'inactive'
-            ? 'bg-yellow-100 text-yellow-800'
-            : 'bg-red-100 text-red-800'
-          }`}>
-          {user.status}
-        </span>
-      )
+      render: (user) => {
+        const normalized = getNormalizedStatus(user.status);
+        const colorMap = {
+          active: 'bg-green-100 text-green-800',
+          inactive: 'bg-yellow-100 text-yellow-800',
+          suspended: 'bg-red-100 text-red-800',
+        };
+        return (
+          <span className={`px-2 py-1 text-xs font-medium rounded-full ${colorMap[normalized]}`}>
+            {normalized.charAt(0).toUpperCase() + normalized.slice(1)}
+          </span>
+        );
+      },
     },
   ];
 
   return (
     <div>
+      {/* Header + Filters */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <h2 className="text-2xl font-bold">Users Management</h2>
         <div className="flex flex-wrap gap-2">
@@ -329,12 +400,14 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
               setShowCreateModal(true);
             }}
             className="btn btn-primary"
+            disabled={loading}
           >
             <i className="fas fa-plus mr-2"></i> New User
           </button>
         </div>
       </div>
 
+      {/* Data Table */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <DataTable
           columns={userColumns}
@@ -348,7 +421,7 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
         />
       </div>
 
-      {/* Create/Edit User Modal */}
+      {/* Create/Edit Modal */}
       <Modal
         isOpen={showCreateModal}
         onClose={() => {
@@ -370,6 +443,7 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
                 onChange={handleChange}
                 className="form-input"
                 required
+                disabled={loading}
               />
             </div>
             <div>
@@ -381,6 +455,7 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
                 onChange={handleChange}
                 className="form-input"
                 required
+                disabled={loading}
               />
             </div>
           </div>
@@ -394,6 +469,7 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
                 value={values.phone}
                 onChange={handleChange}
                 className="form-input"
+                disabled={loading}
               />
             </div>
             <div>
@@ -404,6 +480,7 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
                 value={values.joinDate}
                 onChange={handleChange}
                 className="form-input"
+                disabled={loading}
               />
             </div>
           </div>
@@ -417,6 +494,7 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
                 onChange={handleChange}
                 className="form-input"
                 required
+                disabled={loading}
               >
                 <option value="user">User</option>
                 <option value="volunteer">Volunteer</option>
@@ -433,6 +511,7 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
                 onChange={handleChange}
                 className="form-input"
                 required
+                disabled={loading}
               >
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
@@ -449,6 +528,7 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
               onChange={handleChange}
               className="form-input"
               rows="2"
+              disabled={loading}
             />
           </div>
 
@@ -460,6 +540,7 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
               onChange={handleChange}
               className="form-input"
               rows="3"
+              disabled={loading}
             />
           </div>
 
@@ -472,11 +553,12 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
                 resetForm();
               }}
               className="btn btn-outline"
+              disabled={loading}
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
-              {selectedUser ? 'Update' : 'Create'} User
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Saving...' : selectedUser ? 'Update User' : 'Create User'}
             </button>
           </div>
         </form>
@@ -486,156 +568,420 @@ const UsersManagement = ({ users, onUpdateUser, onDeleteUser, onCreateUser }) =>
 };
 
 // Ministries Management Component
-const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMinistry, onCreateMinistry }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, onDeleteMinistry, onCreateMinistry }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedMinistry, setSelectedMinistry] = useState(null);
   const [ministryCategories, setMinistryCategories] = useState([]);
+  const [newCategory, setNewCategory] = useState("");
+  const [loading, setLoading] = useState(false);
   const alert = useAlert();
 
-  const { values, handleChange, setValues, resetForm } = useForm({
-    name: '',
-    description: '',
-    leader: '',
-    coLeaders: [],
-    meetingTimes: '',
-    location: '',
-    category: '',
-    status: 'active',
-    image: '',
-    objectives: '',
-    targetAudience: '',
-    contactEmail: '',
-    contactPhone: ''
+  const { values, handleChange, resetForm, setValues } = useForm({
+    name: "",
+    description: "",
+    missionStatement: "",
+    visionStatement: "",
+    icon: "users",
+    imageUrl: "",
+    leaders: [],
+    programs: [],
+    volunteerNeeds: [],
+    contactEmail: "",
+    contactPhone: "",
+    meetingSchedule: "",
+    meetingLocation: "",
+    status: "active",
+    tags: [],
+    socialMedia: {
+      facebook: "",
+      instagram: "",
+      twitter: "",
+      youtube: ""
+    }
   });
 
-  useEffect(() => {
-    if (selectedMinistry) {
-      setValues({
-        name: selectedMinistry.name || '',
-        description: selectedMinistry.description || '',
-        leader: selectedMinistry.leader || '',
-        coLeaders: selectedMinistry.coLeaders || [],
-        meetingTimes: selectedMinistry.meetingTimes || '',
-        location: selectedMinistry.location || '',
-        category: selectedMinistry.category || '',
-        status: selectedMinistry.status || 'active',
-        image: selectedMinistry.image || '',
-        objectives: selectedMinistry.objectives || '',
-        targetAudience: selectedMinistry.targetAudience || '',
-        contactEmail: selectedMinistry.contactEmail || '',
-        contactPhone: selectedMinistry.contactPhone || ''
-      });
-    }
-  }, [selectedMinistry, setValues]);
+  // ✅ Default categories for fallback
+  const DEFAULT_CATEGORIES = [];
 
+  // ✅ Fetch existing categories - FIXED
   useEffect(() => {
-    // Fetch ministry categories
     const fetchCategories = async () => {
       try {
-        const response = await apiClient.get(API_ENDPOINTS.MINISTRIES.CATEGORIES);
-        setMinistryCategories(response.categories || []);
+        setLoading(true);
+        const response = await ministryService.getCategories();
+        let categories = [];
+
+        if (response && response.data) {
+          categories = response.data.categories || response.data.data || response.data;
+        } else if (response) {
+          categories = response.categories || response;
+        }
+
+        if (Array.isArray(categories)) {
+          categories = categories
+            .filter((cat) => {
+              if (cat == null) return false;
+              if (typeof cat === "string") return cat.trim().length > 0;
+              if (typeof cat === "object" && cat.name) return cat.name.trim().length > 0;
+              return false;
+            })
+            .map((cat) =>
+              typeof cat === "string" ? cat.trim() : cat.name?.trim() || ""
+            );
+        } else {
+          categories = [];
+        }
+
+        if (categories.length === 0) categories = [...DEFAULT_CATEGORIES];
+        setMinistryCategories(categories);
       } catch (error) {
-        console.error('Error fetching ministry categories:', error);
+        console.error("Error fetching categories:", error);
+        setMinistryCategories([...DEFAULT_CATEGORIES]);
+        if (error.response?.status !== 500) {
+          alert.error("Failed to load categories. Using default categories.");
+        }
+      } finally {
+        setLoading(false);
       }
     };
+
     fetchCategories();
   }, []);
 
-  const filteredMinistries = ministries.filter(ministry => {
-    const matchesSearch = ministry.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || ministry.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || ministry.category === categoryFilter;
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (selectedMinistry) {
-        await onUpdateMinistry(selectedMinistry._id, values);
-      } else {
-        await onCreateMinistry(values);
-      }
-      setShowCreateModal(false);
-      setSelectedMinistry(null);
+  // ✅ Prefill form when editing - FIXED
+  useEffect(() => {
+    if (showCreateModal && selectedMinistry) {
+      setValues({
+        name: selectedMinistry.name || "",
+        description: selectedMinistry.description || "",
+        missionStatement: selectedMinistry.missionStatement || "",
+        visionStatement: selectedMinistry.visionStatement || "",
+        icon: selectedMinistry.icon || "users",
+        imageUrl: selectedMinistry.imageUrl || "",
+        leaders:
+          selectedMinistry.leaders?.map((leader) => ({
+            user: leader.user?._id || leader.user || "",
+            role: leader.role || "",
+            isPrimary: leader.isPrimary || false,
+          })) || [],
+        programs: selectedMinistry.programs || [],
+        volunteerNeeds: selectedMinistry.volunteerNeeds || [],
+        contactEmail: selectedMinistry.contactEmail || "",
+        contactPhone: selectedMinistry.contactPhone || "",
+        meetingSchedule: selectedMinistry.meetingSchedule || "",
+        meetingLocation: selectedMinistry.meetingLocation || "",
+        status: selectedMinistry.status || "active",
+        tags: selectedMinistry.tags || [],
+        socialMedia: selectedMinistry.socialMedia || {
+          facebook: "",
+          instagram: "",
+          twitter: "",
+          youtube: "",
+        },
+      });
+    } else if (showCreateModal && !selectedMinistry) {
       resetForm();
-      alert.success(`Ministry ${selectedMinistry ? 'updated' : 'created'} successfully`);
+    }
+  }, [showCreateModal, selectedMinistry]);
+
+  // ✅ Add new category - FIXED
+  const handleAddCategory = async () => {
+    if (!newCategory.trim()) {
+      alert.warning("Please enter a category name.");
+      return;
+    }
+
+    const categoryName = newCategory.trim();
+
+    // Check for duplicate locally
+    if (ministryCategories.some(cat =>
+      cat.toLowerCase() === categoryName.toLowerCase()
+    )) {
+      alert.warning("Category already exists.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Try to save to server first
+      try {
+        const response = await ministryService.createCategory({ name: categoryName });
+        console.log('✅ Category saved to server:', response);
+      } catch (serverError) {
+        console.log('⚠️ Server save failed, saving locally only:', serverError.message);
+        // Continue with local state update even if server fails
+      }
+
+      // Update local state
+      setMinistryCategories(prev => [...prev, categoryName]);
+      alert.success(`✅ Category "${categoryName}" added successfully!`);
+      setNewCategory("");
+
     } catch (error) {
-      alert.error(`Failed to ${selectedMinistry ? 'update' : 'create'} ministry`);
+      console.error("❌ Error adding category:", error);
+      alert.error("Failed to add category. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const addCoLeader = () => {
-    setValues({
-      ...values,
-      coLeaders: [...values.coLeaders, '']
-    });
+  // ✅ Filter ministries - FIXED
+  const filteredMinistries = ministries.filter((ministry) => {
+    const matchesSearch = ministry.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ministry.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || ministry.status === statusFilter;
+    const matchesCategory = categoryFilter === "all" ||
+      (ministry.tags && ministry.tags.some(tag =>
+        (typeof tag === 'string' ? tag : tag.name) === categoryFilter
+      ));
+    return matchesSearch && matchesStatus && matchesCategory;
+  });
+
+  // ✅ Form submit handler - FIXED
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const submissionData = {
+        name: values.name?.trim(),
+        description: values.description?.trim(),
+        missionStatement: values.missionStatement?.trim() || "",
+        visionStatement: values.visionStatement?.trim() || "",
+        icon: values.icon || "users",
+        imageUrl: values.imageUrl?.trim() || "",
+        leaders: (values.leaders || []).filter(l => l.user),
+        programs: (values.programs || []).filter(p => p.name && p.description),
+        volunteerNeeds: (values.volunteerNeeds || []).filter(v => v.role && v.description),
+        contactEmail: values.contactEmail?.trim() || "",
+        contactPhone: values.contactPhone?.trim() || "",
+        meetingSchedule: values.meetingSchedule?.trim() || "",
+        meetingLocation: values.meetingLocation?.trim() || "",
+        status: values.status || "active",
+        tags: (values.tags || []).filter(tag => tag && tag.trim()),
+      };
+
+      console.log('📤 Submitting ministry data:', submissionData);
+
+      let result;
+      if (selectedMinistry) {
+        result = await onUpdateMinistry(selectedMinistry._id, submissionData);
+      } else {
+        result = await onCreateMinistry(submissionData);
+      }
+
+      if (result?.success) {
+        alert.success(result.message || "Ministry saved successfully!");
+        setShowCreateModal(false);
+        setSelectedMinistry(null);
+        resetForm();
+      } else {
+        alert.error(result?.message || "Something went wrong.");
+      }
+
+    } catch (error) {
+      console.error("Error saving ministry:", error);
+      alert.error(error.response?.data?.message || "Failed to save ministry.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const removeCoLeader = (index) => {
-    const updatedCoLeaders = [...values.coLeaders];
-    updatedCoLeaders.splice(index, 1);
-    setValues({ ...values, coLeaders: updatedCoLeaders });
+  // ✅ Leader management functions
+  const addLeader = () => {
+    setValues(prev => ({
+      ...prev,
+      leaders: [...prev.leaders, { user: "", role: "", isPrimary: false }]
+    }));
   };
 
-  const updateCoLeader = (index, value) => {
-    const updatedCoLeaders = [...values.coLeaders];
-    updatedCoLeaders[index] = value;
-    setValues({ ...values, coLeaders: updatedCoLeaders });
+  const removeLeader = (index) => {
+    const updatedLeaders = [...values.leaders];
+    updatedLeaders.splice(index, 1);
+    setValues(prev => ({ ...prev, leaders: updatedLeaders }));
   };
 
+  const updateLeader = (index, field, value) => {
+    const updatedLeaders = [...values.leaders];
+    updatedLeaders[index] = { ...updatedLeaders[index], [field]: value };
+
+    // If setting as primary, ensure only one primary leader
+    if (field === 'isPrimary' && value === true) {
+      updatedLeaders.forEach((leader, i) => {
+        if (i !== index) leader.isPrimary = false;
+      });
+    }
+
+    setValues(prev => ({ ...prev, leaders: updatedLeaders }));
+  };
+
+  // ✅ Program management functions
+  const addProgram = () => {
+    setValues(prev => ({
+      ...prev,
+      programs: [...prev.programs, { name: "", description: "", schedule: "", location: "" }]
+    }));
+  };
+
+  const removeProgram = (index) => {
+    const updatedPrograms = [...values.programs];
+    updatedPrograms.splice(index, 1);
+    setValues(prev => ({ ...prev, programs: updatedPrograms }));
+  };
+
+  const updateProgram = (index, field, value) => {
+    const updatedPrograms = [...values.programs];
+    updatedPrograms[index] = { ...updatedPrograms[index], [field]: value };
+    setValues(prev => ({ ...prev, programs: updatedPrograms }));
+  };
+
+  // ✅ Volunteer needs management functions
+  const addVolunteerNeed = () => {
+    setValues(prev => ({
+      ...prev,
+      volunteerNeeds: [...prev.volunteerNeeds, {
+        role: "",
+        description: "",
+        requirements: "",
+        timeCommitment: "",
+        isActive: true
+      }]
+    }));
+  };
+
+  const removeVolunteerNeed = (index) => {
+    const updatedNeeds = [...values.volunteerNeeds];
+    updatedNeeds.splice(index, 1);
+    setValues(prev => ({ ...prev, volunteerNeeds: updatedNeeds }));
+  };
+
+  const updateVolunteerNeed = (index, field, value) => {
+    const updatedNeeds = [...values.volunteerNeeds];
+    updatedNeeds[index] = { ...updatedNeeds[index], [field]: value };
+    setValues(prev => ({ ...prev, volunteerNeeds: updatedNeeds }));
+  };
+
+  // ✅ Tag management functions
+  const addTag = () => {
+    setValues(prev => ({
+      ...prev,
+      tags: [...prev.tags, ""]
+    }));
+  };
+
+  const removeTag = (index) => {
+    const updatedTags = [...values.tags];
+    updatedTags.splice(index, 1);
+    setValues(prev => ({ ...prev, tags: updatedTags }));
+  };
+
+  const updateTag = (index, value) => {
+    const updatedTags = [...values.tags];
+    updatedTags[index] = value;
+    setValues(prev => ({ ...prev, tags: updatedTags }));
+  };
+
+  // ✅ Filter potential leaders (staff, moderators, admins, volunteers)
+  const potentialLeaders = users.filter(
+    user => ["admin", "moderator", "staff", "volunteer"].includes(user.role) &&
+      (user.status === "active" || user.status === true)
+  );
+
+  // ✅ Ministry table columns
   const ministryColumns = [
     {
-      key: 'name',
-      title: 'Ministry Name',
+      key: "name",
+      title: "Ministry Name",
       render: (ministry) => (
         <div className="flex items-center">
-          <div className="h-10 w-10 flex-shrink-0 bg-gray-300 rounded-full flex items-center justify-center">
-            {ministry.name?.charAt(0)?.toUpperCase() || 'M'}
+          <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
+            <i className={`fas fa-${ministry.icon || 'users'} text-gray-600`}></i>
           </div>
           <div className="ml-4">
-            <div className="text-sm font-medium text-gray-900">{ministry.name}</div>
-            <div className="text-sm text-gray-500">Created: {new Date(ministry.createdAt).toLocaleDateString()}</div>
+            <div className="text-sm font-semibold">{ministry.name}</div>
+            <div className="text-xs text-gray-500">
+              Created: {ministry.createdAt ? new Date(ministry.createdAt).toLocaleDateString() : 'Unknown'}
+            </div>
           </div>
         </div>
-      )
+      ),
     },
     {
-      key: 'leader',
-      title: 'Leader',
-      render: (ministry) => {
-        const leaderUser = users.find(u => u._id === ministry.leader);
-        return leaderUser ? leaderUser.name : 'Not assigned';
-      }
-    },
-    { key: 'category', title: 'Category' },
-    {
-      key: 'status',
-      title: 'Status',
+      key: "leaders",
+      title: "Leaders",
       render: (ministry) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${ministry.status === 'active'
-          ? 'bg-green-100 text-green-800'
-          : ministry.status === 'inactive'
-            ? 'bg-yellow-100 text-yellow-800'
-            : 'bg-red-100 text-red-800'
-          }`}>
-          {ministry.status}
+        <div className="text-sm">
+          {ministry.leaders && ministry.leaders.length > 0 ? (
+            ministry.leaders.slice(0, 2).map((leader, index) => (
+              <div key={index} className="truncate">
+                {leader.user?.name || 'Unknown'} {leader.isPrimary && '(Primary)'}
+              </div>
+            ))
+          ) : (
+            "No leaders"
+          )}
+          {ministry.leaders && ministry.leaders.length > 2 && (
+            <div className="text-xs text-gray-500">
+              +{ministry.leaders.length - 2} more
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "tags",
+      title: "Categories",
+      render: (ministry) => (
+        <div className="flex flex-wrap gap-1">
+          {ministry.tags && ministry.tags.slice(0, 2).map((tag, index) => (
+            <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+              {typeof tag === 'object' ? tag.name : tag}
+            </span>
+          ))}
+          {ministry.tags && ministry.tags.length > 2 && (
+            <span className="text-xs text-gray-500">
+              +{ministry.tags.length - 2}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "status",
+      title: "Status",
+      render: (ministry) => {
+        const statusColors = {
+          active: "bg-green-100 text-green-800",
+          inactive: "bg-yellow-100 text-yellow-800",
+          planning: "bg-blue-100 text-blue-800",
+        };
+        const status = ministry.status || 'active';
+        return (
+          <span className={`px-2 py-1 text-xs rounded-full font-medium ${statusColors[status] || 'bg-gray-100 text-gray-800'}`}>
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          </span>
+        );
+      },
+    },
+    {
+      key: "volunteers",
+      title: "Volunteer Needs",
+      render: (ministry) => (
+        <span className="text-sm">
+          {ministry.volunteerNeeds?.length || 0}
         </span>
-      )
+      ),
     },
   ];
 
-  // Filter users who can be leaders (staff, moderators, admins)
-  const potentialLeaders = users.filter(user =>
-    ['admin', 'moderator', 'staff', 'volunteer'].includes(user.role) && user.status === 'active'
-  );
-
   return (
     <div>
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+      {/* ======= Header and Filters ======= */}
+      <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
         <h2 className="text-2xl font-bold">Ministries Management</h2>
         <div className="flex flex-wrap gap-2">
           <input
@@ -644,26 +990,31 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="form-input flex-1 min-w-[200px]"
+            disabled={loading}
           />
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
             className="form-input"
+            disabled={loading}
           >
             <option value="all">All Categories</option>
-            {ministryCategories.map(category => (
-              <option key={category} value={category}>{category}</option>
+            {ministryCategories.map((category, index) => (
+              <option key={index} value={typeof category === 'object' ? category.name : category}>
+                {typeof category === 'object' ? category.name : category}
+              </option>
             ))}
           </select>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="form-input"
+            disabled={loading}
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
-            <option value="suspended">Suspended</option>
+            <option value="planning">Planning</option>
           </select>
           <button
             onClick={() => {
@@ -672,12 +1023,54 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
               setShowCreateModal(true);
             }}
             className="btn btn-primary"
+            disabled={loading}
           >
             <i className="fas fa-plus mr-2"></i> New Ministry
           </button>
         </div>
       </div>
 
+      {/* ======= Statistics Cards ======= */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <StatCard
+          title="Total Ministries"
+          value={ministries.length}
+          change=""
+          changeType="increase"
+          icon="fa-hands-helping"
+          iconBgColor="bg-blue-100"
+          iconTextColor="text-blue-500"
+        />
+        <StatCard
+          title="Active"
+          value={ministries.filter(m => m.status === 'active').length}
+          change=""
+          changeType="increase"
+          icon="fa-check"
+          iconBgColor="bg-green-100"
+          iconTextColor="text-green-500"
+        />
+        <StatCard
+          title="Categories"
+          value={ministryCategories.length}
+          change=""
+          changeType="increase"
+          icon="fa-tags"
+          iconBgColor="bg-purple-100"
+          iconTextColor="text-purple-500"
+        />
+        <StatCard
+          title="Volunteer Needs"
+          value={ministries.reduce((total, ministry) => total + (ministry.volunteerNeeds?.length || 0), 0)}
+          change=""
+          changeType="increase"
+          icon="fa-users"
+          iconBgColor="bg-orange-100"
+          iconTextColor="text-orange-500"
+        />
+      </div>
+
+      {/* ======= Data Table ======= */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <DataTable
           columns={ministryColumns}
@@ -691,7 +1084,7 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
         />
       </div>
 
-      {/* Create/Edit Ministry Modal */}
+      {/* ======= Create/Edit Ministry Modal ======= */}
       <Modal
         isOpen={showCreateModal}
         onClose={() => {
@@ -699,202 +1092,417 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
           setSelectedMinistry(null);
           resetForm();
         }}
-        title={selectedMinistry ? 'Edit Ministry' : 'Create New Ministry'}
-        size="lg"
+        title={selectedMinistry ? "Edit Ministry" : "Create New Ministry"}
+        size="xl"
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Ministry Name*</label>
-              <input
-                type="text"
-                name="name"
-                value={values.name}
-                onChange={handleChange}
+        <form onSubmit={handleSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto">
+          {/* Basic Information */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Ministry Name*</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={values.name}
+                  onChange={(e) => handleChange('name', e.target.value)}
+                  className="form-input"
+                  required
+                  placeholder="Enter ministry name"
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Status*</label>
+                <select
+                  name="status"
+                  value={values.status}
+                  onChange={(e) => handleChange('status', e.target.value)}
+                  className="form-input"
+                  required
+                  disabled={loading}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="planning">Planning</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-sm font-medium mb-1">Description*</label>
+              <textarea
+                name="description"
+                value={values.description}
+                onChange={(e) => handleChange('description', e.target.value)}
                 className="form-input"
+                rows="3"
                 required
+                placeholder="Describe the purpose and activities of this ministry..."
+                disabled={loading}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Category*</label>
-              <select
-                name="category"
-                value={values.category}
-                onChange={handleChange}
-                className="form-input"
-                required
-              >
-                <option value="">Select a category</option>
-                {ministryCategories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Mission Statement</label>
+                <textarea
+                  name="missionStatement"
+                  value={values.missionStatement}
+                  onChange={(e) => handleChange('missionStatement', e.target.value)}
+                  className="form-input"
+                  rows="2"
+                  placeholder="The mission of this ministry..."
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Vision Statement</label>
+                <textarea
+                  name="visionStatement"
+                  value={values.visionStatement}
+                  onChange={(e) => handleChange('visionStatement', e.target.value)}
+                  className="form-input"
+                  rows="2"
+                  placeholder="The vision for this ministry..."
+                  disabled={loading}
+                />
+              </div>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Description*</label>
-            <textarea
-              name="description"
-              value={values.description}
-              onChange={handleChange}
-              className="form-input"
-              rows="3"
-              required
-            />
-          </div>
+          {/* Categories/Tags */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Categories & Tags</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Leader*</label>
-              <select
-                name="leader"
-                value={values.leader}
-                onChange={handleChange}
-                className="form-input"
-                required
-              >
-                <option value="">Select a leader</option>
-                {potentialLeaders.map(user => (
-                  <option key={user._id} value={user._id}>{user.name} ({user.role})</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Status*</label>
-              <select
-                name="status"
-                value={values.status}
-                onChange={handleChange}
-                className="form-input"
-                required
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="suspended">Suspended</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-medium">Co-Leaders</label>
-              <button
-                type="button"
-                onClick={addCoLeader}
-                className="text-sm text-[#FF7E45] hover:text-[#F4B942]"
-              >
-                + Add Co-Leader
-              </button>
-            </div>
-            {values.coLeaders.map((coLeader, index) => (
-              <div key={index} className="flex mb-2">
-                <select
-                  value={coLeader}
-                  onChange={(e) => updateCoLeader(index, e.target.value)}
+            {/* Create New Category */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Create New Category</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
                   className="form-input flex-1"
-                >
-                  <option value="">Select a co-leader</option>
-                  {potentialLeaders.map(user => (
-                    <option key={user._id} value={user._id}>{user.name} ({user.role})</option>
-                  ))}
-                </select>
+                  placeholder="Enter new category name"
+                  disabled={loading}
+                />
                 <button
                   type="button"
-                  onClick={() => removeCoLeader(index)}
-                  className="ml-2 text-red-500 hover:text-red-700"
+                  onClick={handleAddCategory}
+                  className="btn btn-outline"
+                  disabled={loading || !newCategory.trim()}
                 >
-                  <i className="fas fa-times"></i>
+                  {loading ? 'Adding...' : 'Add Category'}
                 </button>
               </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Meeting Times</label>
-              <input
-                type="text"
-                name="meetingTimes"
-                value={values.meetingTimes}
-                onChange={handleChange}
-                className="form-input"
-                placeholder="e.g., Every Tuesday at 7 PM"
-              />
             </div>
+
+            {/* Existing Categories */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Available Categories</label>
+              <div className="flex flex-wrap gap-2">
+                {ministryCategories.map((category, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                  >
+                    {typeof category === 'object' ? category.name : category}
+                  </span>
+                ))}
+                {ministryCategories.length === 0 && (
+                  <span className="text-gray-500 text-sm">No categories yet. Add one above.</span>
+                )}
+              </div>
+            </div>
+
+            {/* Ministry Tags */}
             <div>
-              <label className="block text-sm font-medium mb-1">Location</label>
-              <input
-                type="text"
-                name="location"
-                value={values.location}
-                onChange={handleChange}
-                className="form-input"
-                placeholder="e.g., Main Hall, Room 101"
-              />
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium">Pick A Category</label>
+                <button
+                  type="button"
+                  onClick={addTag}
+                  className="text-sm text-[#FF7E45] hover:text-[#F4B942]"
+                  disabled={loading}
+                >
+                  + Add Tag
+                </button>
+              </div>
+              {values.tags.map((tag, index) => (
+                <div key={index} className="flex mb-2">
+                  <input
+                    type="text"
+                    value={tag}
+                    onChange={(e) => updateTag(index, e.target.value)}
+                    className="form-input flex-1"
+                    placeholder="Enter tag"
+                    list="categorySuggestions"
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeTag(index)}
+                    className="ml-2 text-red-500 hover:text-red-700"
+                    disabled={loading}
+                  >
+                    <i className="fas fa-trash"></i>
+                  </button>
+                </div>
+              ))}
+              <datalist id="categorySuggestions">
+                {ministryCategories.map((category, index) => (
+                  <option key={index} value={typeof category === 'object' ? category.name : category} />
+                ))}
+              </datalist>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Contact Email</label>
-              <input
-                type="email"
-                name="contactEmail"
-                value={values.contactEmail}
-                onChange={handleChange}
-                className="form-input"
-              />
+          {/* Leadership */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Leadership</h3>
+            <div className="space-y-4">
+              {values.leaders.map((leader, index) => (
+                <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-white rounded border">
+                  <select
+                    value={leader.user}
+                    onChange={(e) => updateLeader(index, 'user', e.target.value)}
+                    className="form-input"
+                    disabled={loading}
+                  >
+                    <option value="">Select Leader</option>
+                    {potentialLeaders.map(user => (
+                      <option key={user._id} value={user._id}>
+                        {user.name} ({user.role})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Role"
+                    value={leader.role}
+                    onChange={(e) => updateLeader(index, 'role', e.target.value)}
+                    className="form-input"
+                    disabled={loading}
+                  />
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={leader.isPrimary}
+                        onChange={(e) => updateLeader(index, 'isPrimary', e.target.checked)}
+                        className="form-checkbox"
+                        disabled={loading}
+                      />
+                      <span className="ml-2 text-sm">Primary</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => removeLeader(index)}
+                      className="text-red-500 hover:text-red-700 ml-auto"
+                      disabled={loading}
+                    >
+                      <i className="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addLeader}
+                className="btn btn-outline"
+                disabled={loading}
+              >
+                <i className="fas fa-plus mr-2"></i> Add Leader
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Contact Phone</label>
-              <input
-                type="tel"
-                name="contactPhone"
-                value={values.contactPhone}
-                onChange={handleChange}
-                className="form-input"
-              />
+          </div>
+
+          {/* Programs */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Programs & Activities</h3>
+            <div className="space-y-4">
+              {values.programs.map((program, index) => (
+                <div key={index} className="grid grid-cols-1 gap-4 p-4 bg-white rounded border">
+                  <input
+                    type="text"
+                    placeholder="Program Name"
+                    value={program.name}
+                    onChange={(e) => updateProgram(index, 'name', e.target.value)}
+                    className="form-input"
+                    disabled={loading}
+                  />
+                  <textarea
+                    placeholder="Description"
+                    value={program.description}
+                    onChange={(e) => updateProgram(index, 'description', e.target.value)}
+                    className="form-input"
+                    rows="2"
+                    disabled={loading}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <input
+                      type="text"
+                      placeholder="Schedule"
+                      value={program.schedule}
+                      onChange={(e) => updateProgram(index, 'schedule', e.target.value)}
+                      className="form-input"
+                      disabled={loading}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Location"
+                      value={program.location}
+                      onChange={(e) => updateProgram(index, 'location', e.target.value)}
+                      className="form-input"
+                      disabled={loading}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeProgram(index)}
+                    className="text-red-500 hover:text-red-700 self-start"
+                    disabled={loading}
+                  >
+                    <i className="fas fa-trash mr-2"></i> Remove Program
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addProgram}
+                className="btn btn-outline"
+                disabled={loading}
+              >
+                <i className="fas fa-plus mr-2"></i> Add Program
+              </button>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Target Audience</label>
-            <input
-              type="text"
-              name="targetAudience"
-              value={values.targetAudience}
-              onChange={handleChange}
-              className="form-input"
-              placeholder="e.g., Youth, Adults, Seniors"
-            />
+          {/* Volunteer Needs */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Volunteer Needs</h3>
+            <div className="space-y-4">
+              {values.volunteerNeeds.map((need, index) => (
+                <div key={index} className="grid grid-cols-1 gap-4 p-4 bg-white rounded border">
+                  <input
+                    type="text"
+                    placeholder="Role Title"
+                    value={need.role}
+                    onChange={(e) => updateVolunteerNeed(index, 'role', e.target.value)}
+                    className="form-input"
+                    disabled={loading}
+                  />
+                  <textarea
+                    placeholder="Role Description"
+                    value={need.description}
+                    onChange={(e) => updateVolunteerNeed(index, 'description', e.target.value)}
+                    className="form-input"
+                    rows="2"
+                    disabled={loading}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <input
+                      type="text"
+                      placeholder="Requirements"
+                      value={need.requirements}
+                      onChange={(e) => updateVolunteerNeed(index, 'requirements', e.target.value)}
+                      className="form-input"
+                      disabled={loading}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Time Commitment"
+                      value={need.timeCommitment}
+                      onChange={(e) => updateVolunteerNeed(index, 'timeCommitment', e.target.value)}
+                      className="form-input"
+                      disabled={loading}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeVolunteerNeed(index)}
+                    className="text-red-500 hover:text-red-700 self-start"
+                    disabled={loading}
+                  >
+                    <i className="fas fa-trash mr-2"></i> Remove Role
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addVolunteerNeed}
+                className="btn btn-outline"
+                disabled={loading}
+              >
+                <i className="fas fa-plus mr-2"></i> Add Volunteer Role
+              </button>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Objectives</label>
-            <textarea
-              name="objectives"
-              value={values.objectives}
-              onChange={handleChange}
-              className="form-input"
-              rows="2"
-              placeholder="Main goals and objectives of this ministry"
-            />
+          {/* Contact Information */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Contact Email</label>
+                <input
+                  type="email"
+                  name="contactEmail"
+                  value={values.contactEmail}
+                  onChange={(e) => handleChange('contactEmail', e.target.value)}
+                  className="form-input"
+                  placeholder="ministry@church.org"
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Contact Phone</label>
+                <input
+                  type="tel"
+                  name="contactPhone"
+                  className="form-input"
+                  value={values.contactPhone}
+                  onChange={(e) => {
+                    const clean = e.target.value.replace(/[^\d+]/g, "");
+                    handleChange("contactPhone", clean);
+                  }}
+                  placeholder="+2349012345678 or 09012345678"
+                />
+
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Meeting Schedule</label>
+                <input
+                  type="text"
+                  name="meetingSchedule"
+                  value={values.meetingSchedule}
+                  onChange={(e) => handleChange('meetingSchedule', e.target.value)}
+                  className="form-input"
+                  placeholder="Every Tuesday at 7:00 PM"
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Meeting Location</label>
+                <input
+                  type="text"
+                  name="meetingLocation"
+                  value={values.meetingLocation}
+                  onChange={(e) => handleChange('meetingLocation', e.target.value)}
+                  className="form-input"
+                  placeholder="Main Sanctuary"
+                  disabled={loading}
+                />
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Image URL</label>
-            <input
-              type="url"
-              name="image"
-              value={values.image}
-              onChange={handleChange}
-              className="form-input"
-              placeholder="https://example.com/ministry-image.jpg"
-            />
-          </div>
-
-          <div className="flex justify-end space-x-2 pt-4">
+          {/* Form Actions */}
+          <div className="flex justify-end space-x-4 pt-6 border-t">
             <button
               type="button"
               onClick={() => {
@@ -903,11 +1511,12 @@ const MinistriesManagement = ({ ministries, users, onUpdateMinistry, onDeleteMin
                 resetForm();
               }}
               className="btn btn-outline"
+              disabled={loading}
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
-              {selectedMinistry ? 'Update' : 'Create'} Ministry
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Saving...' : selectedMinistry ? "Update Ministry" : "Create Ministry"}
             </button>
           </div>
         </form>
@@ -1234,6 +1843,7 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
     status: 'draft',
     category: '',
     tags: [],
+
     featuredImage: '',
     publishedAt: new Date().toISOString().split('T')[0],
     metaTitle: '',
@@ -1941,6 +2551,8 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
     location: '',
     address: {},
     category: 'service',
+    imageSource: 'url',
+    imageFile: null,
     imageUrl: '',
     capacity: 0,
     requiresRSVP: false,
@@ -1952,8 +2564,20 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(values);
+
+    const formData = new FormData();
+
+    Object.entries(values).forEach(([key, value]) => {
+      if (key === "imageFile" && value) {
+        formData.append("image", value);
+      } else if (key !== "imageSource") {
+        formData.append(key, value);
+      }
+    });
+
+    onSubmit(formData);
   };
+
 
   const addLeader = () => {
     setValues({
@@ -2119,16 +2743,85 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
           />
         </div>
 
+        {/* 📸 Event Image Upload / URL */}
         <div>
-          <label className="block text-sm font-medium mb-1">Image URL</label>
-          <input
-            type="url"
-            name="imageUrl"
-            value={values.imageUrl}
-            onChange={handleChange}
-            className="form-input"
-            placeholder="https://example.com/image.jpg"
-          />
+          <label className="block text-sm font-medium mb-1">Event Image</label>
+
+          {/* Tabs for Upload Method */}
+          <div className="flex items-center space-x-4 mb-2">
+            <label className="flex items-center space-x-2 text-sm">
+              <input
+                type="radio"
+                name="imageSource"
+                value="file"
+                checked={values.imageSource === "file"}
+                onChange={() => setValues({ ...values, imageSource: "file", imageUrl: "" })}
+                className="form-radio text-[#FF7E45]"
+              />
+              <span>Upload from device</span>
+            </label>
+
+            <label className="flex items-center space-x-2 text-sm">
+              <input
+                type="radio"
+                name="imageSource"
+                value="url"
+                checked={values.imageSource === "url"}
+                onChange={() => setValues({ ...values, imageSource: "url", imageFile: null })}
+                className="form-radio text-[#FF7E45]"
+              />
+              <span>Use image link</span>
+            </label>
+          </div>
+
+          {/* Conditional Field */}
+          {values.imageSource === "file" ? (
+            <div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    setValues({ ...values, imageFile: file, imageUrl: URL.createObjectURL(file) });
+                  }
+                }}
+                className="block w-full text-sm text-gray-700 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-3 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-[#FF7E45] file:text-white hover:file:bg-[#F4B942]"
+              />
+              {values.imageUrl && (
+                <div className="mt-3">
+                  <p className="text-xs text-gray-500 mb-1">Preview:</p>
+                  <img
+                    src={values.imageUrl}
+                    alt="Preview"
+                    className="w-full h-40 object-cover rounded-lg border"
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <input
+                type="url"
+                name="imageUrl"
+                value={values.imageUrl}
+                onChange={handleChange}
+                className="form-input"
+                placeholder="https://example.com/image.jpg"
+              />
+              {values.imageUrl && (
+                <div className="mt-3">
+                  <p className="text-xs text-gray-500 mb-1">Preview:</p>
+                  <img
+                    src={values.imageUrl}
+                    alt="Preview"
+                    className="w-full h-40 object-cover rounded-lg border"
+                    onError={(e) => (e.target.style.display = "none")}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center">
@@ -2748,478 +3441,583 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-2xl font-bold mb-6">System Settings</h2>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Church Information */}
-        <div>
-          <h3 className="text-lg font-semibold mb-4">Church Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Church Name*</label>
-              <input
-                type="text"
-                name="churchName"
-                value={values.churchName}
-                onChange={handleChange}
-                className="form-input"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Pastor Name</label>
-              <input
-                type="text"
-                name="pastorName"
-                value={values.pastorName}
-                onChange={handleChange}
-                className="form-input"
-              />
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <label className="block text-sm font-medium mb-1">Church Address</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                type="text"
-                placeholder="Street"
-                value={values.churchAddress.street || ''}
-                onChange={(e) => updateAddress('street', e.target.value)}
-                className="form-input"
-              />
-              <input
-                type="text"
-                placeholder="City"
-                value={values.churchAddress.city || ''}
-                onChange={(e) => updateAddress('city', e.target.value)}
-                className="form-input"
-              />
-              <input
-                type="text"
-                placeholder="State"
-                value={values.churchAddress.state || ''}
-                onChange={(e) => updateAddress('state', e.target.value)}
-                className="form-input"
-              />
-              <input
-                type="text"
-                placeholder="ZIP Code"
-                value={values.churchAddress.zipCode || ''}
-                onChange={(e) => updateAddress('zipCode', e.target.value)}
-                className="form-input"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Contact Email</label>
-              <input
-                type="email"
-                name="contactEmail"
-                value={values.contactEmail}
-                onChange={handleChange}
-                className="form-input"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Contact Phone</label>
-              <input
-                type="tel"
-                name="contactPhone"
-                value={values.contactPhone}
-                onChange={handleChange}
-                className="form-input"
-              />
-            </div>
+    <div className="bg-white rounded-lg shadow-lg">
+      {/* Header */}
+      <div className="border-b border-gray-200 px-8 py-6 bg-gradient-to-r from-gray-50 to-white">
+        <div className="flex items-center ">
+          <div className=" text-center justify-between md:text-left">
+            <h2 className="text-3xl font-bold text-gray-900">System Settings</h2>
+            <p className="text-gray-600 mt-2">Manage your church website configuration and preferences</p>
           </div>
         </div>
+      </div>
 
-        {/* Service Times */}
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Service Times</h3>
-            <button
-              type="button"
-              onClick={addServiceTime}
-              className="text-sm text-[#FF7E45] hover:text-[#F4B942]"
-            >
-              + Add Service Time
-            </button>
-          </div>
-          {values.serviceTimes.map((service, index) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
-              <input
-                type="text"
-                placeholder="Day (e.g., Sunday)"
-                value={service.day}
-                onChange={(e) => updateServiceTime(index, 'day', e.target.value)}
-                className="form-input"
-              />
-              <input
-                type="text"
-                placeholder="Time (e.g., 10:00 AM)"
-                value={service.time}
-                onChange={(e) => updateServiceTime(index, 'time', e.target.value)}
-                className="form-input"
-              />
-              <div className="flex">
-                <input
-                  type="text"
-                  placeholder="Description"
-                  value={service.description}
-                  onChange={(e) => updateServiceTime(index, 'description', e.target.value)}
-                  className="form-input flex-1"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeServiceTime(index)}
-                  className="ml-2 text-red-500 hover:text-red-700"
-                >
-                  <i className="fas fa-times"></i>
-                </button>
+      {/* Main Content */}
+      <div className="p-8 max-h-[75vh] overflow-y-auto">
+        <form id="settings-form" onSubmit={handleSubmit} className="space-y-8">
+
+          {/* Church Information Section */}
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 flex items-center">
+              <i className="fas fa-church text-[#FF7E45] mr-3"></i>
+              Church Information
+            </h3>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Church Name*</label>
+                  <input
+                    type="text"
+                    name="churchName"
+                    value={values.churchName}
+                    onChange={handleChange}
+                    className="w-full form-input-lg border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                    required
+                    placeholder="Enter church name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Pastor Name</label>
+                  <input
+                    type="text"
+                    name="pastorName"
+                    value={values.pastorName}
+                    onChange={handleChange}
+                    className="w-full form-input-lg border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                    placeholder="Enter pastor's name"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Contact Email</label>
+                    <input
+                      type="email"
+                      name="contactEmail"
+                      value={values.contactEmail}
+                      onChange={handleChange}
+                      className="w-full form-input-lg border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                      placeholder="contact@church.org"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Contact Phone</label>
+                    <input
+                      type="tel"
+                      name="contactPhone"
+                      value={values.contactPhone}
+                      onChange={handleChange}
+                      className="w-full form-input-lg border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                      placeholder="(555) 123-4567"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
 
-        {/* Social Media */}
-        <div>
-          <h3 className="text-lg font-semibold mb-4">Social Media</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center">
-              <i className="fab fa-facebook text-blue-600 mr-2 w-5"></i>
-              <input
-                type="url"
-                placeholder="Facebook URL"
-                value={values.socialMedia.facebook || ''}
-                onChange={(e) => updateSocialMedia('facebook', e.target.value)}
-                className="form-input flex-1"
-              />
-            </div>
-            <div className="flex items-center">
-              <i className="fab fa-instagram text-pink-600 mr-2 w-5"></i>
-              <input
-                type="url"
-                placeholder="Instagram URL"
-                value={values.socialMedia.instagram || ''}
-                onChange={(e) => updateSocialMedia('instagram', e.target.value)}
-                className="form-input flex-1"
-              />
-            </div>
-            <div className="flex items-center">
-              <i className="fab fa-twitter text-blue-400 mr-2 w-5"></i>
-              <input
-                type="url"
-                placeholder="Twitter URL"
-                value={values.socialMedia.twitter || ''}
-                onChange={(e) => updateSocialMedia('twitter', e.target.value)}
-                className="form-input flex-1"
-              />
-            </div>
-            <div className="flex items-center">
-              <i className="fab fa-youtube text-red-600 mr-2 w-5"></i>
-              <input
-                type="url"
-                placeholder="YouTube URL"
-                value={values.socialMedia.youtube || ''}
-                onChange={(e) => updateSocialMedia('youtube', e.target.value)}
-                className="form-input flex-1"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Live Stream */}
-        <div>
-          <h3 className="text-lg font-semibold mb-4">Live Stream</h3>
-          <div>
-            <label className="block text-sm font-medium mb-1">Live Stream URL</label>
-            <input
-              type="url"
-              name="liveStreamUrl"
-              value={values.liveStreamUrl}
-              onChange={handleChange}
-              className="form-input"
-              placeholder="https://youtube.com/live/..."
-            />
-          </div>
-        </div>
-
-        {/* Giving Options */}
-        <div>
-          <h3 className="text-lg font-semibold mb-4">Giving Options</h3>
-          <div className="flex items-center mb-4">
-            <input
-              type="checkbox"
-              name="enableOnlineGiving"
-              checked={values.givingOptions.enableOnlineGiving || false}
-              onChange={(e) => updateGivingOptions('enableOnlineGiving', e.target.checked)}
-              className="form-checkbox h-4 w-4 text-[#FF7E45]"
-              id="enableOnlineGiving"
-            />
-            <label htmlFor="enableOnlineGiving" className="ml-2 text-sm font-medium">
-              Enable Online Giving
-            </label>
-          </div>
-          {values.givingOptions.enableOnlineGiving && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Stripe Publishable Key</label>
-                <input
-                  type="text"
-                  value={values.givingOptions.stripePublishableKey || ''}
-                  onChange={(e) => updateGivingOptions('stripePublishableKey', e.target.value)}
-                  className="form-input"
-                  placeholder="pk_test_..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Stripe Secret Key</label>
-                <input
-                  type="password"
-                  value={values.givingOptions.stripeSecretKey || ''}
-                  onChange={(e) => updateGivingOptions('stripeSecretKey', e.target.value)}
-                  className="form-input"
-                  placeholder="sk_test_..."
-                />
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Church Address</label>
+                <div className="grid grid-cols-1 gap-4 bg-white p-4 rounded-lg border border-gray-200">
+                  <input
+                    type="text"
+                    placeholder="Street Address"
+                    value={values.churchAddress.street || ''}
+                    onChange={(e) => updateAddress('street', e.target.value)}
+                    className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <input
+                      type="text"
+                      placeholder="City"
+                      value={values.churchAddress.city || ''}
+                      onChange={(e) => updateAddress('city', e.target.value)}
+                      className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                    />
+                    <input
+                      type="text"
+                      placeholder="State"
+                      value={values.churchAddress.state || ''}
+                      onChange={(e) => updateAddress('state', e.target.value)}
+                      className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="ZIP Code"
+                    value={values.churchAddress.zipCode || ''}
+                    onChange={(e) => updateAddress('zipCode', e.target.value)}
+                    className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                  />
+                </div>
               </div>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Email Settings */}
-        <div>
-          <h3 className="text-lg font-semibold mb-4">Email Settings</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">SMTP Host</label>
-              <input
-                type="text"
-                value={values.emailSettings.host || ''}
-                onChange={(e) => updateEmailSettings('host', e.target.value)}
-                className="form-input"
-              />
+          {/* Service Times Section */}
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <div className="flex justify-between items-center mb-6 pb-3 border-b border-gray-200">
+              <h3 className="text-xl font-semibold text-gray-900 flex items-center">
+                <i className="far fa-clock text-[#FF7E45] mr-3"></i>
+                Service Times
+              </h3>
+              <button
+                type="button"
+                onClick={addServiceTime}
+                className="btn btn-primary bg-[#FF7E45] hover:bg-[#F4B942] text-white px-4 py-2 rounded-lg font-medium"
+              >
+                <i className="fas fa-plus mr-2"></i>
+                Add Service Time
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">SMTP Port</label>
-              <input
-                type="number"
-                value={values.emailSettings.port || ''}
-                onChange={(e) => updateEmailSettings('port', parseInt(e.target.value) || '')}
-                className="form-input"
-              />
+
+            <div className="space-y-4">
+              {values.serviceTimes.map((service, index) => (
+                <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start bg-white p-4 rounded-lg border border-gray-200">
+                  <div className="md:col-span-4">
+                    <input
+                      type="text"
+                      placeholder="Day (e.g., Sunday)"
+                      value={service.day}
+                      onChange={(e) => updateServiceTime(index, 'day', e.target.value)}
+                      className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                    />
+                  </div>
+                  <div className="md:col-span-3">
+                    <input
+                      type="text"
+                      placeholder="Time (e.g., 10:00 AM)"
+                      value={service.time}
+                      onChange={(e) => updateServiceTime(index, 'time', e.target.value)}
+                      className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                    />
+                  </div>
+                  <div className="md:col-span-4">
+                    <input
+                      type="text"
+                      placeholder="Description"
+                      value={service.description}
+                      onChange={(e) => updateServiceTime(index, 'description', e.target.value)}
+                      className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                    />
+                  </div>
+                  <div className="md:col-span-1 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => removeServiceTime(index)}
+                      className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50 transition-colors"
+                      title="Remove service time"
+                    >
+                      <i className="fas fa-times text-lg"></i>
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {values.serviceTimes.length === 0 && (
+                <div className="text-center py-8 text-gray-500 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                  <i className="far fa-clock text-3xl mb-2"></i>
+                  <p>No service times added yet</p>
+                </div>
+              )}
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">SMTP Username</label>
-              <input
-                type="text"
-                value={values.emailSettings.auth?.user || ''}
-                onChange={(e) => updateEmailSettings('auth', { ...values.emailSettings.auth, user: e.target.value })}
-                className="form-input"
-              />
+          </div>
+
+          {/* Social Media Section */}
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 flex items-center">
+              <i className="fas fa-share-alt text-[#FF7E45] mr-3"></i>
+              Social Media
+            </h3>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {[
+                { platform: 'facebook', icon: 'fab fa-facebook', color: 'text-blue-600', label: 'Facebook URL' },
+                { platform: 'instagram', icon: 'fab fa-instagram', color: 'text-pink-600', label: 'Instagram URL' },
+                { platform: 'twitter', icon: 'fab fa-twitter', color: 'text-blue-400', label: 'Twitter URL' },
+                { platform: 'youtube', icon: 'fab fa-youtube', color: 'text-red-600', label: 'YouTube URL' }
+              ].map((social) => (
+                <div key={social.platform} className="flex items-center space-x-4 bg-white p-4 rounded-lg border border-gray-200">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${social.color} bg-gray-50`}>
+                    <i className={`${social.icon} text-lg`}></i>
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="url"
+                      placeholder={social.label}
+                      value={values.socialMedia[social.platform] || ''}
+                      onChange={(e) => updateSocialMedia(social.platform, e.target.value)}
+                      className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">SMTP Password</label>
+          </div>
+
+          {/* Live Stream Section */}
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 flex items-center">
+              <i className="fas fa-broadcast-tower text-[#FF7E45] mr-3"></i>
+              Live Stream
+            </h3>
+
+            <div className="bg-white p-6 rounded-lg border border-gray-200">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Live Stream URL</label>
               <input
-                type="password"
-                value={values.emailSettings.auth?.pass || ''}
-                onChange={(e) => updateEmailSettings('auth', { ...values.emailSettings.auth, pass: e.target.value })}
-                className="form-input"
+                type="url"
+                name="liveStreamUrl"
+                value={values.liveStreamUrl}
+                onChange={handleChange}
+                className="w-full form-input-lg border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                placeholder="https://youtube.com/live/..."
               />
+              <p className="text-sm text-gray-500 mt-2">
+                Enter the URL for your live stream service (YouTube, Facebook, etc.)
+              </p>
             </div>
-            <div className="flex items-center">
+          </div>
+
+          {/* Giving Options Section */}
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 flex items-center">
+              <i className="fas fa-donate text-[#FF7E45] mr-3"></i>
+              Giving Options
+            </h3>
+
+            <div className="space-y-6">
+              <div className="flex items-center bg-white p-4 rounded-lg border border-gray-200">
+                <input
+                  type="checkbox"
+                  name="enableOnlineGiving"
+                  checked={values.givingOptions.enableOnlineGiving || false}
+                  onChange={(e) => updateGivingOptions('enableOnlineGiving', e.target.checked)}
+                  className="form-checkbox h-5 w-5 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
+                  id="enableOnlineGiving"
+                />
+                <label htmlFor="enableOnlineGiving" className="ml-3 text-sm font-medium text-gray-700">
+                  Enable Online Giving
+                </label>
+              </div>
+
+              {values.givingOptions.enableOnlineGiving && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-white p-6 rounded-lg border border-gray-200">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Stripe Publishable Key</label>
+                    <input
+                      type="text"
+                      value={values.givingOptions.stripePublishableKey || ''}
+                      onChange={(e) => updateGivingOptions('stripePublishableKey', e.target.value)}
+                      className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                      placeholder="pk_test_..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Stripe Secret Key</label>
+                    <input
+                      type="password"
+                      value={values.givingOptions.stripeSecretKey || ''}
+                      onChange={(e) => updateGivingOptions('stripeSecretKey', e.target.value)}
+                      className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                      placeholder="sk_test_..."
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Email Settings Section */}
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 flex items-center">
+              <i className="fas fa-envelope text-[#FF7E45] mr-3"></i>
+              Email Settings
+            </h3>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">SMTP Host</label>
+                  <input
+                    type="text"
+                    value={values.emailSettings.host || ''}
+                    onChange={(e) => updateEmailSettings('host', e.target.value)}
+                    className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                    placeholder="smtp.gmail.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">SMTP Port</label>
+                  <input
+                    type="number"
+                    value={values.emailSettings.port || ''}
+                    onChange={(e) => updateEmailSettings('port', parseInt(e.target.value) || '')}
+                    className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                    placeholder="587"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">SMTP Username</label>
+                  <input
+                    type="text"
+                    value={values.emailSettings.auth?.user || ''}
+                    onChange={(e) => updateEmailSettings('auth', { ...values.emailSettings.auth, user: e.target.value })}
+                    className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                    placeholder="your-email@gmail.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">SMTP Password</label>
+                  <input
+                    type="password"
+                    value={values.emailSettings.auth?.pass || ''}
+                    onChange={(e) => updateEmailSettings('auth', { ...values.emailSettings.auth, pass: e.target.value })}
+                    className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center mt-6 bg-white p-4 rounded-lg border border-gray-200">
               <input
                 type="checkbox"
                 checked={values.emailSettings.secure || false}
                 onChange={(e) => updateEmailSettings('secure', e.target.checked)}
-                className="form-checkbox h-4 w-4 text-[#FF7E45]"
+                className="form-checkbox h-5 w-5 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
                 id="secureSMTP"
               />
-              <label htmlFor="secureSMTP" className="ml-2 text-sm font-medium">
-                Use SSL/TLS
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* Module Settings */}
-        <div>
-          <h3 className="text-lg font-semibold mb-4">Module Settings</h3>
-
-          {/* Sermon Settings */}
-          <div className="mb-4">
-            <h4 className="font-medium mb-2">Sermon Settings</h4>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                checked={values.sermonSettings.autoPublish || false}
-                onChange={(e) => updateSermonSettings('autoPublish', e.target.checked)}
-                className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                id="autoPublishSermons"
-              />
-              <label htmlFor="autoPublishSermons" className="ml-2 text-sm font-medium">
-                Auto-publish new sermons
+              <label htmlFor="secureSMTP" className="ml-3 text-sm font-medium text-gray-700">
+                Use SSL/TLS for secure connection
               </label>
             </div>
           </div>
 
-          {/* Blog Settings */}
-          <div className="mb-4">
-            <h4 className="font-medium mb-2">Blog Settings</h4>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                checked={values.blogSettings.enableComments || false}
-                onChange={(e) => updateBlogSettings('enableComments', e.target.checked)}
-                className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                id="enableBlogComments"
-              />
-              <label htmlFor="enableBlogComments" className="ml-2 text-sm font-medium">
-                Enable blog comments
-              </label>
-            </div>
-            <div className="flex items-center mt-2">
-              <input
-                type="checkbox"
-                checked={values.blogSettings.requireApproval || false}
-                onChange={(e) => updateBlogSettings('requireApproval', e.target.checked)}
-                className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                id="requireBlogApproval"
-              />
-              <label htmlFor="requireBlogApproval" className="ml-2 text-sm font-medium">
-                Require blog post approval
-              </label>
+          {/* Module Settings Section */}
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 flex items-center">
+              <i className="fas fa-cubes text-[#FF7E45] mr-3"></i>
+              Module Settings
+            </h3>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+
+              {/* Sermon Settings */}
+              <div className="bg-white p-6 rounded-lg border border-gray-200">
+                <h4 className="font-semibold text-lg text-gray-800 mb-4 flex items-center">
+                  <i className="fas fa-microphone-alt text-[#FF7E45] mr-2"></i>
+                  Sermon Settings
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={values.sermonSettings.autoPublish || false}
+                      onChange={(e) => updateSermonSettings('autoPublish', e.target.checked)}
+                      className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
+                      id="autoPublishSermons"
+                    />
+                    <label htmlFor="autoPublishSermons" className="ml-2 text-sm font-medium text-gray-700">
+                      Auto-publish new sermons
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Blog Settings */}
+              <div className="bg-white p-6 rounded-lg border border-gray-200">
+                <h4 className="font-semibold text-lg text-gray-800 mb-4 flex items-center">
+                  <i className="far fa-newspaper text-[#FF7E45] mr-2"></i>
+                  Blog Settings
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={values.blogSettings.enableComments || false}
+                      onChange={(e) => updateBlogSettings('enableComments', e.target.checked)}
+                      className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
+                      id="enableBlogComments"
+                    />
+                    <label htmlFor="enableBlogComments" className="ml-2 text-sm font-medium text-gray-700">
+                      Enable blog comments
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={values.blogSettings.requireApproval || false}
+                      onChange={(e) => updateBlogSettings('requireApproval', e.target.checked)}
+                      className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
+                      id="requireBlogApproval"
+                    />
+                    <label htmlFor="requireBlogApproval" className="ml-2 text-sm font-medium text-gray-700">
+                      Require blog post approval
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ministry Settings */}
+              <div className="bg-white p-6 rounded-lg border border-gray-200">
+                <h4 className="font-semibold text-lg text-gray-800 mb-4 flex items-center">
+                  <i className="fas fa-hands-helping text-[#FF7E45] mr-2"></i>
+                  Ministry Settings
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={values.ministrySettings.enableVolunteerSignup || false}
+                      onChange={(e) => updateMinistrySettings('enableVolunteerSignup', e.target.checked)}
+                      className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
+                      id="enableVolunteerSignup"
+                    />
+                    <label htmlFor="enableVolunteerSignup" className="ml-2 text-sm font-medium text-gray-700">
+                      Enable volunteer signup
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={values.ministrySettings.showLeaders !== false}
+                      onChange={(e) => updateMinistrySettings('showLeaders', e.target.checked)}
+                      className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
+                      id="showMinistryLeaders"
+                    />
+                    <label htmlFor="showMinistryLeaders" className="ml-2 text-sm font-medium text-gray-700">
+                      Show ministry leaders publicly
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Event Settings */}
+              <div className="bg-white p-6 rounded-lg border border-gray-200">
+                <h4 className="font-semibold text-lg text-gray-800 mb-4 flex items-center">
+                  <i className="far fa-calendar-alt text-[#FF7E45] mr-2"></i>
+                  Event Settings
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={values.eventSettings.requireApproval || false}
+                      onChange={(e) => updateEventSettings('requireApproval', e.target.checked)}
+                      className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
+                      id="requireEventApproval"
+                    />
+                    <label htmlFor="requireEventApproval" className="ml-2 text-sm font-medium text-gray-700">
+                      Require event approval
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={values.eventSettings.allowPublicRSVP !== false}
+                      onChange={(e) => updateEventSettings('allowPublicRSVP', e.target.checked)}
+                      className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
+                      id="allowPublicRSVP"
+                    />
+                    <label htmlFor="allowPublicRSVP" className="ml-2 text-sm font-medium text-gray-700">
+                      Allow public RSVP
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Prayer Request Settings */}
+              <div className="bg-white p-6 rounded-lg border border-gray-200">
+                <h4 className="font-semibold text-lg text-gray-800 mb-4 flex items-center">
+                  <i className="fas fa-praying-hands text-[#FF7E45] mr-2"></i>
+                  Prayer Request Settings
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={values.prayerRequestSettings.requireApproval !== false}
+                      onChange={(e) => updatePrayerRequestSettings('requireApproval', e.target.checked)}
+                      className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
+                      id="requirePrayerApproval"
+                    />
+                    <label htmlFor="requirePrayerApproval" className="ml-2 text-sm font-medium text-gray-700">
+                      Require prayer request approval
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={values.prayerRequestSettings.allowAnonymous !== false}
+                      onChange={(e) => updatePrayerRequestSettings('allowAnonymous', e.target.checked)}
+                      className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
+                      id="allowAnonymousPrayer"
+                    />
+                    <label htmlFor="allowAnonymousPrayer" className="ml-2 text-sm font-medium text-gray-700">
+                      Allow anonymous prayer requests
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Testimonial Settings */}
+              <div className="bg-white p-6 rounded-lg border border-gray-200">
+                <h4 className="font-semibold text-lg text-gray-800 mb-4 flex items-center">
+                  <i className="far fa-comment-dots text-[#FF7E45] mr-2"></i>
+                  Testimonial Settings
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={values.testimonialSettings.requireApproval !== false}
+                      onChange={(e) => updateTestimonialSettings('requireApproval', e.target.checked)}
+                      className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
+                      id="requireTestimonialApproval"
+                    />
+                    <label htmlFor="requireTestimonialApproval" className="ml-2 text-sm font-medium text-gray-700">
+                      Require testimonial approval
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={values.testimonialSettings.allowVideo !== false}
+                      onChange={(e) => updateTestimonialSettings('allowVideo', e.target.checked)}
+                      className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
+                      id="allowVideoTestimonials"
+                    />
+                    <label htmlFor="allowVideoTestimonials" className="ml-2 text-sm font-medium text-gray-700">
+                      Allow video testimonials
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Ministry Settings */}
-          <div className="mb-4">
-            <h4 className="font-medium mb-2">Ministry Settings</h4>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                checked={values.ministrySettings.enableVolunteerSignup || false}
-                onChange={(e) => updateMinistrySettings('enableVolunteerSignup', e.target.checked)}
-                className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                id="enableVolunteerSignup"
-              />
-              <label htmlFor="enableVolunteerSignup" className="ml-2 text-sm font-medium">
-                Enable volunteer signup
-              </label>
-            </div>
-            <div className="flex items-center mt-2">
-              <input
-                type="checkbox"
-                checked={values.ministrySettings.showLeaders || true}
-                onChange={(e) => updateMinistrySettings('showLeaders', e.target.checked)}
-                className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                id="showMinistryLeaders"
-              />
-              <label htmlFor="showMinistryLeaders" className="ml-2 text-sm font-medium">
-                Show ministry leaders publicly
-              </label>
-            </div>
+          {/* Footer Actions */}
+          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => setValues(settings)}
+              className="btn btn-outline px-8 py-3 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 font-medium rounded-lg"
+            >
+              <i className="fas fa-undo mr-2"></i>
+              Reset Changes
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary px-10 py-3 bg-[#FF7E45] hover:bg-[#F4B942] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all"
+            >
+              <i className="fas fa-save mr-2"></i>
+              Save All Settings
+            </button>
           </div>
-
-          {/* Event Settings */}
-          <div className="mb-4">
-            <h4 className="font-medium mb-2">Event Settings</h4>
-            <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                checked={values.eventSettings.requireApproval || false}
-                onChange={(e) => updateEventSettings('requireApproval', e.target.checked)}
-                className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                id="requireEventApproval"
-              />
-              <label htmlFor="requireEventApproval" className="ml-2 text-sm font-medium">
-                Require event approval
-              </label>
-            </div>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                checked={values.eventSettings.allowPublicRSVP || true}
-                onChange={(e) => updateEventSettings('allowPublicRSVP', e.target.checked)}
-                className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                id="allowPublicRSVP"
-              />
-              <label htmlFor="allowPublicRSVP" className="ml-2 text-sm font-medium">
-                Allow public RSVP
-              </label>
-            </div>
-          </div>
-
-          {/* Prayer Request Settings */}
-          <div className="mb-4">
-            <h4 className="font-medium mb-2">Prayer Request Settings</h4>
-            <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                checked={values.prayerRequestSettings.requireApproval || true}
-                onChange={(e) => updatePrayerRequestSettings('requireApproval', e.target.checked)}
-                className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                id="requirePrayerApproval"
-              />
-              <label htmlFor="requirePrayerApproval" className="ml-2 text-sm font-medium">
-                Require prayer request approval
-              </label>
-            </div>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                checked={values.prayerRequestSettings.allowAnonymous || true}
-                onChange={(e) => updatePrayerRequestSettings('allowAnonymous', e.target.checked)}
-                className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                id="allowAnonymousPrayer"
-              />
-              <label htmlFor="allowAnonymousPrayer" className="ml-2 text-sm font-medium">
-                Allow anonymous prayer requests
-              </label>
-            </div>
-          </div>
-
-          {/* Testimonial Settings */}
-          <div>
-            <h4 className="font-medium mb-2">Testimonial Settings</h4>
-            <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                checked={values.testimonialSettings.requireApproval || true}
-                onChange={(e) => updateTestimonialSettings('requireApproval', e.target.checked)}
-                className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                id="requireTestimonialApproval"
-              />
-              <label htmlFor="requireTestimonialApproval" className="ml-2 text-sm font-medium">
-                Require testimonial approval
-              </label>
-            </div>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                checked={values.testimonialSettings.allowVideo || true}
-                onChange={(e) => updateTestimonialSettings('allowVideo', e.target.checked)}
-                className="form-checkbox h-4 w-4 text-[#FF7E45]"
-                id="allowVideoTestimonials"
-              />
-              <label htmlFor="allowVideoTestimonials" className="ml-2 text-sm font-medium">
-                Allow video testimonials
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end space-x-2 pt-4">
-          <button type="button" onClick={() => setValues(settings)} className="btn btn-outline">
-            Reset
-          </button>
-          <button type="submit" className="btn btn-primary">
-            Save Settings
-          </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };
@@ -3258,7 +4056,7 @@ const AdminPage = () => {
   useEffect(() => {
     document.title = "SMC: - Admin | St. Micheal`s & All Angels Church | Ifite-Awka";
 
-    if (user && (user.role === 'admin' || user.role === 'moderator')) {
+    if (user && (user.role === 'admin')) {
       fetchDashboardData();
       fetchSettings();
       checkLiveStreamStatus();
@@ -3273,51 +4071,122 @@ const AdminPage = () => {
       setIsLoading(true);
       setError(null);
 
-      // Use Promise.allSettled to handle partial failures gracefully
-      const [
-        statsResponse,
-        activityResponse,
-        usersResponse,
-        ministriesResponse,
-        testimonialsResponse,
-        blogResponse,
-        eventsResponse,
-        sermonsResponse,
-        donationsResponse,
-        prayerResponse,
-        settingsResponse
-      ] = await Promise.allSettled([
-        utilityService.getDashboardStats(), // ✅ now points to /api/analytics/admin/dashboard/stats
-        utilityService.getRecentActivity(), // ✅ now points to /api/analytics/admin/activity/recent
+      const requests = [
+        utilityService.getDashboardStats(),
+        utilityService.getRecentActivity(),
         userService.getAllUsers({ limit: 100 }),
-        adminService.getMinistries(),
-        adminService.getTestimonials(),
-        adminService.getBlogPosts(), // ✅ now points to /api/blogs/admin/all
-        eventService.getAll({ limit: 50 }),
-        sermonService.getAll({ limit: 50 }),
+        ministryService.getAll({ limit: 100 }),
+        testimonialService.getAll({ limit: 100 }),
+        blogService.getAll({ limit: 100 }),
+        eventService.getAll({ limit: 100 }),
+        sermonService.getAll({ limit: 100 }),
         donationService.getAll({ limit: 100 }),
         prayerService.getAll({ limit: 100 }),
         adminService.getSettings()
-      ]);
+      ];
 
-      // Process responses with proper error handling
-      setStats(statsResponse.status === 'fulfilled' ? statsResponse.value.data || statsResponse.value : {});
-      setRecentActivity(activityResponse.status === 'fulfilled' ? (Array.isArray(activityResponse.value.data) ? activityResponse.value.data : []) : []);
-      setUsers(usersResponse.status === 'fulfilled' ? (Array.isArray(usersResponse.value.users) ? usersResponse.value.users : []) : []);
-      setMinistries(ministriesResponse.status === 'fulfilled' ? (Array.isArray(ministriesResponse.value.ministries) ? ministriesResponse.value.ministries : []) : []);
-      setTestimonials(testimonialsResponse.status === 'fulfilled' ? (Array.isArray(testimonialsResponse.value.testimonials) ? testimonialsResponse.value.testimonials : []) : []);
-      setBlogPosts(blogResponse.status === 'fulfilled' ? (Array.isArray(blogResponse.value.posts) ? blogResponse.value.posts : []) : []);
-      setUpcomingEvents(eventsResponse.status === 'fulfilled' ? (Array.isArray(eventsResponse.value.events) ? eventsResponse.value.events : []) : []);
-      setSermons(sermonsResponse.status === 'fulfilled' ? (Array.isArray(sermonsResponse.value.sermons) ? sermonsResponse.value.sermons : []) : []);
-      setDonations(donationsResponse.status === 'fulfilled' ? (Array.isArray(donationsResponse.value.donations) ? donationsResponse.value.donations : []) : []);
-      setPrayerRequests(prayerResponse.status === 'fulfilled' ? (Array.isArray(prayerResponse.value.prayers) ? prayerResponse.value.prayers : []) : []);
-      setSettings(settingsResponse.status === 'fulfilled' ? settingsResponse.value.settings || settingsResponse.value.data || {} : {});
+      const responses = await Promise.allSettled(requests);
+
+      // Process each response with proper array safety
+      responses.forEach((response, index) => {
+        if (response.status === "fulfilled") {
+          const result = response.value;
+
+          // Extract data from different possible response structures
+          let data = result?.data || result;
+
+          switch (index) {
+            case 0: // Stats
+              setStats(typeof data === 'object' ? data : {});
+              break;
+
+            case 1: // Recent Activity
+              const activities = data?.activities || data;
+              setRecentActivity(Array.isArray(activities) ? activities : []);
+              break;
+
+            case 2: // Users
+              const users = data?.users || data;
+              setUsers(Array.isArray(users) ? users : []);
+              break;
+
+            case 3: // Ministries
+              const ministries = data?.ministries || data;
+              setMinistries(Array.isArray(ministries) ? ministries : []);
+              break;
+
+            case 4: // Testimonials
+              const testimonials = data?.testimonials || data;
+              setTestimonials(Array.isArray(testimonials) ? testimonials : []);
+              break;
+
+            case 5: // Blog Posts
+              const blogPosts = data?.posts || data;
+              setBlogPosts(Array.isArray(blogPosts) ? blogPosts : []);
+              break;
+
+            case 6: // Events
+              const events = data?.events || data;
+              setUpcomingEvents(Array.isArray(events) ? events : []);
+              break;
+
+            case 7: // Sermons - FIXED: Ensure this is always an array
+              const sermons = data?.sermons || data;
+              setSermons(Array.isArray(sermons) ? sermons : []);
+              break;
+
+            case 8: // Donations
+              const donations = data?.donations || data;
+              setDonations(Array.isArray(donations) ? donations : []);
+              break;
+
+            case 9: // Prayer Requests
+              const prayers = data?.prayers || data;
+              setPrayerRequests(Array.isArray(prayers) ? prayers : []);
+              break;
+
+            case 10: // Settings
+              const settings = data?.settings || data;
+              setSettings(typeof settings === 'object' ? settings : {});
+              break;
+          }
+        } else {
+          console.warn(`Request ${index} failed:`, response.reason);
+          // Set empty defaults for failed requests
+          switch (index) {
+            case 0: setStats({}); break;
+            case 1: setRecentActivity([]); break;
+            case 2: setUsers([]); break;
+            case 3: setMinistries([]); break;
+            case 4: setTestimonials([]); break;
+            case 5: setBlogPosts([]); break;
+            case 6: setUpcomingEvents([]); break;
+            case 7: setSermons([]); break;
+            case 8: setDonations([]); break;
+            case 9: setPrayerRequests([]); break;
+            case 10: setSettings({}); break;
+          }
+        }
+      });
 
     } catch (err) {
-      console.error('Error fetching dashboard data:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to load dashboard data';
+      console.error("Error fetching dashboard data:", err);
+      const errorMessage = err.response?.data?.message || err.message || "Failed to load dashboard data";
       setError(errorMessage);
       alert.error(errorMessage);
+
+      // Set empty defaults on error
+      setSermons([]);
+      setUpcomingEvents([]);
+      setUsers([]);
+      setMinistries([]);
+      setTestimonials([]);
+      setBlogPosts([]);
+      setDonations([]);
+      setPrayerRequests([]);
+      setRecentActivity([]);
+      setStats({});
+      setSettings({});
     } finally {
       setIsLoading(false);
     }
@@ -3415,29 +4284,27 @@ const AdminPage = () => {
   const handleCreateUser = async (userData) => {
     try {
       const response = await userService.createUser(userData);
-      const newUser = response.data?.user || response.user;
+      const newUser = response.data?.user || response.user || response.data || response;
 
-      if (newUser) {
-        setUsers(prev => [...prev, newUser]);
-        return { success: true, message: 'User created successfully' };
-      } else {
-        throw new Error('Invalid response from server');
-      }
+      if (newUser && newUser._id) {
+        setUsers((prev) => [...prev, newUser]);
+        alert.success("User created successfully");
+        return { success: true };
+      } else throw new Error("Invalid response from server");
     } catch (error) {
-      console.error('Error creating user:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to create user';
-      alert.error(errorMessage);
-      return { success: false, message: errorMessage };
+      console.error("Error creating user:", error);
+      alert.error(error.response?.data?.message || "Failed to create user");
+      return { success: false };
     }
   };
 
   const handleUpdateUser = async (userId, userData) => {
     try {
       const response = await userService.updateUser(userId, userData);
-      const updatedUser = response.data?.user || response.user;
+      const updatedUser = response.data?.user || response.user || response.data || response;
 
-      if (updatedUser) {
-        setUsers(prev => prev.map(user => user._id === userId ? updatedUser : user));
+      if (updatedUser && updatedUser._id) {
+        setUsers(prev => [...prev, updatedUser]);
         return { success: true, message: 'User updated successfully' };
       } else {
         throw new Error('Invalid response from server');
@@ -3466,18 +4333,27 @@ const AdminPage = () => {
   // Ministry Management Handlers
   const handleCreateMinistry = async (ministryData) => {
     try {
-      const response = await adminService.createMinistry(ministryData);
-      const newMinistry = response.data?.ministry || response.ministry;
+      const response = await ministryService.create(ministryData);
+      const newMinistry = response.data?.ministry || response.data?.data || response.data || response;
 
+      if (!newMinistry || !newMinistry._id) {
+        throw new Error("Invalid response from server");
+      }
       if (newMinistry) {
-        setMinistries(prev => [...prev, newMinistry]);
-        return { success: true, message: 'Ministry created successfully' };
-      } else {
-        throw new Error('Invalid response from server');
+        setMinistries((prev) => [...prev, newMinistry]);
+        setStats((prev) => ({
+          ...prev,
+          totalMinistries: (prev.totalMinistries || 0) + 1,
+          activeMinistries: (prev.activeMinistries || 0) + (newMinistry.status === "active" ? 1 : 0),
+        }));
+
+        return {
+          success: true, message: "✅ Ministry created successfully!", data: newMinistry,
+        };
       }
     } catch (error) {
-      console.error('Error creating ministry:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to create ministry';
+      console.error("❌ Error creating ministry:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Failed to create ministry";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3485,18 +4361,21 @@ const AdminPage = () => {
 
   const handleUpdateMinistry = async (ministryId, ministryData) => {
     try {
-      const response = await adminService.updateMinistry(ministryId, ministryData);
-      const updatedMinistry = response.data?.ministry || response.ministry;
+      const response = await ministryService.update(ministryId, ministryData);
+      const updatedMinistry = response.data?.ministry || response.data?.data || response.data || response;
 
-      if (updatedMinistry) {
-        setMinistries(prev => prev.map(ministry => ministry._id === ministryId ? updatedMinistry : ministry));
-        return { success: true, message: 'Ministry updated successfully' };
-      } else {
-        throw new Error('Invalid response from server');
+      if (!updatedMinistry || !updatedMinistry._id) {
+        throw new Error("Invalid response from server");
       }
+
+      // ✅ Instantly reflect changes in UI table
+      setMinistries((prev) => prev.map((ministry) => ministry._id === ministryId ? updatedMinistry : ministry));
+
+      alert.success("✅ Ministry updated successfully!");
+      return { success: true, message: "Ministry updated successfully", data: updatedMinistry };
     } catch (error) {
-      console.error('Error updating ministry:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update ministry';
+      console.error("❌ Error updating ministry:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Failed to update ministry";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -3504,16 +4383,37 @@ const AdminPage = () => {
 
   const handleDeleteMinistry = async (ministryId) => {
     try {
-      await adminService.deleteMinistry(ministryId);
-      setMinistries(prev => prev.filter(ministry => ministry._id !== ministryId));
-      return { success: true, message: 'Ministry deleted successfully' };
+      const response = await ministryService.delete(ministryId);
+      const success = response?.data?.success !== false && response?.status !== 400;
+
+      if (success) {
+        // ✅ Instantly remove deleted ministry from table
+        setMinistries((prev) =>
+          prev.filter((ministry) => ministry._id !== ministryId)
+        );
+
+        // ✅ Optional: update dashboard stats instantly
+        setStats((prev) => ({
+          ...prev,
+          totalMinistries: Math.max((prev.totalMinistries || 1) - 1, 0),
+        }));
+
+        alert.success("🗑️ Ministry deleted successfully!");
+        return { success: true, message: "Ministry deleted successfully" };
+      } else {
+        throw new Error("Failed to delete ministry");
+      }
     } catch (error) {
-      console.error('Error deleting ministry:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to delete ministry';
+      console.error("❌ Error deleting ministry:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to delete ministry";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
   };
+
 
   // Testimonial Management Handlers
   const handleCreateTestimonial = async (testimonialData) => {
@@ -3558,40 +4458,42 @@ const AdminPage = () => {
   // Blog Management Handlers
   const handleCreateBlogPost = async (blogData) => {
     try {
-      const response = await blogService.createBlogPost(blogData);
-      setBlogPosts(prev => [...prev, response.data?.post || response.post]);
-      return { success: true, message: 'Blog post created successfully' };
+      const response = await blogService.create(blogData);
+      setBlogPosts(prev => [...prev, response.data?.data || response.data || response]);
+      alert.success('Blog post created successfully!');
+      return { success: true };
     } catch (error) {
       console.error('Error creating blog post:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to create blog post';
-      alert.error(errorMessage);
-      return { success: false, message: errorMessage };
+      alert.error(error.response?.data?.message || 'Failed to create blog post');
+      return { success: false };
     }
   };
 
   const handleUpdateBlogPost = async (blogId, blogData) => {
     try {
-      const response = await blogService.updateBlogPost(blogId, blogData);
-      setBlogPosts(prev => prev.map(post => post._id === blogId ? response.data?.post || response.post : post));
-      return { success: true, message: 'Blog post updated successfully' };
+      const response = await blogService.update(blogId, blogData);
+      setBlogPosts(prev =>
+        prev.map(post =>
+          post._id === blogId ? (response.data?.data || response.data || response) : post
+        )
+      );
+      alert.success('Blog post updated successfully!');
+      return { success: true };
     } catch (error) {
-      console.error('Error updating blog post:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update blog post';
-      alert.error(errorMessage);
-      return { success: false, message: errorMessage };
+      alert.error(error.response?.data?.message || 'Failed to update blog post');
+      return { success: false };
     }
   };
 
   const handleDeleteBlogPost = async (blogId) => {
     try {
-      await blogService.deleteBlogPost(blogId);
+      await blogService.delete(blogId);
       setBlogPosts(prev => prev.filter(post => post._id !== blogId));
-      return { success: true, message: 'Blog post deleted successfully' };
+      alert.success('Blog post deleted successfully!');
+      return { success: true };
     } catch (error) {
-      console.error('Error deleting blog post:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to delete blog post';
-      alert.error(errorMessage);
-      return { success: false, message: errorMessage };
+      alert.error(error.response?.data?.message || 'Failed to delete blog post');
+      return { success: false };
     }
   };
 
@@ -3765,7 +4667,6 @@ const AdminPage = () => {
     setIsEventModalOpen(false);
   };
 
-
   // Sermon Modal
   const openSermonModal = (sermon = null) => {
     setSelectedSermon(sermon);
@@ -3777,7 +4678,6 @@ const AdminPage = () => {
     setIsSermonModalOpen(false);
   };
 
-
   // Setting Modal
   const openSettingsModal = () => {
     setIsSettingsModalOpen(true);
@@ -3786,7 +4686,6 @@ const AdminPage = () => {
   const closeSettingsModal = () => {
     setIsSettingsModalOpen(false);
   };
-
 
   // Delete Modal
   const openDeleteModal = (item, type) => {
@@ -3928,7 +4827,7 @@ const AdminPage = () => {
   }
 
 
-  if (user.role !== 'admin' && user.role !== 'moderator') {
+  if (user.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
@@ -4050,305 +4949,349 @@ const AdminPage = () => {
 
             <div className="lg:w-4/5 lg:pl-8">
               {activeTab === 'overview' && (
-                <div>
-                  <div className="mb-6">
-                    <h2 className="text-2xl font-bold mb-4">Dashboard Overview</h2>
-                    <p className="text-gray-600 mb-4">Welcome to the admin dashboard. Here's a summary of your church's activity.</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <StatCard
-                      title="Total Members"
-                      value={stats.totalMembers || '0'}
-                      change={stats.membersChange || '0% from last month'}
-                      changeType={stats.membersChangeType || 'increase'}
-                      icon="fa-users"
-                      iconBgColor="bg-blue-100"
-                      iconTextColor="text-blue-500"
-                    />
-                    <StatCard
-                      title="Weekly Attendance"
-                      value={stats.weeklyAttendance || '0'}
-                      change={stats.attendanceChange || '0% from last week'}
-                      changeType={stats.attendanceChangeType || 'increase'}
-                      icon="fa-user-check"
-                      iconBgColor="bg-green-100"
-                      iconTextColor="text-green-500"
-                    />
-                    <StatCard
-                      title="Online Viewers"
-                      value={stats.onlineViewers || '0'}
-                      change={stats.viewersChange || '0% from last week'}
-                      changeType={stats.viewersChangeType || 'increase'}
-                      icon="fa-video"
-                      iconBgColor="bg-purple-100"
-                      iconTextColor="text-purple-500"
-                    />
-                    <StatCard
-                      title="Weekly Giving"
-                      value={stats.weeklyGiving ? `$${stats.weeklyGiving.toLocaleString()}` : '$0'}
-                      change={stats.givingChange || '0% from last week'}
-                      changeType={stats.givingChangeType || 'increase'}
-                      icon="fa-hand-holding-usd"
-                      iconBgColor="bg-yellow-100"
-                      iconTextColor="text-yellow-500"
-                    />
-                  </div>
-
-                  {liveStreamStatus && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></div>
-                        <span className="font-medium text-red-700">Live Stream is Active</span>
-                        <button
-                          onClick={() => setActiveTab('live')}
-                          className="ml-auto text-red-600 hover:text-red-800 text-sm font-medium"
-                        >
-                          Manage Live Stream <i className="fas fa-arrow-right ml-1"></i>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                    <h3 className="text-xl font-bold mb-4">Recent Activity</h3>
-                    <div className="space-y-4">
-                      {recentActivity.length > 0 ? (
-                        recentActivity.map((activity, index) => (
-                          <ActivityItem
-                            key={index}
-                            icon={activity.icon || 'fa-info-circle'}
-                            bgColor={activity.bgColor || 'bg-gray-100'}
-                            text={activity.text || 'Unknown activity'}
-                            time={activity.time || 'Unknown time'}
-                          />
-                        ))
-                      ) : (
-                        <p className="text-gray-500">No recent activity</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white rounded-lg shadow-md p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold">Prayer Requests</h4>
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <i className="fas fa-praying-hands text-blue-500"></i>
-                        </div>
-                      </div>
-                      <p className="text-3xl font-bold">{stats.prayerRequests || 0}</p>
-                      <p className="text-sm text-gray-500">Pending: {stats.pendingPrayers || 0}</p>
+                <TabContentWrapper activeTab={activeTab} tabName="overview">
+                  <div>
+                    <div className="mb-6">
+                      <h2 className="text-2xl font-bold mb-4">Dashboard Overview</h2>
+                      <p className="text-gray-600 mb-4">Welcome to the admin dashboard. Here's a summary of your church's activity.</p>
                     </div>
 
-                    <div className="bg-white rounded-lg shadow-md p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold">Events</h4>
-                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                          <i className="far fa-calendar-alt text-green-500"></i>
-                        </div>
-                      </div>
-                      <p className="text-3xl font-bold">{stats.upcomingEvents || 0}</p>
-                      <p className="text-sm text-gray-500">This week: {stats.thisWeekEvents || 0}</p>
-                    </div>
-
-                    <div className="bg-white rounded-lg shadow-md p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold">Sermons</h4>
-                        <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                          <i className="fas fa-microphone-alt text-purple-500"></i>
-                        </div>
-                      </div>
-                      <p className="text-3xl font-bold">{stats.totalSermons || 0}</p>
-                      <p className="text-sm text-gray-500">This month: {stats.monthSermons || 0}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white rounded-lg shadow-md p-6">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-xl font-bold">Upcoming Events</h3>
-                        <button
-                          className="text-[#FF7E45] hover:text-[#F4B942]"
-                          onClick={() => openEventModal()}
-                        >
-                          <i className="fas fa-plus mr-1"></i> Add Event
-                        </button>
-                      </div>
-                      <DataTable
-                        columns={eventColumns}
-                        data={(upcomingEvents || []).slice(0, 5)}
-                        onEdit={openEventModal}
-                        onDelete={(event) => openDeleteModal(event, 'event')}
-                        emptyMessage="No upcoming events"
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                      <StatCard
+                        title="Total Members"
+                        value={stats.totalMembers || '0'}
+                        change={stats.membersChange || '0% from last month'}
+                        changeType={stats.membersChangeType || 'increase'}
+                        icon="fa-users"
+                        iconBgColor="bg-blue-100"
+                        iconTextColor="text-blue-500"
+                      />
+                      <StatCard
+                        title="Weekly Attendance"
+                        value={stats.weeklyAttendance || '0'}
+                        change={stats.attendanceChange || '0% from last week'}
+                        changeType={stats.attendanceChangeType || 'increase'}
+                        icon="fa-user-check"
+                        iconBgColor="bg-green-100"
+                        iconTextColor="text-green-500"
+                      />
+                      <StatCard
+                        title="Online Viewers"
+                        value={stats.onlineViewers || '0'}
+                        change={stats.viewersChange || '0% from last week'}
+                        changeType={stats.viewersChangeType || 'increase'}
+                        icon="fa-video"
+                        iconBgColor="bg-purple-100"
+                        iconTextColor="text-purple-500"
+                      />
+                      <StatCard
+                        title="Weekly Giving"
+                        value={stats.weeklyGiving ? `$${stats.weeklyGiving.toLocaleString()}` : '$0'}
+                        change={stats.givingChange || '0% from last week'}
+                        changeType={stats.givingChangeType || 'increase'}
+                        icon="fa-hand-holding-usd"
+                        iconBgColor="bg-yellow-100"
+                        iconTextColor="text-yellow-500"
                       />
                     </div>
 
-                    <div className="bg-white rounded-lg shadow-md p-6">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-xl font-bold">Recent Sermons</h3>
-                        <button
-                          className="text-[#FF7E45] hover:text-[#F4B942]"
-                          onClick={() => openSermonModal()}
-                        >
-                          <i className="fas fa-plus mr-1"></i> Add Sermon
-                        </button>
+                    {liveStreamStatus && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                        <div className="flex items-center">
+                          <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></div>
+                          <span className="font-medium text-red-700">Live Stream is Active</span>
+                          <button
+                            onClick={() => setActiveTab('live')}
+                            className="ml-auto text-red-600 hover:text-red-800 text-sm font-medium"
+                          >
+                            Manage Live Stream <i className="fas fa-arrow-right ml-1"></i>
+                          </button>
+                        </div>
                       </div>
-                      <DataTable
-                        columns={sermonColumns}
-                        data={(sermons || []).slice(0, 5)}
-                        onEdit={openSermonModal}
-                        onDelete={(sermon) => openDeleteModal(sermon, 'sermon')}
-                        emptyMessage="No sermons available"
-                      />
+                    )}
+
+                    <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                      <h3 className="text-xl font-bold mb-4">Recent Activity</h3>
+                      <div className="space-y-4">
+                        {recentActivity.length > 0 ? (
+                          recentActivity.map((activity, index) => (
+                            <ActivityItem
+                              key={index}
+                              icon={activity.icon || 'fa-info-circle'}
+                              bgColor={activity.bgColor || 'bg-gray-100'}
+                              text={activity.text || 'Unknown activity'}
+                              time={activity.time || 'Unknown time'}
+                            />
+                          ))
+                        ) : (
+                          <p className="text-gray-500">No recent activity</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                      <div className="bg-white rounded-lg shadow-md p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="font-semibold">Prayer Requests</h4>
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i className="fas fa-praying-hands text-blue-500"></i>
+                          </div>
+                        </div>
+                        <p className="text-3xl font-bold">{stats.prayerRequests || 0}</p>
+                        <p className="text-sm text-gray-500">Pending: {stats.pendingPrayers || 0}</p>
+                      </div>
+
+                      <div className="bg-white rounded-lg shadow-md p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="font-semibold">Events</h4>
+                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                            <i className="far fa-calendar-alt text-green-500"></i>
+                          </div>
+                        </div>
+                        <p className="text-3xl font-bold">{stats.upcomingEvents || 0}</p>
+                        <p className="text-sm text-gray-500">This week: {stats.thisWeekEvents || 0}</p>
+                      </div>
+
+                      <div className="bg-white rounded-lg shadow-md p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="font-semibold">Sermons</h4>
+                          <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                            <i className="fas fa-microphone-alt text-purple-500"></i>
+                          </div>
+                        </div>
+                        <p className="text-3xl font-bold">{stats.totalSermons || 0}</p>
+                        <p className="text-sm text-gray-500">This month: {stats.monthSermons || 0}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="bg-white rounded-lg shadow-md p-6">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-xl font-bold">Upcoming Events</h3>
+                          <button
+                            className="text-[#FF7E45] hover:text-[#F4B942]"
+                            onClick={() => openEventModal()}
+                          >
+                            <i className="fas fa-plus mr-1"></i> Add Event
+                          </button>
+                        </div>
+                        <DataTable
+                          columns={eventColumns}
+                          data={(upcomingEvents || []).slice(0, 5)}
+                          onEdit={openEventModal}
+                          onDelete={(event) => openDeleteModal(event, 'event')}
+                          emptyMessage="No upcoming events"
+                        />
+                      </div>
+
+                      <div className="bg-white rounded-lg shadow-md p-6">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-xl font-bold">Recent Sermons</h3>
+                          <button
+                            className="text-[#FF7E45] hover:text-[#F4B942]"
+                            onClick={() => openSermonModal()}
+                          >
+                            <i className="fas fa-plus mr-1"></i> Add Sermon
+                          </button>
+                        </div>
+                        <DataTable
+                          columns={sermonColumns}
+                          data={(sermons || []).slice(0, 5)}
+                          onEdit={openSermonModal}
+                          onDelete={(sermon) => openDeleteModal(sermon, 'sermon')}
+                          emptyMessage="No sermons available"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
+                </TabContentWrapper>
               )}
 
               {activeTab === 'users' && (
-                <UsersManagement
-                  users={users}
-                  onUpdateUser={handleUpdateUser}
-                  onDeleteUser={(user) => openDeleteModal(user, 'user', 'moderator')}
-                  onCreateUser={handleCreateUser}
-                />
+                <TabContentWrapper activeTab={activeTab} tabName="users">
+                  <UsersManagement
+                    users={Array.isArray(users) ? users : []}
+                    onUpdateUser={handleUpdateUser}
+                    onDeleteUser={(user) => openDeleteModal(user, 'user')}
+                    onCreateUser={handleCreateUser}
+                  />
+                </TabContentWrapper>
               )}
 
               {activeTab === 'ministries' && (
-                <MinistriesManagement
-                  ministries={ministries}
-                  users={users}
-                  onUpdateMinistry={handleUpdateMinistry}
-                  onDeleteMinistry={(ministry) => openDeleteModal(ministry, 'ministry')}
-                  onCreateMinistry={handleCreateMinistry}
-                />
+                <TabContentWrapper activeTab={activeTab} tabName="ministries">
+                  <MinistriesManagement
+                    ministries={ministries}
+                    users={users}
+                    onUpdateMinistry={handleUpdateMinistry}
+                    onDeleteMinistry={(ministry) => openDeleteModal(ministry, 'ministry')}
+                    onCreateMinistry={handleCreateMinistry}
+                  />
+                </TabContentWrapper>
               )}
 
               {activeTab === 'testimonials' && (
-                <TestimonialsManagement
-                  testimonials={testimonials}
-                  onUpdateTestimonial={handleUpdateTestimonial}
-                  onDeleteTestimonial={(testimonial) => openDeleteModal(testimonial, 'testimonial')}
-                  onCreateTestimonial={handleCreateTestimonial}
-                />
+                <TabContentWrapper activeTab={activeTab} tabName="testimonials">
+                  <TestimonialsManagement
+                    testimonials={testimonials}
+                    onUpdateTestimonial={handleUpdateTestimonial}
+                    onDeleteTestimonial={(testimonial) => openDeleteModal(testimonial, 'testimonial')}
+                    onCreateTestimonial={handleCreateTestimonial}
+                  />
+                </TabContentWrapper>
               )}
 
               {activeTab === 'blog' && (
-                <BlogManagement
-                  posts={blogPosts}
-                  onUpdatePost={handleUpdateBlogPost}
-                  onDeletePost={(post) => openDeleteModal(post, 'blog')}
-                  onCreatePost={handleCreateBlogPost}
-                />
+                <TabContentWrapper activeTab={activeTab} tabName="blog">
+                  <BlogManagement
+                    posts={blogPosts}
+                    onUpdatePost={handleUpdateBlogPost}
+                    onDeletePost={(post) => openDeleteModal(post, 'blog')}
+                    onCreatePost={handleCreateBlogPost}
+                  />
+                </TabContentWrapper>
               )}
 
               {activeTab === 'events' && (
-                <div>
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold">Events Management</h2>
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => openEventModal()}
-                    >
-                      <i className="fas fa-plus mr-2"></i> Add New Event
-                    </button>
+                <TabContentWrapper activeTab={activeTab} tabName="events">
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-2xl font-bold">Events Management</h2>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => openEventModal()}
+                      >
+                        <i className="fas fa-plus mr-2"></i> Add New Event
+                      </button>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <DataTable
+                        columns={eventColumns}
+                        data={upcomingEvents}
+                        onEdit={openEventModal}
+                        onDelete={(event) => openDeleteModal(event, 'event')}
+                        emptyMessage="No events available. Add your first event to get started."
+                      />
+                    </div>
                   </div>
-                  <div className="bg-white rounded-lg shadow-md p-6">
-                    <DataTable
-                      columns={eventColumns}
-                      data={upcomingEvents}
-                      onEdit={openEventModal}
-                      onDelete={(event) => openDeleteModal(event, 'event')}
-                      emptyMessage="No events available. Add your first event to get started."
-                    />
-                  </div>
-                </div>
+                </TabContentWrapper>
               )}
 
               {activeTab === 'sermons' && (
-                <div>
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold">Sermons Management</h2>
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => openSermonModal()}
-                    >
-                      <i className="fas fa-plus mr-2"></i> Add New Sermon
-                    </button>
+                <TabContentWrapper activeTab={activeTab} tabName="sermons">
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-2xl font-bold">Sermons Management</h2>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => openSermonModal()}
+                      >
+                        <i className="fas fa-plus mr-2"></i> Add New Sermon
+                      </button>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <DataTable
+                        columns={sermonColumns}
+                        data={sermons}
+                        onEdit={openSermonModal}
+                        onDelete={(sermon) => openDeleteModal(sermon, 'sermon')}
+                        emptyMessage="No sermons available. Add your first sermon to get started."
+                      />
+                    </div>
                   </div>
-                  <div className="bg-white rounded-lg shadow-md p-6">
-                    <DataTable
-                      columns={sermonColumns}
-                      data={sermons}
-                      onEdit={openSermonModal}
-                      onDelete={(sermon) => openDeleteModal(sermon, 'sermon')}
-                      emptyMessage="No sermons available. Add your first sermon to get started."
-                    />
-                  </div>
-                </div>
+                </TabContentWrapper>
               )}
 
               {activeTab === 'donations' && (
-                <DonationsManagement
-                  donations={donations}
-                  onUpdateDonation={handleUpdateDonation}
-                />
+                <TabContentWrapper activeTab={activeTab} tabName="donations">
+                  <DonationsManagement
+                    donations={donations}
+                    onUpdateDonation={handleUpdateDonation}
+                  />
+                </TabContentWrapper>
               )}
 
               {activeTab === 'prayer' && (
-                <PrayerRequestsManagement
-                  prayerRequests={prayerRequests}
-                  onUpdatePrayerRequest={handleUpdatePrayerRequest}
-                  onDeletePrayerRequest={(prayer) => openDeleteModal(prayer, 'prayer')}
-                />
+                <TabContentWrapper activeTab={activeTab} tabName="prayer">
+                  <PrayerRequestsManagement
+                    prayerRequests={prayerRequests}
+                    onUpdatePrayerRequest={handleUpdatePrayerRequest}
+                    onDeletePrayerRequest={(prayer) => openDeleteModal(prayer, 'prayer')}
+                  />
+                </TabContentWrapper>
               )}
 
               {activeTab === 'live' && (
-                <div>
-                  <div className="mb-6">
-                    <h2 className="text-2xl font-bold mb-2">Live Stream Management</h2>
-                    <p className="text-gray-600">Manage your church's live streaming services.</p>
-                  </div>
+                <TabContentWrapper activeTab={activeTab} tabName="live">
+                  <div>
+                    <div className="mb-6">
+                      <h2 className="text-2xl font-bold mb-2">Live Stream Management</h2>
+                      <p className="text-gray-600">Manage your church's live streaming services.</p>
+                    </div>
 
-                  <LiveStreamControl
-                    isLive={liveStreamStatus}
-                    onStartLive={handleStartLiveStream}
-                    onStopLive={handleStopLiveStream}
-                    liveStats={liveStats}
-                  />
+                    <LiveStreamControl
+                      isLive={liveStreamStatus}
+                      onStartLive={handleStartLiveStream}
+                      onStopLive={handleStopLiveStream}
+                      liveStats={liveStats}
+                    />
 
-                  <div className="bg-white rounded-lg shadow-md p-6">
-                    <h3 className="text-xl font-bold mb-4">Quick Sermon Creation</h3>
-                    <p className="text-gray-600 mb-4">
-                      Create a sermon record for your live stream to make it available in the archive later.
-                    </p>
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => openSermonModal({
-                        isLive: true,
-                        date: new Date().toISOString().split('T')[0],
-                        title: 'Live Service - ' + new Date().toLocaleDateString()
-                      })}
-                    >
-                      <i className="fas fa-plus mr-2"></i> Create Live Sermon Record
-                    </button>
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <h3 className="text-xl font-bold mb-4">Quick Sermon Creation</h3>
+                      <p className="text-gray-600 mb-4">
+                        Create a sermon record for your live stream to make it available in the archive later.
+                      </p>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => openSermonModal({
+                          isLive: true,
+                          date: new Date().toISOString().split('T')[0],
+                          title: 'Live Service - ' + new Date().toLocaleDateString()
+                        })}
+                      >
+                        <i className="fas fa-plus mr-2"></i> Create Live Sermon Record
+                      </button>
+                    </div>
                   </div>
-                </div>
+                </TabContentWrapper>
               )}
 
-              <div>
-                <button>
-                  {activeTab === 'settings' && (
-                    <SettingsForm
-                      setActiveTab={isSettingsModalOpen}
-                      settings={settings}
-                      onUpdateSettings={handleUpdateSettings}
-                      onResetSettings={handleResetSettings}
-                    />
-                  )}
-                </button>
-              </div>
+              {activeTab === 'settings' && (
+                <TabContentWrapper activeTab={activeTab} tabName="settings">
+                  <div>
+                    {/* Quick Settings Overview */}
+                    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                      <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold">System Settings</h2>
+                      </div>
+                      <h4 className="text-xl font-semibold mb-4">Current Settings Overview</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <h4 className="font-semibold text-gray-700 mb-2">Church Info</h4>
+                          <p className="text-sm text-gray-600">{settings.churchName || 'Not set'}</p>
+                        </div>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <h4 className="font-semibold text-gray-700 mb-2">Contact</h4>
+                          <p className="text-sm text-gray-600">{settings.contactEmail || 'Not set'}</p>
+                        </div>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <h4 className="font-semibold text-gray-700 mb-2">Live Stream</h4>
+                          <p className="text-sm text-gray-600">{settings.liveStreamUrl ? 'Configured' : 'Not set'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center mb-6">
+                      <button
+                        className="btn btn-primary"
+                        onClick={openSettingsModal}
+                      >
+                        <i className="fas fa-cog mr-2"></i> Manage Settings
+                      </button>
+                    </div>
+                  </div>
+                </TabContentWrapper>
+              )}
             </div>
           </div>
         </div>

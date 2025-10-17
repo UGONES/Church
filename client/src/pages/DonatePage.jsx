@@ -1004,7 +1004,7 @@ const DonationFormSection = ({
 
                       {/* Custom Amount Input */}
                       <div className="relative flex-1">
-                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
+                        <span className="absolute inset-y-0 left-0 pl-1 flex items-center text-gray-500">
                           {currency === "USD"
                             ? "$"
                             : currency === "NGN"
@@ -1017,7 +1017,7 @@ const DonationFormSection = ({
                           type="number"
                           value={customAmount}
                           onChange={(e) => onCustomAmountChange(e)}
-                          className="pl-7 form-input border rounded-md w-full py-2 px-3 border-gray-300"
+                          className="pl-7 flex items-center text-gray-500 form-input border rounded-md w-full py-2 px-3 border-gray-300"
                           placeholder="Enter amount"
                         />
                       </div>

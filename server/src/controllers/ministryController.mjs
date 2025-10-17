@@ -248,3 +248,17 @@ export async function getMinistryCategories(req, res) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 }
+
+// Create ministry category (Admin)
+export async function createMinistryCategory(req, res) {
+  try {
+    const { name } = req.body;
+
+    const category = new Ministry.distinct({ tags: [name] });
+    await category.save();
+
+    res.status(201).json({ message: 'Ministry category created successfully', category, });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+}

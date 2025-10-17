@@ -2,26 +2,22 @@
 
 // =============== USER ENDPOINTS ===============
 export const USER_ENDPOINTS = {
-  USERS: "/users/me",
+  ME: "/users/me", // renamed USERS -> ME for clarity
   PROFILE: "/users/profile",
   UPDATE_PROFILE: "/users/profile/update",
   DASHBOARD: "/users/dashboard",
-  TRACK_LOGIN: "/users/track-login",
-
-  EVENTS: {
-    UPCOMING: "/users/upcoming-events",
-    RSVPS: "/users/rsvps",
-    FAVORITES: "/users/favorites",
-  },
+  AVATAR: "/users/upload-avatar",
+  COVERPHOTO: "/users/upload-cover",
 
   FAMILY: {
     BASE: "/users/family",
     MEMBER: (id) => `/users/family/${id}`,
   },
 
-  COMMUNICATION: "/users/communication",
-  DONATIONS: "/users/donations",
-  VOLUNTEER_APPLICATIONS: "/users/volunteers/applications",
+  // Only keep if backend supports them
+  COMMUNICATION: "/users/communication",        // implement or remove
+  DONATIONS: "/users/donations",                // implement or remove
+  VOLUNTEER_APPLICATIONS: "/users/volunteers/applications", // implement or remove
 
   // Admin user management
   ADMIN: {
@@ -29,22 +25,23 @@ export const USER_ENDPOINTS = {
     CREATE: "/users/admin/create",
     UPDATE: (id) => `/users/admin/update/${id}`,
     DELETE: (id) => `/users/admin/delete/${id}`,
-    ACTIVATE: (id) => `/users/admin/activate/${id}`,
-    DEACTIVATE: (id) => `/users/admin/deactivate/${id}`,
+    ACTIVATE: (id) => `/users/admin/activate/${id}`,   // needs backend route
+    DEACTIVATE: (id) => `/users/admin/deactivate/${id}`, // needs backend route
     ROLES: "/users/admin/roles",
     MEMBERSHIP_STATUSES: "/users/admin/membership-statuses",
   },
 };
 
+
 // =============== ADMIN ENDPOINTS ===============
 export const ADMIN_ENDPOINTS = {
   DASHBOARD: {
-    STATS: "/admin/dashboard/stats",
-    ACTIVITY: "/admin/activity/recent",
+    STATS: "/analytics/admin/dashboard/stats",
+    ACTIVITY: "/analytics/admin/activity/recent",
   },
   USERS: {
-    BASE: "/admin/users",
-    STATS: "/admin/users/stats",
+    BASE: "/users/admin",
+    STATS: "/analytics/admin/users/stats",
     CREATE: USER_ENDPOINTS.ADMIN.CREATE,
     UPDATE: USER_ENDPOINTS.ADMIN.UPDATE,
     DELETE: USER_ENDPOINTS.ADMIN.DELETE,
@@ -79,19 +76,19 @@ export const ADMIN_ENDPOINTS = {
     LIVE_START: "/sermons/admin/live/start",
     LIVE_STOP: "/sermons/admin/live/stop",
   },
-  BLOG: {
-    BASE: "/blog/admin/all",
-    CREATE: "/blog/admin/create",
-    UPDATE: (id) => `/blog/admin/update/${id}`,
-    DELETE: (id) => `/blog/admin/delete/${id}`,
-    CATEGORIES: "/blog/admin/categories",
+  BLOGS: {
+    BASE: "/blogs/admin/all",
+    CREATE: "/blogs/admin/create",
+    UPDATE: (id) => `/blogs/admin/update/${id}`,
+    DELETE: (id) => `/blogs/admin/delete/${id}`,
+    CATEGORIES: "/blogs/admin/categories",
   },
   MINISTRIES: {
-    BASE: "/ministries",
+    BASE: "/ministries/admin",
     CREATE: "/ministries/admin/create",
+    CATEGORIES: "/ministries/admin/categories",
     UPDATE: (id) => `/ministries/admin/update/${id}`,
     DELETE: (id) => `/ministries/admin/delete/${id}`,
-    CATEGORIES: "/ministries/categories",
     VOLUNTEERS: (id) => `/ministries/admin/${id}/volunteers`,
     STATS: "/ministries/admin/stats",
   },
@@ -126,7 +123,7 @@ export const PUBLIC_ENDPOINTS = {
   MINISTRIES_USER: "/ministries/user/ministries",
   MINISTRIES_VOLUNTEER_ACTION: (id) => `/ministries/${id}/volunteer`,
   MINISTRIES_CONTACT: (id) => `/ministries/${id}/contact`,
-  MINISTRIES_VOLUNTEER: "/ministries/volunteer-opportunities",
+  MINISTRIES_CATEGORIES: "/ministries/categories",
 
   SERMONS: "/sermons",
   SERMONS_FEATURED: "/sermons/featured",
@@ -152,10 +149,10 @@ export const PUBLIC_ENDPOINTS = {
   PRAYERS_MEETINGS: "/prayers/meetings",
   PRAYER_ACTION: (id) => `/prayers/${id}/pray`,
 
-  BLOG: "/blog/posts",
-  BLOG_CATEGORIES: "/blog/categories",
-  BLOG_FAVORITES: "/blog/favorites",
-  BLOG_FAVORITE_ACTION: (id) => `/blog/favorites/${id}`,
+  BLOGS: "/blogs/posts",
+  BLOGS_CATEGORIES: "/blogs/categories",
+  BLOGS_FAVORITES: "/blogs/favorites",
+  BLOGS_FAVORITE_ACTION: (id) => `/blogs/favorites/${id}`,
 
   SERVICE_TIMES: "/analytics/service-times",
   CHURCH_STATS: "/analytics/stats",
@@ -183,7 +180,7 @@ export const AUTH_ENDPOINTS = {
   // Optional: only add these if you implement them server-side,
   CHANGE_PASSWORD: "/auth/change-password",
   VALIDATE_RESET_TOKEN: "/auth/validate-reset-token",
-  SOCIAL_LOGIN: (provider) => `/auth/social/${provider}`,
+  // SOCIAL_LOGIN: (provider) => `/auth/social/${provider}`,
 };
 
 
@@ -203,7 +200,7 @@ export const SOCIAL_AUTH_ENDPOINTS = {
   UNLINK_ACCOUNT: (provider) => `/auth/social/unlink/${provider}`,
   GET_ACCOUNTS: "/auth/social/accounts",
   VALIDATE_GOOGLE: "/auth/social/validate/google",
-  VALIDATE_FACEBOOK: "/auth/social/validate/facebook",
+  VALIDATE_FACEBOOK: "/auth/social/facebook",
   SUCCESS_REDIRECT: (token, userId) =>
     `${window.location.origin}/auth/success?token=${token}&userId=${userId}`,
   FAILURE_REDIRECT: (error) =>

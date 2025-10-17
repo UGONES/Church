@@ -29,23 +29,58 @@ h6 {
 }
 
 .btn {
-  @apply rounded-md px-6 py-2 font-medium transition duration-300 ease-in-out;
+  border-radius: 0.375rem; /* rounded-md */
+  padding-left: 1.5rem;    /* px-6 */
+  padding-right: 1.5rem;   /* px-6 */
+  padding-top: 0.5rem;     /* py-2 */
+  padding-bottom: 0.5rem;  /* py-2 */
+  font-weight: 500;        /* font-medium */
+  transition-property: background-color, color, box-shadow, transform;
+  transition-duration: 300ms;
+  transition-timing-function: ease-in-out;
 }
 
 .btn-primary {
-  @apply bg-[#FF7E45] text-white hover:bg-[#FFA76A];
+  background-color: #FF7E45;
+  color: #fff;
+  transition: background-color 0.3s;
+}
+.btn-primary:hover {
+  background-color: #FFA76A;
 }
 
 .btn-outline {
-  @apply border-2 border-[#FF7E45] text-[#FF7E45] hover:bg-[#FF7E45] hover:text-white;
+  border-width: 2px;
+  border-color: #FF7E45;
+  color: #FF7E45;
+  background-color: transparent;
+  transition: background-color 0.3s, color 0.3s;
+}
+.btn-outline:hover {
+  background-color: #FF7E45;
+  color: #fff;
 }
 
 .nav-link {
-  @apply relative px-3 py-2 font-medium text-gray-800 hover:text-[#FF7E45] transition-colors duration-200;
+  position: relative;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151; /* text-gray-800 */
+  transition-property: color;
+  transition-duration: 200ms;
+}
+.nav-link:hover {
+  color: #FF7E45;
 }
 
+/* Remove @apply and use Tailwind class in your HTML:
+   <a class="nav-link text-[#FF7E45] active">...</a>
+*/
 .nav-link.active {
-  @apply text-[#FF7E45];
+  color: #FF7E45;
 }
 
 .nav-link.active::after {
@@ -68,31 +103,77 @@ h6 {
 }
 
 .event-card {
-  @apply bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300 hover:shadow-lg hover:-translate-y-1;
+  background-color: #fff;
+  border-radius: 0.5rem; /* rounded-lg */
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); /* shadow-md */
+  overflow: hidden;
+  transition: box-shadow 0.3s, transform 0.3s;
+}
+.event-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); /* shadow-lg */
+  transform: translateY(-0.25rem); /* -translate-y-1 */
 }
 
 .sermon-card {
-  @apply bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl;
+  background-color: #fff;
+  border-radius: 0.5rem; /* rounded-lg */
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); /* shadow-md */
+  overflow: hidden;
+  transition: box-shadow 0.3s, transform 0.3s;
+}
+.sermon-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); /* shadow-xl */
 }
 
 .testimonial-card {
-  @apply bg-white rounded-lg shadow-md p-6;
+  background-color: #fff;
+  border-radius: 0.5rem; /* rounded-lg */
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); /* shadow-md */
+  padding: 1.5rem; /* p-6 */
 }
 
 .ministry-card {
-  @apply bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-105;
+  background-color: #fff;
+  border-radius: 0.5rem; /* rounded-lg */
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); /* shadow-md */
+  overflow: hidden;
+  transition: box-shadow 0.3s, transform 0.3s;
+}
+.ministry-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); /* shadow-xl */
+  transform: scale(1.05);
 }
 
 .blog-card {
-  @apply bg-white rounded-lg shadow-md overflow-hidden;
+  background-color: #fff;
+  border-radius: 0.5rem; /* rounded-lg */
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); /* shadow-md */
+  overflow: hidden;
 }
 
 .swiper-pagination-bullet-active {
   background-color: var(--primary) !important;
 }
 
+/* Remove @apply and use Tailwind classes in your HTML:
+<input class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent" />
+*/
 .form-input {
-  @apply w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF7E45] focus:border-transparent;
+  width: 100%;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-width: 1px;
+  border-color: #d1d5db; /* gray-300 */
+  border-radius: 0.375rem;
+  outline: none;
+  transition: box-shadow 0.2s;
+}
+.form-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #FF7E45;
+  border-color: transparent;
 }
 
 /* Mobile menu */

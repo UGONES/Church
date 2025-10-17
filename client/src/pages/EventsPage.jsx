@@ -48,31 +48,27 @@ const EventsPage = ({ user }) => {
       setIsLoading(true);
       setError(null);
       const response = await eventService.getAll();
-      
-      if (response.success) {
-        const eventsData = response.data.map(event => new Event(event));
-        
-        const formattedEvents = eventsData.map(event => ({
-          id: event._id || event.id,
-          title: event.title,
-          start: event.startTime || event.start,
-          end: event.endTime || event.end,
-          extendedProps: {
-            description: event.description,
-            location: event.location,
-            category: event.category,
-            imageUrl: event.imageUrl,
-            capacity: event.capacity,
-            registered: event.registeredCount || event.registered,
-            status: event.status
-          },
-          backgroundColor: getEventColor(event.category),
-          borderColor: getEventColor(event.category),
-          textColor: '#ffffff'
-        }));
+      console.log("🎯 Events response:", response);
 
-        setEvents(formattedEvents);
-      }
+      const rawEvents = Array.isArray(response.data) ? response.data : response.data?.events || [];
+      const eventsData = rawEvents.map(event => new Event(event));
+
+      const formattedEvents = eventsData.map(event => ({
+        id: event._id || event.id,
+        title: event.title,
+        start: event.startTime || event.start,
+        end: event.endTime || event.end,
+        extendedProps: {
+          ...event,
+          canRSVP: isAuthenticated && !isAdmin,
+        },
+        backgroundColor: getEventColor(event.category),
+        borderColor: getEventColor(event.category),
+        textColor: '#2a1a1aff'
+      }));
+
+      setEvents(formattedEvents);
+
     } catch (error) {
       console.error('Error fetching events:', error);
       setError('Failed to load events. Please try again later.');
@@ -108,7 +104,7 @@ const EventsPage = ({ user }) => {
 
   const getEventColor = (category) => {
     const colors = {
-      service: '#FF7E45',
+      service: '#fffc45ff',
       meeting: '#4299E1',
       social: '#48BB78',
       conference: '#9F7AEA',
@@ -346,7 +342,7 @@ const EventsPage = ({ user }) => {
 
       {/* Event Modal */}
       {showEventModal && selectedEvent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-[#333333e9] bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
@@ -406,7 +402,7 @@ const EventsPage = ({ user }) => {
               <p className="text-gray-700 mb-6">{selectedEvent.description}</p>
 
               <div className="flex justify-between items-center space-x-4">
-                {isAuthenticated ? (
+                {isAuthenticated && !isAdmin ? (
                   <>
                     <button
                       onClick={() => handleRSVP(selectedEvent.id)}
@@ -434,14 +430,14 @@ const EventsPage = ({ user }) => {
                       <i className={`fas ${userFavorites.has(selectedEvent.id) ? 'fa-heart text-red-500' : 'fa-heart'}`}></i>
                     </button>
                   </>
-                ) : (
+                ) : !isAuthenticated ? (
                   <button
                     onClick={() => alert.info("Please log in to RSVP")}
                     className="flex-1 bg-[#FF7E45] hover:bg-[#E56A36] text-white py-2 px-4 rounded-md transition-colors"
                   >
                     <span className="mr-2"><i className="fas fa-lock"></i></span> Login to RSVP
                   </button>
-                )}
+                ) : null}
               </div>
 
               {/* Admin actions */}
@@ -449,13 +445,13 @@ const EventsPage = ({ user }) => {
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <h4 className="font-semibold mb-2">Admin Actions</h4>
                   <div className="flex space-x-2">
-                    <button 
+                    <button
                       onClick={() => handleUpdateEvent(selectedEvent.id, selectedEvent)}
                       className="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
                     >
                       <i className="fas fa-edit mr-1"></i>Edit
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDeleteEvent(selectedEvent.id)}
                       className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
                     >
@@ -471,7 +467,7 @@ const EventsPage = ({ user }) => {
 
       {/* Create Event Modal */}
       {showCreateModal && isAdmin && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-[#333333e9] bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
@@ -483,7 +479,7 @@ const EventsPage = ({ user }) => {
                   ×
                 </button>
               </div>
-              
+
               <div className="space-y-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Event Title</label>
@@ -496,7 +492,7 @@ const EventsPage = ({ user }) => {
                     placeholder="Enter event title"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium mb-1">Description</label>
                   <textarea
@@ -508,7 +504,7 @@ const EventsPage = ({ user }) => {
                     placeholder="Enter event description"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium mb-1">Location</label>
                   <input
@@ -520,7 +516,7 @@ const EventsPage = ({ user }) => {
                     placeholder="Enter event location"
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-1">Start Time</label>
@@ -532,7 +528,7 @@ const EventsPage = ({ user }) => {
                       className="w-full p-2 border border-gray-300 rounded-md"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium mb-1">End Time</label>
                     <input
@@ -544,7 +540,7 @@ const EventsPage = ({ user }) => {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium mb-1">Capacity</label>
                   <input
@@ -557,7 +553,7 @@ const EventsPage = ({ user }) => {
                   />
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setShowCreateModal(false)}

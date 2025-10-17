@@ -72,6 +72,16 @@ const eventSchema = new Schema({
     name: String,
     role: String
   }],
+  createdBy: {
+    type: Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  approvedBy: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+
   tags: [String]
 }, {
   timestamps: true

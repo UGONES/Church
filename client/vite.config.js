@@ -7,11 +7,21 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+   css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: `@import "swiper/css";`
+      }
+    }
+  },
   server: {
     headers: {
       'X-Frame-Options': 'DENY',
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'strict-origin-when-cross-origin',
+    },
+    proxy: {
+      "/api": "http://localhost:5000"
     },
   },
     esbuild: {

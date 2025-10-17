@@ -28,7 +28,7 @@ const SermonsPage = () => {
         imageUrl: ''
     });
 
-    const isAdmin = user?.role === "admin";
+    const isAdmin = user?.role === "admin" || user?.role === "moderator";
     const isAuthenticated = user?.isLoggedIn;
 
     useEffect(() => {

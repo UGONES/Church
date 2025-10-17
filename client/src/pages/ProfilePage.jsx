@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { authService, userService, donationService, eventService } from "../services/apiService";
 import Loader from "../components/Loader";
 import { useAuth } from "../hooks/useAuth";
@@ -6,8 +7,10 @@ import { useAlert } from "../utils/Alert";
 
 
 const ProfilePage = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, authLoading } = useAuth();
   const alert = useAlert();
+  const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState("personal");
   const [userData, setUserData] = useState(null);
   const [donations, setDonations] = useState([]);
@@ -19,63 +22,88 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // --- Normalizer ---
+  const normalizeUser = (raw) => {
+    if (!raw) return null;
+    const address = typeof raw.address === "object" ? raw.address : {};
+    return {
+      id: raw.id || raw._id || raw.userId,
+      name:
+        raw.name ||
+        `${raw.firstName || ""} ${raw.lastName || ""}`.trim() ||
+        "User",
+      email: raw.email || "",
+      phone: raw.phone || "",
+      role: raw.role || "user",
+      avatar: raw.avatar || raw.photoUrl || "",
+      coverPhoto: raw.coverPhoto || "",
+      address,
+      membershipStatus: raw.membershipStatus || "active",
+      smallGroup: raw.smallGroup || "",
+      memberSince: raw.memberSince || raw.createdAt || null,
+    };
+  };
+
   useEffect(() => {
     document.title = "SMC - Profile | St. Michael's & All Angels Church | Ifite-Awka";
   }, []);
 
+  const fetchData = useCallback(() => {
+    if (user) fetchUserProfileData();
+  }, [user?.id]);
+
   useEffect(() => {
-    if (user) {
-      fetchUserProfileData();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
+    fetchData();
+  }, [fetchData]);
 
   const fetchUserProfileData = async () => {
+    let isMounted = true;
+    let cancelled = false;
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch user profile data
       const userResponse = await userService.getProfile();
-      const profileData = userResponse.data?.user || userResponse.data || userResponse;
+      if (!userResponse || !userResponse.data) throw new Error("Invalid user response");
+
+      if (cancelled) return;
+
+      const profileData = normalizeUser(userResponse.data?.user || userResponse.data || userResponse);
+      if (isMounted) setUserData(profileData);
       setUserData(profileData);
 
-      // Fetch additional data in parallel
-      const [donationsResponse, rsvpsResponse, favoritesResponse, familyResponse] = await Promise.allSettled([
+      // Load parallel extras
+      const [donationsRes, rsvpsRes, favsRes, famRes] = await Promise.allSettled([
         donationService.getUserDonations(),
         eventService.getUserRsvps(),
         eventService.getUserFavorites(),
-        userService.getFamily()
+        userService.getFamily(),
       ]);
+      if (!isMounted) return;
 
-      // Process responses with proper error handling
-      setDonations(donationsResponse.status === 'fulfilled' ?
-        donationsResponse.value.donations || donationsResponse.value.data || [] : []);
-
-      setRsvps(rsvpsResponse.status === 'fulfilled' ?
-        rsvpsResponse.value.rsvps || rsvpsResponse.value.data || [] : []);
-
-      setFavorites(favoritesResponse.status === 'fulfilled' ?
-        favoritesResponse.value.favorites || favoritesResponse.value.data || { events: [], sermons: [], posts: [] }
-        : { events: [], sermons: [], posts: [] });
-
-      setFamilyMembers(familyResponse.status === 'fulfilled' ?
-        familyResponse.value.family || familyResponse.value.data || [] : []);
-
+      if (!cancelled) {
+        setDonations(donationsRes.status === "fulfilled" ? (donationsRes.value.donations || donationsRes.value.data || []) : []);
+        setRsvps(rsvpsRes.status === "fulfilled" ? (rsvpsRes.value.rsvps || rsvpsRes.value.data || []) : []);
+        setFavorites(favsRes.status === "fulfilled" ? (favsRes.value.favorites || favsRes.value.data || { events: [], sermons: [], posts: [] }) : { events: [], sermons: [], posts: [] });
+        setFamilyMembers(famRes.status === "fulfilled" ? famRes.value.familyMembers || famRes.value.data?.familyMembers || [] : []);
+      }
     } catch (err) {
-      console.error("Error fetching profile data:", err);
+      console.error("❌ Error fetching profile data:", err);
       if (err.response?.status !== 401) {
         const errorMsg = err.response?.data?.message || "Failed to load profile data";
-        setError(errorMsg);
-        alert.error(errorMsg);
+        if (isMounted) {
+          setError(errorMsg);
+          alert.error(errorMsg);
+        }
       }
     } finally {
-      setLoading(false);
+      if (!cancelled) setLoading(false);
+      if (isMounted) setLoading(false);
     }
+    return () => { cancelled = true, isMounted = false; };
   };
 
-  // ---------- Handlers ----------
+  /**  ---------- Handlers ---------- */
 
   // Fixed profile update handler
   const handleUpdateProfile = async (formData) => {
@@ -185,13 +213,49 @@ const ProfilePage = () => {
     }
   };
 
+  const handleAvatarUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    try {
+      const response = await userService.uploadAvatar(formData);
+      const updatedUser = response.data?.user || response.data || response;
+      setUserData(updatedUser);
+      alert.success("Profile photo updated successfully!");
+    } catch (err) {
+      console.error("Avatar upload failed:", err);
+      alert.error(err.response?.data?.message || "Failed to upload photo");
+    }
+  };
+
+  const handleCoverUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("coverPhoto", file);
+
+    try {
+      const response = await userService.uploadCoverPhoto(formData);
+      const updatedUser = response.data?.user || response.data || response;
+      setUserData(updatedUser);
+      alert.success("Cover photo updated successfully!");
+    } catch (err) {
+      console.error("Cover upload failed:", err);
+      alert.error(err.response?.data?.message || "Failed to upload cover photo");
+    }
+  };
+
   // Helper function for role display text
   const getRoleDisplayText = (role) => {
     switch (role) {
-      case 'admin': return 'Administrator';
-      case 'moderator': return 'Moderator';
-      case 'user': return 'Church Member';
-      default: return 'Member';
+      case "admin": return "Administrator";
+      case "moderator": return "Moderator";
+      case "user": return "Church Member";
+      default: return "Member";
     }
   };
 
@@ -211,9 +275,8 @@ const ProfilePage = () => {
       : "N/A";
 
   // ---------- Render Logic ----------
-  if (authLoading || loading) {
-    return <Loader type="spinner" text="Loading your profile..." />;
-  }
+  if (authLoading || loading) return <Loader type="spinner" text="Loading your profile..." />;
+
 
   if (!user && !userData) {
     return (
@@ -235,8 +298,9 @@ const ProfilePage = () => {
     );
   }
 
-  const currentUser = userData || user;
-  const userRole = currentUser?.role || 'user';
+  const currentUser = normalizeUser(userData || user);
+  const { id, role } = currentUser;
+
   return (
     <div className="page">
       <div className="container mx-auto px-4 py-12">
@@ -255,37 +319,88 @@ const ProfilePage = () => {
 
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             {/* Header Banner */}
-            <div className="bg-gradient-to-r from-[#FF7E45] to-[#F4B942] h-32 relative">
-              <div className="absolute -bottom-16 left-8">
-                <div className="w-32 h-32 bg-gray-300 rounded-full border-4 border-white flex items-center justify-center text-4xl text-white">
-                  {currentUser?.name?.charAt(0) || currentUser?.firstName?.charAt(0) || 'U'}
+
+            {/* ===== Profile Header Section ===== */}
+            <div className="relative">
+              {/* Cover / Banner */}
+              <div className="h-40 md:h-52 rounded-t-lg overflow-hidden relative z-0">
+                {currentUser?.coverPhoto ? (
+                  <img
+                    src={currentUser.coverPhoto}
+                    alt="Profile background"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="bg-gradient-to-r from-[#FF7E45] to-[#F4B942] w-full h-full"></div>
+                )}
+                <div className="absolute inset-0 bg-black/10"></div>
+
+                {/* Cover upload button */}
+                <label
+                  htmlFor="cover-upload"
+                  className="absolute top-3 right-3 bg-white/70 hover:bg-white text-gray-700 px-3 py-1 rounded-full text-sm shadow cursor-pointer"
+                >
+                  <i className="fas fa-camera mr-2"></i>Change Cover
+                </label>
+                <input
+                  id="cover-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleCoverUpload}
+                />
+              </div>
+
+              {/* Avatar */}
+              <div className="absolute -bottom-16 left-8 z-10">
+                <div className="relative w-32 h-32 bg-gray-300 rounded-full border-4 border-white shadow-md flex items-center justify-center text-4xl text-white overflow-hidden">
+                  {currentUser?.photoUrl ? (
+                    <img
+                      src={currentUser.photoUrl}
+                      alt={currentUser.name || "User avatar"}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>{currentUser?.name?.charAt(0)?.toUpperCase() || "U"}</span>
+                  )}
+
+                  {/* Avatar upload button */}
+                  <label
+                    htmlFor="avatar-upload"
+                    className="absolute bottom-2 right-2 bg-[#FF7E45] hover:bg-[#F4B942] text-white p-2 rounded-full text-xs shadow-lg cursor-pointer"
+                    title="Change profile photo"
+                  >
+                    <i className="fas fa-camera rounded-full p-1"></i>
+                  </label>
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Profile Info */}
-            <div className="pt-20 px-8 pb-8">
+            {/* ===== Profile Info Section ===== */}
+            <div className="pt-24 px-8 pb-8 bg-white rounded-b-lg shadow-sm">
               <div className="flex justify-between items-start mb-8">
                 <div>
                   <h1 className="text-3xl font-bold mb-1">
-                    {currentUser?.name || `${currentUser?.firstName} ${currentUser?.lastName}` || 'User'}
+                    {currentUser?.name || "User"}
                   </h1>
                   <p className="text-gray-600">
-                    {getRoleDisplayText(userRole)}
-                    {userRole !== 'user' && (
+                    {getRoleDisplayText(role)}
+                    {role !== "user" && (
                       <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                        {userRole}
+                        {role}
                       </span>
                     )}
                   </p>
                 </div>
-                <button
-                  className="btn btn-outline"
-                  onClick={() => setActiveTab('personal')}
-                >
-                  Edit Profile
-                </button>
               </div>
+
 
               {/* Tabs */}
               <div className="border-b border-gray-200 mb-8">
@@ -307,17 +422,6 @@ const ProfilePage = () => {
                     </li>
                   ))}
 
-                  {/* Admin-only tab */}
-                  {userRole === 'admin' && (
-                    <li className="mr-2">
-                      <button
-                        onClick={() => window.location.href = '/admin'}
-                        className="inline-block py-4 px-4 border-b-2 border-transparent hover:text-blue-600 hover:border-blue-300 text-blue-500"
-                      >
-                        Admin Dashboard
-                      </button>
-                    </li>
-                  )}
                 </ul>
               </div>
 
@@ -357,7 +461,7 @@ const ProfilePage = () => {
                 <AccountSettingsTab
                   onChangePassword={handleChangePassword}
                   onDeleteAccount={handleDeleteAccount}
-                  userRole={userRole}
+                  userRole={role}
                 />
               )}
             </div>
@@ -495,13 +599,70 @@ const PersonalInfoTab = ({
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Address</label>
-                <textarea
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="form-input"
-                  rows="3"
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Street"
+                    value={formData.address.street || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        address: { ...formData.address, street: e.target.value },
+                      })
+                    }
+                    className="form-input"
+                  />
+                  <input
+                    type="text"
+                    placeholder="City"
+                    value={formData.address.city || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        address: { ...formData.address, city: e.target.value },
+                      })
+                    }
+                    className="form-input"
+                  />
+                  <input
+                    type="text"
+                    placeholder="State"
+                    value={formData.address.state || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        address: { ...formData.address, state: e.target.value },
+                      })
+                    }
+                    className="form-input"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Zip Code"
+                    value={formData.address.zipCode || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        address: { ...formData.address, zipCode: e.target.value },
+                      })
+                    }
+                    className="form-input"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Country"
+                    value={formData.address.country || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        address: { ...formData.address, country: e.target.value },
+                      })
+                    }
+                    className="form-input"
+                  />
+                </div>
               </div>
+
               <button type="submit" className="btn btn-primary">
                 Save Changes
               </button>
@@ -511,10 +672,7 @@ const PersonalInfoTab = ({
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Name</label>
                 <p className="font-medium">
-                  {userData?.firstName && userData?.lastName
-                    ? `${userData.firstName} ${userData.lastName}`
-                    : userData?.name || 'Not provided'
-                  }
+                  {userData?.name || 'Not provided'}
                 </p>
               </div>
               <div>
@@ -527,7 +685,17 @@ const PersonalInfoTab = ({
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Address</label>
-                <p className="font-medium">{userData?.address || 'Not provided'}</p>
+                {userData?.address ? (
+                  <div className="font-medium space-y-1">
+                    {userData.address.street && <p>{userData.address.street}</p>}
+                    {userData.address.city && <p>{userData.address.city}</p>}
+                    {userData.address.state && <p>{userData.address.state}</p>}
+                    {userData.address.zipCode && <p>{userData.address.zipCode}</p>}
+                    {userData.address.country && <p>{userData.address.country}</p>}
+                  </div>
+                ) : (
+                  <p className="font-medium">Not provided</p>
+                )}
               </div>
             </div>
           )}
@@ -589,7 +757,18 @@ const PersonalInfoTab = ({
                   <option value="">Select Relationship</option>
                   <option value="spouse">Spouse</option>
                   <option value="child">Child</option>
+                  <option value="father">Father</option>
+                  <option value="mother">Mother</option>
                   <option value="parent">Parent</option>
+                  <option value="guardian">Guardian</option>
+                  <option value="grandparent">Grandparent</option>
+                  <option value="grandchild">Grandchild</option>
+                  <option value="aunt">Aunt</option>
+                  <option value="uncle">Uncle</option>
+                  <option value="cousin">Cousin</option>
+                  <option value="friend">Friend</option>
+                  <option value="brother">Brother</option>
+                  <option value="sister">Sister</option>
                   <option value="sibling">Sibling</option>
                   <option value="other">Other</option>
                 </select>
@@ -623,7 +802,7 @@ const PersonalInfoTab = ({
                   className="text-red-500 hover:text-red-700"
                   title="Remove family member"
                 >
-                  <i className="fas fa-times"></i>
+                  <i className="fas fa-trash"></i>
                 </button>
               </div>
             ))}

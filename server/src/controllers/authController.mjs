@@ -318,13 +318,13 @@ export async function login(req, res) {
 export async function logout(req, res) {
   try {
     // Extract token from request (middleware should already set req.token, but fallback)
-    const token = req.token || (req.headers.authorization && req.headers.authorization.split(" ") [1]);
+    const token = req.token || (req.headers.authorization && req.headers.authorization.split(" ")[1]);
 
     if (!token) {
       return res.status(400).json({ success: false, message: "No token provided for logout", });
     }
 
-    const session = await Session.findOneAndUpdate( { token, isActive: true }, { isActive: false, loggedOutAt: new Date() }, { new: true } );
+    const session = await Session.findOneAndUpdate({ token, isActive: true }, { isActive: false, loggedOutAt: new Date() }, { new: true });
 
     if (!session) {
       console.warn("⚠️ Logout attempted with invalid or expired token:", token);
@@ -417,7 +417,14 @@ export async function getCurrentUser(req, res) {
   try {
     // req.user provided by auth middleware
     if (!req.user) return res.status(401).json({ success: false, message: 'Not authenticated' });
-    return res.json({ success: true, user: req.user.getPublicProfile ? req.user.getPublicProfile() : req.user });
+
+    const userProfile =
+      typeof req.user.getPublicProfile === 'function' ? req.user.getPublicProfile()
+        : { id: req.user._id, name: req.user.name, email: req.user.email, role: req.user.role || 'user', avatar: req.user.avatar || '', };
+
+    const responseUser = { ...userProfile, isLoggedIn: true, timestamp: new Date().toISOString() };
+
+    return res.status(200).json({ success: true, message: 'Authenticated user fetched successfully', user: responseUser });
   } catch (err) {
     console.error('Get current user error', err);
     return res.status(500).json({ success: false, message: 'Server error' });

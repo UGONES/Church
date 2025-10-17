@@ -17,7 +17,7 @@ const TestimonialsPage = () => {
   const [categories, setCategories] = useState([]);
   const [testimonialStats, setTestimonialStats] = useState(null);
 
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || user?.role === "moderator";
 
   useEffect(() => {
     document.title = "SMC: - Testimonies | St. Micheal`s & All Angels Church | Ifite-Awka";

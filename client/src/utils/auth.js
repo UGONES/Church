@@ -1,80 +1,82 @@
-// auth.js
+// ====================== AUTH UTILITY ======================
+// St. Michael Church — unified, tab-safe, multi-user local auth
+// ===========================================================
 
-let jwtDecode;
+import axios from "axios";
 
-// Safe import with fallback handling
-try {
-  const jwtModule = await import("jwt-decode");
-  jwtDecode = jwtModule.jwtDecode;
-} catch (error) {
-  console.error("Failed to import jwt-decode:", error);
-  jwtDecode = (token) => {
-    console.warn("jwt-decode not available, using fallback decoder");
-    try {
-      const payload = token.split(".")[1];
-      return JSON.parse(atob(payload));
-    } catch (e) {
-      console.error("Fallback token decoding failed:", e);
-      return null;
-    }
-  };
-}
+// ----------------- API Base URL -----------------
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
-// ----------------- CONFIG KEYS -----------------
-export const TOKEN_KEY = "church_auth_token";
-export const USER_KEY = "church_user_data";
-export const ADMIN_KEY = "church_admin_status";
-export const MODERATOR_KEY = "church_moderator_status";
-export const ADMIN_EXPIRY_KEY = "church_admin_expiry";
+// ----------------- CONFIG / PREFIXES -----------------
+const STORAGE_PREFIX = "smc_auth_"; // base prefix
+const TOKEN_SUFFIX = "_token";
+const USER_SUFFIX = "_user";
+const ACTIVE_USER_KEY = `${STORAGE_PREFIX}active_user_id`;
+const ADMIN_KEY = `${STORAGE_PREFIX}admin_flag`;
+const MODERATOR_KEY = `${STORAGE_PREFIX}moderator_flag`;
+const ADMIN_EXPIRY_KEY = `${STORAGE_PREFIX}admin_expiry`;
 
-// ----------------- ADMIN CODES -----------------
-const getValidAdminCodes = () => {
+// ----------------- jwt-decode (lazy + fallback) -----------------
+let jwtDecodeFn = null;
+
+const loadJwtDecode = async () => {
+  if (jwtDecodeFn) return jwtDecodeFn;
   try {
-    const envCodes = {
-      admin: [
-        import.meta.env.VITE_ADMIN_CODE_1,
-        import.meta.env.VITE_ADMIN_CODE_2,
-        import.meta.env.VITE_ADMIN_CODE_3,
-      ].filter(Boolean),
-      moderator: [
-        import.meta.env.VITE_MOD_CODE_1,
-        import.meta.env.VITE_MOD_CODE_2,
-        import.meta.env.VITE_MOD_CODE_3,
-      ].filter(Boolean),
+    const mod = await import("jwt-decode");
+    jwtDecodeFn = (t) => mod.default ? mod.default(t) : mod(t);
+  } catch {
+    jwtDecodeFn = (token) => {
+      if (!token || typeof token !== "string") return null;
+      try {
+        const payload = token.split(".")[1];
+        if (!payload) return null;
+        const padded = payload
+          .replace(/-/g, "+")
+          .replace(/_/g, "/")
+          .padEnd(payload.length + (4 - payload.length % 4) % 4, "=");
+        return JSON.parse(atob(padded));
+      } catch (e) {
+        console.error("Fallback JWT decode failed:", e);
+        return null;
+      }
     };
+  }
+  return jwtDecodeFn;
+};
 
-    return {
-      admin: new Set(envCodes.admin.length ? envCodes.admin : envCodes.admin),
-      moderator: new Set(envCodes.moderator.length ? envCodes.moderator : envCodes.moderator),
-    };
-  } catch (err) {
-    console.error("⚠️ Error reading admin/mod codes:", err);
-    return {
-      admin: new Set([]),
-      moderator: new Set([]),
-    };
+const safeDecodeSync = (token) => {
+  if (!token) return null;
+  try {
+    const payload = token.split(".")[1];
+    const padded = payload.replace(/-/g, "+").replace(/_/g, "/")
+      .padEnd(payload.length + (4 - payload.length % 4) % 4, "=");
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
   }
 };
 
-const VALID_CODES = getValidAdminCodes();
-const ADMIN_SESSION_DURATION = 24 * 60 * 60 * 1000; // 24h
+// ----------------- Key helpers -----------------
+const tokenKeyFor = (userId = "global") => `${STORAGE_PREFIX}${userId}${TOKEN_SUFFIX}`;
+const userKeyFor = (userId = "global") => `${STORAGE_PREFIX}${userId}${USER_SUFFIX}`;
 
-// ----------------- TOKEN FORMAT -----------------
+// ----------------- Active User (per-tab) -----------------
+export const setActiveUser = (id) => {
+  if (!id) sessionStorage.removeItem(ACTIVE_USER_KEY);
+  else sessionStorage.setItem(ACTIVE_USER_KEY, id);
+};
+
+export const getActiveUserId = () => sessionStorage.getItem(ACTIVE_USER_KEY);
+
+// ----------------- Token Format -----------------
 export const isValidTokenFormat = (token) => {
-  if (!token || typeof token !== 'string') return false;
-
-  // Basic JWT format validation (3 parts separated by dots)
-  const parts = token.split('.');
+  if (!token || typeof token !== "string") return false;
+  const parts = token.split(".");
   if (parts.length !== 3) return false;
-
   try {
-    // Validate each part can be base64 decoded
-    parts.forEach(part => {
-      // Handle URL-safe base64
-      const base64 = part.replace(/-/g, '+').replace(/_/g, '/');
-      // Add padding if necessary
-      const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
-      atob(padded);
+    parts.forEach(p => {
+      const base64 = p.replace(/-/g, "+").replace(/_/g, "/");
+      atob(base64);
     });
     return true;
   } catch {
@@ -82,343 +84,311 @@ export const isValidTokenFormat = (token) => {
   }
 };
 
-// ----------------- ADMIN / MOD -----------------
-export const validateAdminCode = (code, role = "admin") => {
-  if (!code || typeof code !== "string") return false;
-
-  const normalizedCode = code.toUpperCase().trim();
-
-  // Server-side codes (should match your server's AdminCode model)
-  const SERVER_VALID_CODES = VALID_CODES;
-
-  if (!SERVER_VALID_CODES[role] || SERVER_VALID_CODES[role].size === 0) {
-    console.warn(`No codes configured for role: ${role}`);
-    return false;
-  }
-
-  const isValid = VALID_CODES[role]?.has(normalizedCode) ?? false;
-  if (isValid) {
-    setAdminSession(role);
-    console.log(`✅ Valid ${role} code accepted:`, normalizedCode);
-    return true;
-  } else {
-    console.warn(`❌ Invalid ${role} code:`, normalizedCode);
-    return false;
+// ----------------- Admin / Moderator -----------------
+const readCodesFromEnv = () => {
+  try {
+    const admin = [
+      import.meta.env.VITE_ADMIN_CODE_1,
+      import.meta.env.VITE_ADMIN_CODE_2,
+      import.meta.env.VITE_ADMIN_CODE_3,
+    ]
+      .filter(Boolean)
+      .map((x) => x.toUpperCase().trim());
+    const mod = [
+      import.meta.env.VITE_MOD_CODE_1,
+      import.meta.env.VITE_MOD_CODE_2,
+      import.meta.env.VITE_MOD_CODE_3,
+    ]
+      .filter(Boolean)
+      .map((x) => x.toUpperCase().trim());
+    return { admin: new Set(admin), moderator: new Set(mod) };
+  } catch {
+    return { admin: new Set(), moderator: new Set() };
   }
 };
 
+const VALID_CODES = readCodesFromEnv();
+const ADMIN_SESSION_DURATION = 24 * 60 * 60 * 1000; // 24h
+
+export const validateAdminCode = (code, role = "admin") => {
+  if (!code || typeof code !== "string") return false;
+  const normalized = code.toUpperCase().trim();
+  const ok = VALID_CODES[role]?.has(normalized);
+  if (ok) setAdminSession(role);
+  return ok;
+};
+
 const setAdminSession = (role) => {
-  const expiryTime = Date.now() + ADMIN_SESSION_DURATION;
+  const expiry = Date.now() + ADMIN_SESSION_DURATION;
   if (role === "admin") {
     localStorage.setItem(ADMIN_KEY, "true");
     localStorage.removeItem(MODERATOR_KEY);
   } else if (role === "moderator") {
     localStorage.setItem(MODERATOR_KEY, "true");
     localStorage.removeItem(ADMIN_KEY);
+  } else {
+    return;
   }
-  localStorage.setItem(ADMIN_EXPIRY_KEY, expiryTime.toString());
+  localStorage.setItem(ADMIN_EXPIRY_KEY, expiry.toString());
 };
 
 export const isAdminOrModerator = () => {
   try {
-    const isAdminFlag = localStorage.getItem(ADMIN_KEY) === "true";
-    const isModeratorFlag = localStorage.getItem(MODERATOR_KEY) === "true";
-    if (!isAdminFlag && !isModeratorFlag) return false;
-
-    const expiryTime = localStorage.getItem(ADMIN_EXPIRY_KEY);
-    if (!expiryTime || Date.now() > parseInt(expiryTime, 10)) {
+    const isAdmin = localStorage.getItem(ADMIN_KEY) === "true";
+    const isMod = localStorage.getItem(MODERATOR_KEY) === "true";
+    const expiry = parseInt(localStorage.getItem(ADMIN_EXPIRY_KEY) || "0", 10);
+    if ((!isAdmin && !isMod) || Date.now() > expiry) {
       revokeAdminAccess();
       return false;
     }
-
     return true;
-  } catch (error) {
-    console.error("Error checking admin status:", error);
+  } catch (e) {
+    console.error("isAdminOrModerator error:", e);
     return false;
   }
 };
 
 export const revokeAdminAccess = (role = null) => {
   try {
-    if (role === "admin") {
-      localStorage.removeItem(ADMIN_KEY);
-    } else if (role === "moderator") {
-      localStorage.removeItem(MODERATOR_KEY);
-    } else {
-      localStorage.removeItem(ADMIN_KEY);
-      localStorage.removeItem(MODERATOR_KEY);
-    }
+    if (!role || role === "admin") localStorage.removeItem(ADMIN_KEY);
+    if (!role || role === "moderator") localStorage.removeItem(MODERATOR_KEY);
     localStorage.removeItem(ADMIN_EXPIRY_KEY);
-  } catch (error) {
-    console.error("Error revoking admin access:", error);
+  } catch (e) {
+    console.error("revokeAdminAccess error:", e);
   }
 };
 
-// ----------------- TOKEN + USER -----------------
-export const setAuthToken = (rawToken, extraUserData = {}) => {
-  if (!rawToken || typeof rawToken !== "string") {
-    throw new Error("Invalid token provided: Not a string");
-  }
-
-  // sanitize token
+// ----------------- Token & User (per-user keys) -----------------
+export const setAuthToken = async (rawToken, extraUser = {}) => {
+  if (!rawToken || typeof rawToken !== "string") throw new Error("Invalid token");
   const token = rawToken.replace(/^"|"$/g, "").trim();
+  if (!isValidTokenFormat(token)) throw new Error("Malformed JWT");
 
-  if (!isValidTokenFormat(token)) {
-    console.error("Invalid token format, refusing to store:", token);
-    throw new Error("Malformed JWT token");
-  }
+  try { await loadJwtDecode(); } catch { }
 
-  try {
-    localStorage.setItem(TOKEN_KEY, token);
-    const userData = getUserFromToken(token) || {};
-    const finalUserData = {
-      ...userData,
-      ...extraUserData,
-      role: userData.role || extraUserData.role || "user",
-    };
-    localStorage.setItem(USER_KEY, JSON.stringify(finalUserData));
-    console.log("🔑 Saving token:", token, "User:", finalUserData);
-
-  } catch (error) {
-    console.error("Error setting auth token:", error);
-    throw new Error("Failed to set authentication token");
-  }
-
+  const decoded = safeDecodeSync(token) || {};
+  const id = (decoded.userId || decoded.id || decoded._id || extraUser.id || "global").toString();
+  const user = {
+    id,
+    userId: id,
+    _id: id,
+    email: decoded.email || extraUser.email || "",
+    role: (decoded.role || extraUser.role || "user").toLowerCase(),
+    name: decoded.name || extraUser.name || "",
+    emailVerified: decoded.emailVerified || extraUser.emailVerified || false,
+    ...extraUser,
+  };
+  localStorage.setItem(tokenKeyFor(id), token);
+  localStorage.setItem(userKeyFor(id), JSON.stringify(user));
+  setActiveUser(id);
+  console.log("🔑 Saved token for user:", id);
+  return { success: true, id, token };
 };
 
-export const getUserFromToken = (token) => {
-  if (!token || !isValidTokenFormat(token)) return null;
+export const getAuthToken = (userId = null) => {
+  const id = userId || getActiveUserId();
   try {
-    const decoded = jwtDecode(token);
-    // Map server token fields to client expectations
-    return {
-      userId: decoded.userId || decoded.id || decoded._id,
-      id: decoded.userId || decoded.id || decoded._id,
-      _id: decoded.userId || decoded.id || decoded._id,
-      email: decoded.email,
-      role: (decoded.role || "user").toLowerCase(),
-      name: decoded.name || "",
-      emailVerified: decoded.emailVerified || false
-    };
-  } catch (error) {
-    console.error("Error decoding token:", error);
+    if (id) return localStorage.getItem(tokenKeyFor(id)) || null;
+    const global = localStorage.getItem(tokenKeyFor("global"));
+    if (global) return global;
+   
+  } catch (e) {
+    console.error("getAuthToken error:", e);
     return null;
   }
+};
+
+export const removeAuthToken = (userId = null) => {
+  const id = userId || getActiveUserId();
+  try {
+    if (id) {
+      localStorage.removeItem(tokenKeyFor(id));
+      localStorage.removeItem(userKeyFor(id));
+    } else {
+      localStorage.removeItem(tokenKeyFor("global"));
+      localStorage.removeItem(userKeyFor("global"));
+    }
+    revokeAdminAccess();
+  } catch (e) {
+    console.error("removeAuthToken error:", e);
+  }
+};
+
+export const getStoredUser = (userId = null) => {
+  const id = userId || getActiveUserId();
+  if (!id) return null;
+  try {
+    const raw = id
+      ? localStorage.getItem(userKeyFor(id))
+      : localStorage.getItem(userKeyFor("global"));
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    console.error("getStoredUser error:", e);
+    return null;
+  }
+};
+
+export const setStoredUser = (userObj, userId = null) => {
+  const id = userId || userObj.id || userObj.userId || "global" || getActiveUserId();
+  if (!id) return;
+  try {
+    if (!userObj || !userObj.id) {
+      if (id) localStorage.removeItem(userKeyFor(id));
+      return;
+    }
+    localStorage.setItem(userKeyFor(id), JSON.stringify(userObj));
+  } catch (e) {
+    console.error("setStoredUser error:", e);
+  }
+};
+
+// ----------------- Token helpers -----------------
+export const getUserFromToken = (token) => {
+  if (!token || !isValidTokenFormat(token)) return null;
+  const decoded = safeDecodeSync(token);
+  if (!decoded) return null;
+  return {
+    userId: decoded.userId || decoded.id || decoded._id,
+    id: decoded.userId || decoded.id || decoded._id,
+    _id: decoded.userId || decoded.id || decoded._id,
+    email: decoded.email,
+    role: (decoded.role || "user").toLowerCase(),
+    name: decoded.name || "",
+    emailVerified: Boolean(decoded.emailVerified),
+    exp: decoded.exp,
+    iat: decoded.iat,
+  };
 };
 
 export const isTokenValid = (token) => {
   if (!token || !isValidTokenFormat(token)) return false;
-
-  try {
-    const decoded = jwtDecode(token);
-
-    // Check expiration with buffer
-    if (decoded.exp) {
-      const currentTime = Date.now() / 1000;
-      const buffer = 300; // 5 minutes buffer
-      return decoded.exp > currentTime + buffer;
-    }
-
-    return true; // Token without exp is considered valid
-  } catch (error) {
-    console.error('Token validation error:', error);
-    return false;
+  const decoded = safeDecodeSync(token);
+  if (!decoded) return false;
+  if (decoded.exp) {
+    const now = Math.floor(Date.now() / 1000);
+    const buffer = 300; // 5m buffer
+    return decoded.exp > now + buffer;
   }
-};
-export const getAuthToken = () => {
-  try {
-    const rawToken = localStorage.getItem(TOKEN_KEY);
-    if (!rawToken) return null;
-
-    const token = rawToken.replace(/^"|"$/g, "").trim();
-    if (!isValidTokenFormat(token)) {
-      console.warn("Stored token invalid, clearing:", token);
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-      return null;
-    }
-
-    return token;
-  } catch (error) {
-    console.error("Error retrieving auth token:", error);
-    return null;
-  }
+  return true;
 };
 
-export const removeAuthToken = () => {
-  try {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    revokeAdminAccess();
-  } catch (error) {
-    console.error("Error removing auth token:", error);
-  }
+export const getTokenExpiryTime = (token = null) => {
+  const t = token || getAuthToken();
+  if (!t) return 0;
+  const d = safeDecodeSync(t);
+  if (!d?.exp) return Infinity;
+  return Math.max(0, d.exp - Date.now() / 1000);
 };
 
-
-
-export const getStoredUser = () => {
-  try {
-    const userData = localStorage.getItem(USER_KEY);
-    return userData ? JSON.parse(userData) : null;
-  } catch (error) {
-    console.error("Error retrieving stored user:", error);
-    return null;
-  }
-};
-
-export const setStoredUser = (userData) => {
-  try {
-    if (userData && typeof userData === "object") {
-      localStorage.setItem(USER_KEY, JSON.stringify(userData));
-    } else {
-      localStorage.removeItem(USER_KEY);
-    }
-  } catch (error) {
-    console.error("Error storing user data:", error);
-  }
-};
-
-export const isAuthenticated = () => {
-  try {
-    const token = getAuthToken();
-    return token ? isTokenValid(token) : false;
-  } catch (error) {
-    console.error("Error checking authentication status:", error);
-    return false;
-  }
-};
-
-export const getAuthHeaders = () => {
+// ----------------- Headers -----------------
+export const getAuthHeaders = (userId = null) => {
+  const token = getAuthToken(userId);
   const headers = { "Content-Type": "application/json" };
-  try {
-    const token = getAuthToken();
-    if (token && isTokenValid(token)) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-  } catch (error) {
-    console.error("Error preparing auth headers:", error);
-  }
+  if (token && isTokenValid(token)) headers["Authorization"] = `Bearer ${token}`;
   return headers;
 };
 
-// ----------------- EXPIRY + REFRESH -----------------
-export const getTokenExpiryTime = (token = null) => {
+// ----------------- Token Refresh -----------------
+export const refreshToken = async (userId = null) => {
   try {
-    const currentToken = token || getAuthToken();
-    if (!currentToken) return 0;
-    const decoded = jwtDecode(currentToken);
-    if (!decoded.exp) return Infinity;
-    const currentTime = Date.now() / 1000;
-    return Math.max(0, decoded.exp - currentTime);
-  } catch (error) {
-    console.error("Error calculating token expiry:", error);
-    return 0;
-  }
-};
+    const oldToken = getAuthToken(userId);
+    if (!oldToken) return null;
 
-export const getAdminSessionTime = () => {
-  if (!isAdminOrModerator()) return 0;
-  try {
-    const expiryTime = localStorage.getItem(ADMIN_EXPIRY_KEY);
-    return expiryTime ? Math.max(0, parseInt(expiryTime, 10) - Date.now()) : 0;
-  } catch (error) {
-    console.error("Error calculating admin session time:", error);
-    return 0;
-  }
-};
+    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, {
+      headers: { Authorization: `Bearer ${oldToken}` },
+      withCredentials: true,
+    });
 
-export const clearAllAuthData = () => {
-  removeAuthToken();
-  revokeAdminAccess();
-};
-
-export const refreshToken = async () => {
-  console.warn("Token refresh not implemented");
-  return null;
-};
-
-export const checkAndRefreshAuthToken = async () => {
-  try {
-    const token = getAuthToken();
-    if (!token) return false;
-
-    if (isTokenValid(token)) {
-      const expiryTime = getTokenExpiryTime(token);
-      if (expiryTime < 300) {
-        const newToken = await refreshToken();
-        if (newToken) {
-          setAuthToken(newToken);
-          return true;
-        }
-        return false;
-      }
-      return true;
+    const newToken = response.data?.token || response.data?.accessToken;
+    if (!newToken || !isValidTokenFormat(newToken)) {
+      console.warn("Invalid refresh token response");
+      return null;
     }
 
-    removeAuthToken();
-    return false;
-  } catch (error) {
-    console.error("Error checking/refreshing token:", error);
-    removeAuthToken();
-    return false;
-  }
-};
-
-// ----------------- USER HELPERS -----------------
-export const getUserRole = () => {
-  try {
-    const token = getAuthToken();
-    if (token && isTokenValid(token)) {
-      const userData = getUserFromToken(token);
-      return userData?.role || "user";
-    }
-    const storedUser = getStoredUser();
-    return storedUser?.role || "user";
-  } catch (error) {
-    console.error("Error getting user role:", error);
-    return "user";
-  }
-};
-
-export const hasRole = (role) => getUserRole() === role;
-
-export const getUserId = () => {
-  try {
-    const token = getAuthToken();
-    if (token && isTokenValid(token)) {
-      const userData = getUserFromToken(token);
-      return userData?.id || userData?.userId || null;
-    }
-    const storedUser = getStoredUser();
-    return storedUser?.id || storedUser?.userId || null;
-  } catch (error) {
-    console.error("Error getting user ID:", error);
+    await setAuthToken(newToken, getStoredUser(userId) || {});
+    console.log("🔄 Token refreshed successfully");
+    return newToken;
+  } catch (err) {
+    console.error("refreshToken error:", err);
+    removeAuthToken(userId);
     return null;
   }
 };
 
-// ----------------- DEFAULT EXPORT -----------------
+// ----------------- Tab Locks -----------------
+
+// Ensure each tab has unique ID
+if (!sessionStorage.getItem(`${STORAGE_PREFIX}tab_id`)) {
+  try {
+    const tid = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    sessionStorage.setItem(`${STORAGE_PREFIX}tab_id`, tid);
+  } catch {
+    sessionStorage.setItem(`${STORAGE_PREFIX}tab_id`, `${Date.now()}_${Math.random().toString(36).slice(2)}`);
+  }
+}
+
+export const acquireTabFetchLock = (userId = "global", ttlMs = 8000) => {
+  try {
+    const key = `${STORAGE_PREFIX}tab_lock_${userId}`;
+    const now = Date.now();
+    const existing = sessionStorage.getItem(key);
+    if (existing) {
+      const parsed = JSON.parse(existing);
+      if (parsed && parsed.expiresAt > now) return false;
+    }
+    const lock = {
+      owner: sessionStorage.getItem(`${STORAGE_PREFIX}tab_id`) ||
+        (crypto.randomUUID ? crypto.randomUUID()
+          : `${now}_${Math.random().toString(36).slice(2)}`),
+      expiresAt: now + ttlMs,
+    };
+    sessionStorage.setItem(key, JSON.stringify(lock));
+    return true;
+  } catch (e) {
+    console.warn("acquireTabFetchLock error:", e);
+    return true;
+  }
+};
+
+export const releaseTabFetchLock = (userId = "global") => {
+  try {
+    sessionStorage.removeItem(`${STORAGE_PREFIX}tab_lock_${userId}`);
+  } catch (e) {
+    console.warn("releaseTabFetchLock error:", e);
+  }
+};
+
+// ----------------- Cleanup -----------------
+export const clearAllAuthData = () => {
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(STORAGE_PREFIX)) localStorage.removeItem(k);
+    }
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith(STORAGE_PREFIX)) sessionStorage.removeItem(k);
+    }
+  } catch (e) {
+    console.error("clearAllAuthData error:", e);
+  }
+};
+
 export default {
   setAuthToken,
   getAuthToken,
   removeAuthToken,
-  isValidTokenFormat,
-  isTokenValid,
-  getTokenExpiryTime,
-  getUserFromToken,
+  refreshToken,
   getStoredUser,
   setStoredUser,
-  getUserId,
-  getUserRole,
-  hasRole,
-  isAuthenticated,
+  getUserFromToken,
+  isTokenValid,
+  getActiveUserId,
+  setActiveUser,
+  acquireTabFetchLock,
+  releaseTabFetchLock,
+  clearAllAuthData,
   validateAdminCode,
   isAdminOrModerator,
   revokeAdminAccess,
-  getAdminSessionTime,
-  getAuthHeaders,
-  clearAllAuthData,
-  checkAndRefreshAuthToken,
-  refreshToken,
 };

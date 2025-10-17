@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { apiClient } from "../utils/api";
 import { authService, donationService, eventService, volunteerService } from "../services/apiService";
 import Loader from "../components/Loader";
 import { useAlert } from "../utils/Alert";
@@ -16,46 +15,62 @@ const UserPage = () => {
 
   const alert = useAlert();
 
-  const safeArray = (value) => (Array.isArray(value) ? value : []);
+  useEffect(() => {
+    document.title = "SMC - Dashboard | St. Michael's & All Angels Church | Ifite-Awka";
+  }, []);
 
-  const fetchDashboardData = useCallback(async () => {
-    if (!user || !user.id) {
-      setLoading(false);
-      return;
-    }
+  const Fetch = useCallback(() => {
+    if (user?.id) fetchDashboardData();
+  }, [user]);
 
+  useEffect(() => {
+    Fetch();
+  }, [Fetch]);
+
+  const fetchDashboardData = async () => {
+    let cancelled = false;
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch current user
+      // ✅ Fetch current user properly
       const userResponse = await authService.getCurrentUser();
-      setUserData(userResponse.data || userResponse);
+      if (cancelled) return;
 
-      // Fetch dashboard-specific data in parallel
-      const [donationsResponse, eventsResponse, volunteersResponse] =
+      const userObj = userResponse?.data?.user || userResponse?.user || userResponse;
+      setUserData(userObj);
+
+      // ✅ Fetch dashboard data in parallel
+      const [
+        donationsResponse,
+        eventsResponse,
+        volunteersResponse
+      ] =
         await Promise.allSettled([
           donationService.getUserDonations({ limit: 3 }),
           eventService.getUpcoming({ limit: 3 }),
           volunteerService.getUserApplications(),
         ]);
 
-      // Donations
-      if (donationsResponse.status === "fulfilled") {
-        const raw = donationsResponse.value?.data?.donations || donationsResponse.value?.data || donationsResponse.value || [];
-        setRecentDonations(safeArray(raw).slice(0, 3));
-      }
+      if (!cancelled) {
+        // ✅ Donations
 
-      // Events
-      if (eventsResponse.status === "fulfilled") {
-        const raw = eventsResponse.value?.data?.events || eventsResponse.value?.data || eventsResponse.value || [];
-        setUpcomingEvents(safeArray(raw));
-      }
+        if (donationsResponse.status === "fulfilled") {
+          const raw = donationsResponse.value?.data?.donations || donationsResponse.value?.data || donationsResponse.value || [];
+          setRecentDonations(Array.isArray(raw) ? raw.slice(0, 3) : []);
+        }
 
-      // Volunteers
-      if (volunteersResponse.status === "fulfilled") {
-        const raw = volunteersResponse.value?.data?.applications || volunteersResponse.value?.data || volunteersResponse.value || [];
-        setVolunteerApplications(safeArray(raw));
+        // ✅ Events
+        if (eventsResponse.status === "fulfilled") {
+          const raw = eventsResponse.value?.data?.events || eventsResponse.value?.data || eventsResponse.value || [];
+          setUpcomingEvents(Array.isArray(raw) ? raw : []);
+        }
+
+        // ✅ Volunteer Applications
+        if (volunteersResponse.status === "fulfilled") {
+          const raw = volunteersResponse.value?.data?.applications || volunteersResponse.value?.data || volunteersResponse.value || [];
+          setVolunteerApplications(Array.isArray(raw) ? raw : []);
+        }
       }
     } catch (err) {
       console.error("❌ Error fetching dashboard data:", err);
@@ -64,15 +79,10 @@ const UserPage = () => {
         alert.error?.("Failed to load dashboard data. Please try again.");
       }
     } finally {
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     }
-  }, [user, alert]);
-
-  useEffect(() => {
-    document.title =
-      "SMC - Dashboard | St. Michael's & All Angels Church | Ifite-Awka";
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+    return () => { cancelled = true; };
+  };
 
   const formatCurrency = (amount) =>
     new Intl.NumberFormat("en-US", {
@@ -108,6 +118,9 @@ const UserPage = () => {
     );
   };
 
+  const currentUser = userData || user;
+  const userRole = currentUser?.role;
+
   // ---------- Render Logic ----------
   if (authLoading || loading) {
     return <Loader type="spinner" text="Loading your dashboard..." />;
@@ -133,12 +146,11 @@ const UserPage = () => {
     );
   }
 
-  const currentUser = userData || user;
-  const userRole = currentUser?.role || "user";
+
 
   return (
     <div className="page">
-       <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8">
         {/* Error Message */}
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
@@ -164,8 +176,8 @@ const UserPage = () => {
             {userRole === "admin"
               ? "Administrator Dashboard"
               : userRole === "moderator"
-              ? "Moderator Dashboard"
-              : "Member Dashboard"}
+                ? "Moderator Dashboard"
+                : "Member Dashboard"}
           </p>
         </div>
 
@@ -189,9 +201,7 @@ const UserPage = () => {
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Member Since</span>
                 <span className="font-bold">
-                  {currentUser?.memberSince
-                    ? new Date(currentUser.memberSince).getFullYear()
-                    : "N/A"}
+                  {currentUser?.memberSince ? new Date(currentUser.memberSince).getFullYear() : "N/A"}
                 </span>
               </div>
             </div>
@@ -202,7 +212,7 @@ const UserPage = () => {
             <h2 className="text-lg font-bold mb-4">Quick Actions</h2>
             <div className="space-y-3">
               <a
-                href={`/profile/${user.id}`}
+                href={`/profile/${currentUser.id}`}
                 className="block btn btn-outline w-full text-center"
               >
                 <i className="fas fa-user mr-2"></i>Edit Profile
@@ -226,12 +236,12 @@ const UserPage = () => {
                 <i className="fas fa-donate mr-2"></i>Make a Donation
               </a>
 
-              {(userRole === "admin" || userRole === "moderator") && (
+              {(userRole === "moderator") && (
                 <a
-                  href={`/admin/${user.id}/dashboard`}
+                  href="#"
                   className="block btn btn-outline w-full text-center bg-blue-50 border-blue-200"
                 >
-                  <i className="fas fa-cog mr-2"></i>Admin Panel
+                  <i className="fas fa-cog mr-2"></i>Moderator Panel
                 </a>
               )}
             </div>

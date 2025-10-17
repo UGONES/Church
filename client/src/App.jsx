@@ -5,10 +5,9 @@ import Footer from "./components/Footer";
 import PageLoader from "./components/Loader";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { useAlert } from "./utils/Alert";
-import "./index.css";
 import { useAuth } from "./hooks/useAuth";
+import "./index.css";
 
-// Lazy load pages
 const HomePage = lazy(() => import("./pages/HomePage"));
 const EventsPage = lazy(() => import("./pages/EventsPage"));
 const SermonsPage = lazy(() => import("./pages/SermonsPage"));
@@ -24,19 +23,22 @@ const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const PasswordPage = lazy(() => import("./pages/PasswordPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const UnauthorizedPage = lazy(() => import("./pages/UnauthorizedPage"));
-
-// Dashboards
 const UserPage = lazy(() => import("./pages/UserPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
+const ContactModal = lazy(() => import("./pages/MinistriesPage"));  
 
 const App = () => {
-  const { user, token, isAuthenticated, refreshUser, loading: authLoading, login, logout } = useAuth();
+  const { user, token, isAuthenticated, refreshUser, authLoading, login, logout, } = useAuth();
   const [showLoader, setShowLoader] = useState(true);
+  const [loadingText, setLoadingText] = useState("Loading your page...");
   const alert = useAlert();
   const location = useLocation();
 
-  // Init auth
+  // 🔹 Handles app initialization & auth refresh
   useEffect(() => {
+    if (window.__appInitInProgress) return;
+    window.__appInitInProgress = true;
+
     const initializeApp = async () => {
       try {
         if (isAuthenticated && !user) {
@@ -46,34 +48,70 @@ const App = () => {
         console.error("❌ App init auth error:", error);
         alert.error("Authentication error. Please log in again.");
       } finally {
-        setTimeout(() => setShowLoader(false), 1000);
+        setTimeout(() => setShowLoader(false), 700);
       }
     };
+
     initializeApp();
 
-    // Debug
-    console.log("=== AUTH DEBUG ===");
-    console.log("Token exists:", !!token);
-    console.log("Authenticated:", isAuthenticated);
-    console.log("User:", user);
-    console.log("==================");
+    if (import.meta.env.DEV) {
+      console.groupCollapsed("🔎 AUTH DEBUG");
+      console.log("Token exists:", !!token);
+      console.log("Authenticated:", isAuthenticated);
+      console.log("User:", user);
+      console.groupEnd();
+    }
   }, [isAuthenticated, user, token, refreshUser, alert]);
 
-  // Auth handlers
+  // 🔹 Independent effect to manage delayed loading text
+  useEffect(() => {
+    if (!showLoader) return;
+
+    const pathsToWatch = ["/login", "/user", "/admin", "/moderator", "/profile", "/my-rsvps", "/verify-email", "/reset-password", "/change-password"];
+    const isSensitivePath = pathsToWatch.some(p => location.pathname.includes(p));
+
+    if (isSensitivePath) {
+      const timer = setTimeout(() => {
+        setLoadingText("This is taking longer than expected... please refresh if it continues.");
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    } else {
+      setLoadingText("Loading your page...");
+    }
+  }, [showLoader, location.pathname]);
+
   const handleLogin = async (creds) => await login(creds);
   const handleLogout = async () => await logout();
 
-  if (showLoader || authLoading) {
+  if (authLoading) {
+    return <PageLoader text="Verifying session..." />;
+  }
+
+  if (showLoader) {
     return (
       <PageLoader
         type="spinner"
         size="large"
         color="#FF7E45"
-        text="Loading St Michael's Church..."
-        fullScreen={true}
+        text={loadingText}
+        fullScreen
       />
     );
   }
+
+  const getDashboardPath = (user) => {
+    if (!user || !user.id) return "/login";
+    const id = user.id;
+    switch (user.role) {
+      case "admin":
+        return `/admin/${id}/dashboard`;
+      case "moderator":
+        return `/moderator/${id}/dashboard`;
+      default:
+        return `/user/${id}/dashboard`;
+    }
+  };
 
   return (
     <div className="app">
@@ -82,27 +120,28 @@ const App = () => {
       <main className="main-content">
         <Suspense fallback={<PageLoader type="spinner" text="Loading page..." />}>
           <Routes>
-            {/* Public */}
+            {/* ===== PUBLIC ROUTES ===== */}
             <Route path="/" element={<HomePage />} />
             <Route path="/events" element={<EventsPage />} />
             <Route path="/sermons" element={<SermonsPage />} />
             <Route path="/donate" element={<DonatePage />} />
             <Route path="/blog" element={<BlogPage />} />
             <Route path="/ministries" element={<MinistriesPage />} />
+            <Route path="/ministries/contact" element={<ContactModal />} />
             <Route path="/testimonials" element={<TestimonialsPage />} />
             <Route path="/prayer" element={<PrayerPage />} />
 
-            {/* Auth */}
+            {/* ===== AUTH ROUTES ===== */}
             <Route path="/verify-email/:token?" element={<VerifyEmail />} />
             <Route path="/forgot-password" element={<PasswordPage />} />
             <Route path="/reset-password" element={<PasswordPage />} />
             <Route path="/change-password" element={<PasswordPage />} />
             <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
 
-            {/* Errors */}
+            {/* ===== ERROR / INFO ===== */}
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-            {/* Dashboards */}
+            {/* ===== DASHBOARDS ===== */}
             <Route
               path="/user/:id/dashboard"
               element={
@@ -111,28 +150,30 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/admin/:id/dashboard"
               element={
-                <ProtectedRoute roles={["admin"]}>
+                <ProtectedRoute requireAuth requireAdmin>
                   <AdminPage />
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/moderator/:id/dashboard"
               element={
-                <ProtectedRoute roles={["moderator"]} requireAdmin={true}>
+                <ProtectedRoute requireAuth roles={["moderator"]}>
                   <UserPage />
                 </ProtectedRoute>
               }
             />
 
-            {/* Profile & RSVPs */}
+            {/* ===== PROFILE / RSVPs ===== */}
             <Route
               path="/profile/:id"
               element={
-                <ProtectedRoute requireAuth={true}>
+                <ProtectedRoute requireAuth>
                   <ProfilePage />
                 </ProtectedRoute>
               }
@@ -140,44 +181,43 @@ const App = () => {
             <Route
               path="/my-rsvps/:id"
               element={
-                <ProtectedRoute requireAuth={true}>
+                <ProtectedRoute requireAuth>
                   <MyRsvpsPage />
                 </ProtectedRoute>
               }
             />
 
-            {/* Admin area */}
+            {/* ===== ADMIN AREA ===== */}
             <Route
               path="/admin/*"
               element={
-                <ProtectedRoute requireAdmin={true}>
+                <ProtectedRoute requireAdmin>
                   <AdminPage />
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/moderator/*"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <UserPage />
+                </ProtectedRoute>
+              }
+            />
 
-            {/* Smart dashboard redirect */}
+            {/* ===== SMART REDIRECT ===== */}
             <Route
               path="/dashboard"
               element={
                 user && user.id ? (
-                  <Navigate
-                    to={
-                      user.role === "admin"
-                        ? `/admin/${user.id}/dashboard`
-                        : user.role === "moderator"
-                        ? `/moderator/${user.id}/dashboard`
-                        : `/user/${user.id}/dashboard`
-                    }
-                    replace
-                  />
+                  <Navigate to={getDashboardPath(user)} replace />
                 ) : (
                   <Navigate to="/login" state={{ from: location }} replace />
                 )
               }
             />
 
-            {/* 404 */}
+            {/* ===== 404 ===== */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>

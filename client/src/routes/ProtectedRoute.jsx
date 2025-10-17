@@ -1,123 +1,46 @@
 import { Navigate, useLocation } from "react-router-dom";
-import {
-  isAuthenticated,
-  isAdminOrModerator,
-  getStoredUser,
-  getUserRole
-} from "../utils/auth";
-import useAuth from "../hooks/useAuth";
+import { useAuth } from "../hooks/useAuth";
 import Loader from "../components/Loader";
-
 
 const ProtectedRoute = ({
   children,
-  requiredRole,
-  requireAdmin = false,
+  roles = [],
   requireAuth = true,
-  fallbackPath = "/login",
+  requireAdmin = false,
+  fallbackPath = "/login", 
   unauthorizedPath = "/unauthorized",
 }) => {
-  const { user, isLoading } = useAuth();
-
-  // Use multiple sources for user data
-  const storedUser = getStoredUser();
-  const currentUser = user || storedUser;
-  const authenticated = isAuthenticated();
-  const administrator = isAdminOrModerator();
-  const userRole = getUserRole();
+  const {
+    user,
+    token,
+    isAuthenticated,
+    isAdmin,
+    isModerator,
+    authLoading,
+  } = useAuth();
   const location = useLocation();
 
-
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader type="spinner" text="Checking access..." />
-      </div>
-    );
+  // 🕐 1. Wait for auth to load (prevents flashing login page)
+  if (authLoading) {
+    return <Loader type="spinner" text="Verifying your session..." />;
   }
 
-  // Debug logging
-  console.log("🔐 ProtectedRoute check:", {
-    path: location.pathname,
-    requiredRole,
-    requireAdmin,
-    requireAuth,
-    authenticated,
-    administrator,
-    userRole,
-    hasUser: !!currentUser
-  });
-
-  // Handle unauthenticated access
-  if (requireAuth && !authenticated) {
-    console.log("❌ Authentication required - redirecting to login");
-
-    return (
-      <Navigate
-        to={fallbackPath}
-        replace
-        state={{
-          from: location,
-          message: "Please log in to access this page"
-        }}
-      />
-    );
+  // 🔒 2. Require authentication
+  if (requireAuth && (!isAuthenticated || !token || !user)) {
+    return <Navigate to={fallbackPath} state={{ from: location }} replace />;
   }
 
-  // Handle admin-only routes
-  if (requireAdmin && !administrator) {
-    console.log("❌ Admin privileges required");
-
-    return (
-      <Navigate
-        to={unauthorizedPath}
-        replace
-        state={{
-          from: location,
-          message: "Admin privileges required",
-          required: "Administrator/Moderator",
-        }}
-      />
-    );
+  // 👮 3. Require admin/moderator privileges (admin area only)
+ if (requireAdmin && !(isAdmin || isModerator)) {
+    return <Navigate to={unauthorizedPath} state={{ from: location }} replace />;
   }
 
-  // Handle role-based access
-  if (requiredRole && currentUser) {
-    const currentUserRole = (currentUser?.role || userRole).toLowerCase();
-    const requiredRoleLower = requiredRole.toLowerCase();
-
-    console.log("🔍 Role check:", {
-      required: requiredRoleLower,
-      current: currentUserRole,
-      user: currentUser
-    });
-
-    // Special case: moderators accessing admin routes
-    if (requiredRoleLower === 'admin' && currentUserRole === 'moderator') {
-      // Allow moderators to access admin routes if requireAdmin is not strictly required
-      console.log("⚠️ Moderator accessing admin route - allowed");
-    } 
-    // Standard role check
-    else if (currentUserRole !== requiredRoleLower) {
-      console.log("❌ Insufficient permissions");
-      return (
-        <Navigate
-          to={unauthorizedPath}
-          replace
-          state={{
-            from: location,
-            message: "Insufficient permissions",
-            required: requiredRole,
-            current: currentUserRole,
-          }}
-        />
-      );
-    }
+  // 🎭 4. Restrict to specific roles (if specified)
+  if (roles.length > 0 && user && !roles.includes(user.role)) {
+    return <Navigate to={unauthorizedPath} state={{ from: location }} replace />;
   }
 
-  // ✅ Passed all checks
-  console.log("✅ Access granted to:", location.pathname);
+  // ✅ 5. Authorized — render children
   return children;
 };
 
