@@ -12,7 +12,7 @@ import {
     deleteMinistry, 
     getMinistryStats, 
     getMinistryVolunteers, 
-    createMinistryCategory
+    addMinistryCategory
 } from '../controllers/ministryController.mjs';
 import { auth, optionalAuth } from '../middleware/auth.mjs';
 import { moderatorCheck } from '../middleware/adminCheck.mjs';
@@ -32,7 +32,7 @@ router.post('/:id/contact', auth, contactMinistryLeaders);
 router.post('/admin/create', auth, moderatorCheck, uploadImage.single('image'), createMinistry);
 router.put('/admin/update/:id', auth, moderatorCheck, uploadImage.single('image'), updateMinistry);
 router.delete('/admin/delete/:id', auth, moderatorCheck, deleteMinistry);
-router.post('/admin/categories', auth, moderatorCheck, createMinistryCategory);
+router.post('/admin/categories', auth, moderatorCheck, addMinistryCategory);
 router.get('/admin/stats', auth, moderatorCheck, getMinistryStats);
 router.get('/admin/:id/volunteers', auth, moderatorCheck, getMinistryVolunteers);
 

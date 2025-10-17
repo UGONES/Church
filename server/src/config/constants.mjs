@@ -1,11 +1,13 @@
 export const ROLES = {
     USER: 'user',
     MODERATOR: 'moderator',
-    ADMIN: 'admin'
+    ADMIN: 'admin',
+    STAFF: 'staff'
 };
 export const SERMON_CATEGORIES = [
     'sunday-service', 'bible-study', 'prayer-meeting', 'youth',
-    'special', 'faith', 'hope', 'love'
+    'special', 'faith', 'hope', 'love', 'salvation', 'healing', 'provision',
+    'relationship', 'repentance', 'forgiveness'
 ];
 export const EVENT_CATEGORIES = [
     'service', 'bible-study', 'prayer', 'youth', 'children',

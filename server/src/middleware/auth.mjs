@@ -1,29 +1,22 @@
 // middleware/auth.mjs
-import mongoose from "mongoose";
+import  connectDB  from "../config/db.mjs";
 import { verifyAuthToken } from "../utils/generateToken.mjs";
 import User from "../models/User.mjs";
 import Session from "../models/Session.mjs";
 import AuthAttempt from "../models/AuthAttempt.mjs";
 
 // --- Small helper to ensure DB is connected before queries ---
-async function waitForMongoConnection() {
-  if (mongoose.connection.readyState === 1) return;
-  await mongoose.connection.asPromise();
-}
 
 export const auth = async (req, res, next) => {
   const MAX_LOGIN_ATTEMPTS = 5;
   const LOCKOUT_TIME = 15 * 60 * 1000; // 15 min
 
   try {
-    await waitForMongoConnection(); // ✅ Prevent Mongoose buffering timeout
+    await connectDB(); // ✅ Prevent Mongoose buffering timeout
 
     const authHeader = req.header("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        success: false,
-        message: "Access denied. No valid token provided.",
-      });
+      return res.status(401).json({ success: false, message: "Access denied. No valid token provided.", });
     }
 
     const token = authHeader.replace("Bearer ", "").trim();
@@ -126,7 +119,7 @@ export const auth = async (req, res, next) => {
 // Optional Auth Middleware
 export const optionalAuth = async (req, res, next) => {
   try {
-    await waitForMongoConnection(); // ✅ same fix
+    await connectDB(); // ✅ same fix
 
     const authHeader = req.header("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) return next();
