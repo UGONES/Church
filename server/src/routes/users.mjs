@@ -23,7 +23,7 @@ import {
   moderatePrayer,
   moderateBlog,
   uploadAvatar,
-  uploadCoverPhoto
+  uploadCoverPhoto,
 } from "../controllers/userController.mjs";
 
 import { uploadImage } from "../middleware/upload.mjs";
@@ -53,7 +53,12 @@ router.get("/me", auth, trackLoginMiddleware, getCurrentUser);
 router.get("/profile", auth, getCurrentUser);
 router.put("/profile/update", auth, updateProfile);
 router.post("/upload-avatar", auth, uploadImage.single("avatar"), uploadAvatar);
-router.post("/upload-cover", auth, uploadImage.single("coverPhoto"), uploadCoverPhoto);
+router.post(
+  "/upload-cover",
+  auth,
+  uploadImage.single("coverPhoto"),
+  uploadCoverPhoto,
+);
 
 router.get("/family", auth, getFamily);
 router.post("/family", auth, addFamilyMember);
@@ -76,12 +81,22 @@ router.post("/admin/create", auth, adminCheck, createUser);
 router.put("/admin/update/:id", auth, adminCheck, updateUser);
 router.delete("/admin/delete/:id", auth, adminCheck, deleteUser);
 router.get("/admin/roles", auth, adminCheck, getUserRoles);
-router.get("/admin/membership-statuses", auth, adminCheck, getMembershipStatuses);
+router.get(
+  "/admin/membership-statuses",
+  auth,
+  adminCheck,
+  getMembershipStatuses,
+);
 
 /* ---------------------------------------
    Moderator endpoints (moderatorCheck)
    --------------------------------------- */
-router.get("/moderator/pending-volunteers", auth, moderatorCheck, getPendingVolunteers);
+router.get(
+  "/moderator/pending-volunteers",
+  auth,
+  moderatorCheck,
+  getPendingVolunteers,
+);
 router.patch("/moderator/prayers/:id", auth, moderatorCheck, moderatePrayer);
 router.patch("/moderator/blogs/:id", auth, moderatorCheck, moderateBlog);
 

@@ -1,5 +1,11 @@
 // src/hooks/useAuth.jsx
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { authService } from "../services/apiService";
 import {
@@ -44,7 +50,11 @@ export const AuthProvider = ({ children }) => {
       try {
         const existingToken = getAuthToken();
 
-        if (existingToken && isValidTokenFormat(existingToken) && isTokenValid(existingToken)) {
+        if (
+          existingToken &&
+          isValidTokenFormat(existingToken) &&
+          isTokenValid(existingToken)
+        ) {
           const tokenUser = getUserFromToken(existingToken);
           const userId = tokenUser?.id || getActiveUserId() || "global";
 
@@ -116,7 +126,9 @@ export const AuthProvider = ({ children }) => {
       const res = await authService.login(credentials);
       const data = res.data || res;
 
-      if (!data.success || !data.token) throw new Error(data.message || "Invalid login response");
+      if (!data.success || !data.token) {
+        throw new Error(data.message || "Invalid login response");
+      }
 
       const normalized = normalizeUser(data.user);
       await setAuthToken(data.token, data.user);
@@ -127,15 +139,18 @@ export const AuthProvider = ({ children }) => {
       }
       setToken(data.token);
 
-      alert.success(`Welcome, ${normalized.name || normalized.email || "User"}!`);
+      alert.success(
+        `Welcome, ${normalized.name || normalized.email || "User"}!`,
+      );
 
       await new Promise((r) => setTimeout(r, 150));
 
-      const route = normalized.role === "admin"
-        ? `/admin/${normalized.id}/dashboard`
-        : normalized.role === "moderator"
-          ? `/moderator/${normalized.id}/dashboard`
-          : `/user/${normalized.id}/dashboard`;
+      const route =
+        normalized.role === "admin"
+          ? `/admin/${normalized.id}/dashboard`
+          : normalized.role === "moderator"
+            ? `/moderator/${normalized.id}/dashboard`
+            : `/user/${normalized.id}/dashboard`;
       navigate(route, { replace: true });
 
       return { success: true, user: normalized, token: data.token };

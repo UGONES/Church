@@ -10,15 +10,14 @@ import Volunteer from "../models/Volunteer.mjs";
 import Prayer from "../models/Prayer.mjs";
 import BlogPost from "../models/BlogPost.mjs";
 
-
-
 /* ================================
    Get current user profile
 ================================= */
 export async function getCurrentUser(req, res) {
   try {
-    const user = await User.findById(req.user._id)
-      .select("-password -verificationToken -resetPasswordToken -adminCode");
+    const user = await User.findById(req.user._id).select(
+      "-password -verificationToken -resetPasswordToken -adminCode",
+    );
 
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);
@@ -34,16 +33,21 @@ export async function updateProfile(req, res) {
   try {
     const updateData = {};
     const fields = [
-      "firstName", "lastName", "phone", "address",
-      "communicationPreferences", "volunteerProfile", "avatar"
+      "firstName",
+      "lastName",
+      "phone",
+      "address",
+      "communicationPreferences",
+      "volunteerProfile",
+      "avatar",
     ];
-    fields.forEach(f => {
+    fields.forEach((f) => {
       if (req.body[f] !== undefined) updateData[f] = req.body[f];
     });
 
     const user = await User.findByIdAndUpdate(req.user._id, updateData, {
       new: true,
-      runValidators: true
+      runValidators: true,
     }).select("-password -verificationToken -resetPasswordToken -adminCode");
 
     res.json({ message: "Profile updated successfully", user });
@@ -52,11 +56,10 @@ export async function updateProfile(req, res) {
   }
 }
 
-
-/*===============================
+/* ===============================
   Get family member
-=================================*/
-export const getFamily =  async (req, res) => {
+================================= */
+export const getFamily = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -66,7 +69,7 @@ export const getFamily =  async (req, res) => {
     console.error("❌ Family fetch error:", err);
     res.status(500).json({ message: "Server error" });
   }
-}
+};
 
 /* ================================
    Add family member
@@ -77,10 +80,13 @@ export async function addFamilyMember(req, res) {
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { $push: { familyMembers: { name, relationship, age } } },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).select("familyMembers");
 
-    res.json({ message: "Family member added", familyMembers: user.familyMembers });
+    res.json({
+      message: "Family member added",
+      familyMembers: user.familyMembers,
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
@@ -95,10 +101,13 @@ export async function removeFamilyMember(req, res) {
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { $pull: { familyMembers: { _id: memberId } } },
-      { new: true }
+      { new: true },
     ).select("familyMembers");
 
-    res.json({ message: "Family member removed", familyMembers: user.familyMembers });
+    res.json({
+      message: "Family member removed",
+      familyMembers: user.familyMembers,
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
@@ -109,20 +118,23 @@ export async function removeFamilyMember(req, res) {
 ================================= */
 export async function getUserDashboard(req, res) {
   try {
-    const user = await User.findById(req.user._id)
-      .select("name firstName lastName email role avatar memberSince membershipStatus smallGroup familyMembers volunteerStats");
+    const user = await User.findById(req.user._id).select(
+      "name firstName lastName email role avatar memberSince membershipStatus smallGroup familyMembers volunteerStats",
+    );
 
     const donationCount = await Donation.countDocuments({ user: req.user._id });
     const rsvpCount = await RSVP.countDocuments({ user: req.user._id });
-    const volunteerCount = await Volunteer.countDocuments({ user: req.user._id });
+    const volunteerCount = await Volunteer.countDocuments({
+      user: req.user._id,
+    });
 
     res.json({
       user,
       stats: {
         donationCount,
         eventCount: rsvpCount,
-        volunteerApplications: volunteerCount
-      }
+        volunteerApplications: volunteerCount,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -138,14 +150,14 @@ export async function trackLoginActivity(userId) {
       userId,
       {
         $set: { lastLogin: new Date() },
-        $inc: { loginCount: 1 }
+        $inc: { loginCount: 1 },
       },
-      { new: true }
-    ).select('-password -verificationToken -resetPasswordToken -adminCode');
+      { new: true },
+    ).select("-password -verificationToken -resetPasswordToken -adminCode");
 
     return updatedUser;
   } catch (error) {
-    throw new Error('Error tracking login activity: ' + error.message);
+    throw new Error("Error tracking login activity: " + error.message);
   }
 }
 
@@ -154,7 +166,10 @@ export async function trackLoginActivity(userId) {
 ================================= */
 export async function getUserRSVPs(req, res) {
   try {
-    const rsvps = await RSVP.find({ user: req.user._id }).populate("event", "title date location");
+    const rsvps = await RSVP.find({ user: req.user._id }).populate(
+      "event",
+      "title date location",
+    );
     res.json(rsvps);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -166,7 +181,10 @@ export async function getUserRSVPs(req, res) {
 ================================= */
 export async function getUserFavorites(req, res) {
   try {
-    const favorites = await Favorite.find({ user: req.user._id }).populate("event", "title date location");
+    const favorites = await Favorite.find({ user: req.user._id }).populate(
+      "event",
+      "title date location",
+    );
     res.json(favorites);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -178,7 +196,9 @@ export async function getUserFavorites(req, res) {
 ================================= */
 export async function getUserDonations(req, res) {
   try {
-    const donations = await Donation.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const donations = await Donation.find({ user: req.user._id }).sort({
+      createdAt: -1,
+    });
     res.json(donations);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -190,7 +210,10 @@ export async function getUserDonations(req, res) {
 ================================= */
 export async function getUserVolunteers(req, res) {
   try {
-    const volunteers = await Volunteer.find({ user: req.user._id }).populate("ministry", "name");
+    const volunteers = await Volunteer.find({ user: req.user._id }).populate(
+      "ministry",
+      "name",
+    );
     res.json(volunteers);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -202,7 +225,9 @@ export async function getUserVolunteers(req, res) {
 ================================= */
 export async function getUserPrayers(req, res) {
   try {
-    const prayers = await Prayer.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const prayers = await Prayer.find({ user: req.user._id }).sort({
+      createdAt: -1,
+    });
     res.json(prayers);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -214,7 +239,9 @@ export async function getUserPrayers(req, res) {
 ================================= */
 export async function getPendingVolunteers(req, res) {
   try {
-    const volunteers = await Volunteer.find({ status: "pending" }).populate("user ministry");
+    const volunteers = await Volunteer.find({ status: "pending" }).populate(
+      "user ministry",
+    );
     res.json(volunteers);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -225,7 +252,11 @@ export async function moderatePrayer(req, res) {
   try {
     const { id } = req.params;
     const { approved } = req.body;
-    const prayer = await Prayer.findByIdAndUpdate(id, { approved }, { new: true });
+    const prayer = await Prayer.findByIdAndUpdate(
+      id,
+      { approved },
+      { new: true },
+    );
     if (!prayer) return res.status(404).json({ message: "Prayer not found" });
     res.json({ message: "Prayer updated", prayer });
   } catch (error) {
@@ -237,7 +268,11 @@ export async function moderateBlog(req, res) {
   try {
     const { id } = req.params;
     const { approved } = req.body;
-    const blog = await BlogPost.findByIdAndUpdate(id, { approved }, { new: true });
+    const blog = await BlogPost.findByIdAndUpdate(
+      id,
+      { approved },
+      { new: true },
+    );
     if (!blog) return res.status(404).json({ message: "Blog not found" });
     res.json({ message: "Blog updated", blog });
   } catch (error) {
@@ -257,15 +292,15 @@ export async function getAllUsers(req, res) {
     if (membershipStatus) query.membershipStatus = membershipStatus;
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { firstName: { $regex: search, $options: 'i' } },
-        { lastName: { $regex: search, $options: 'i' } }
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { firstName: { $regex: search, $options: "i" } },
+        { lastName: { $regex: search, $options: "i" } },
       ];
     }
 
     const users = await User.find(query)
-      .select('-password -verificationToken -resetPasswordToken -adminCode')
+      .select("-password -verificationToken -resetPasswordToken -adminCode")
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -276,20 +311,23 @@ export async function getAllUsers(req, res) {
       users,
       totalPages: Math.ceil(total / limit),
       currentPage: page,
-      total
+      total,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
 export async function createUser(req, res) {
   try {
-    const { name, email, password, role, phone, address, firstName, lastName } = req.body;
+    const { name, email, password, role, phone, address, firstName, lastName } =
+      req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: 'User already exists with this email' });
+      return res
+        .status(400)
+        .json({ message: "User already exists with this email" });
     }
 
     const user = new User({
@@ -298,16 +336,16 @@ export async function createUser(req, res) {
       lastName,
       email,
       password,
-      role: role || 'user',
+      role: role || "user",
       phone,
       address,
-      emailVerified: true // Admin-created users are automatically verified
+      emailVerified: true, // Admin-created users are automatically verified
     });
 
     await user.save();
 
     res.status(201).json({
-      message: 'User created successfully',
+      message: "User created successfully",
       user: {
         id: user._id,
         name: user.name,
@@ -316,35 +354,55 @@ export async function createUser(req, res) {
         email: user.email,
         role: user.role,
         phone: user.phone,
-        address: user.address
-      }
+        address: user.address,
+      },
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
 export async function updateUser(req, res) {
   try {
     const { id } = req.params;
-    const { name, email, role, phone, address, isActive, firstName, lastName, membershipStatus } = req.body;
+    const {
+      name,
+      email,
+      role,
+      phone,
+      address,
+      isActive,
+      firstName,
+      lastName,
+      membershipStatus,
+    } = req.body;
 
     const user = await User.findByIdAndUpdate(
       id,
-      { name, firstName, lastName, email, role, phone, address, isActive, membershipStatus },
-      { new: true, runValidators: true }
-    ).select('-password -verificationToken -resetPasswordToken');
+      {
+        name,
+        firstName,
+        lastName,
+        email,
+        role,
+        phone,
+        address,
+        isActive,
+        membershipStatus,
+      },
+      { new: true, runValidators: true },
+    ).select("-password -verificationToken -resetPasswordToken");
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     res.json({
-      message: 'User updated successfully',
-      user
+      message: "User updated successfully",
+      user,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -353,36 +411,38 @@ export async function deleteUser(req, res) {
     const { id } = req.params;
 
     if (id === req.user._id.toString()) {
-      return res.status(400).json({ message: 'Cannot delete your own account' });
+      return res
+        .status(400)
+        .json({ message: "Cannot delete your own account" });
     }
 
     const user = await User.findByIdAndDelete(id);
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    res.json({ message: 'User deleted successfully' });
+    res.json({ message: "User deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
 export async function getUserRoles(req, res) {
   try {
-    const roles = await User.distinct('role');
+    const roles = await User.distinct("role");
     res.json(roles);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
 export async function getMembershipStatuses(req, res) {
   try {
-    const statuses = await User.distinct('membershipStatus');
+    const statuses = await User.distinct("membershipStatus");
     res.json(statuses);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
@@ -405,7 +465,7 @@ export async function uploadAvatar(req, res) {
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { photoUrl: upload.secure_url },
-      { new: true }
+      { new: true },
     ).select("-password -verificationToken -resetPasswordToken");
 
     fs.unlinkSync(req.file.path); // clean temp file
@@ -434,7 +494,7 @@ export async function uploadCoverPhoto(req, res) {
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { coverPhoto: upload.secure_url },
-      { new: true }
+      { new: true },
     ).select("-password -verificationToken -resetPasswordToken");
 
     fs.unlinkSync(req.file.path);

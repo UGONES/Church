@@ -3,13 +3,12 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
-import 'swiper/css';
-import 'swiper/css/navigation';
-import 'swiper/css/pagination';
-import { AlertProvider } from './utils/Alert';
-import { AuthProvider } from './hooks/useAuth';
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
+import { AlertProvider } from "./utils/Alert";
+import { AuthProvider } from "./hooks/useAuth";
 import { SocialAuthProvider } from "./contexts/SocialAuthContext";
-
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -17,10 +16,10 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <AlertProvider>
         <AuthProvider>
           <SocialAuthProvider>
-          <App />
+            <App />
           </SocialAuthProvider>
         </AuthProvider>
       </AlertProvider>
     </BrowserRouter>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

@@ -1,28 +1,30 @@
 import { useState, useEffect } from "react";
-import { loadStripe } from '@stripe/stripe-js';
+import { loadStripe } from "@stripe/stripe-js";
 import {
   PaymentElement,
   Elements,
   useStripe,
-  useElements
-} from '@stripe/react-stripe-js';
-import { donationService } from '../services/apiService';
-import useAuth from '../hooks/useAuth';
-import Loader from '../components/Loader';
+  useElements,
+} from "@stripe/react-stripe-js";
+import { donationService } from "../services/apiService";
+import useAuth from "../hooks/useAuth";
+import Loader from "../components/Loader";
 import { useAlert } from "../utils/Alert";
-import { Donation } from '../models/Donation';
+import { Donation } from "../models/Donation";
 
 // Initialize Stripe with error handling
 const stripePromise = (() => {
   try {
-    const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_51S4Wi6ChmgWsJLauutuaPwfQHKs4rIvaErdDw4t03Jqd3H3amLPN50aYEetNjTgz68vY9CiHXHMc3ws7hnwLzwta00C9tLMWbo";
+    const stripeKey =
+      import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+      "pk_test_51S4Wi6ChmgWsJLauutuaPwfQHKs4rIvaErdDw4t03Jqd3H3amLPN50aYEetNjTgz68vY9CiHXHMc3ws7hnwLzwta00C9tLMWbo";
     if (!stripeKey) {
-      console.error('Stripe publishable key is missing');
+      console.error("Stripe publishable key is missing");
       return null;
     }
     return loadStripe(stripeKey);
   } catch (error) {
-    console.error('Failed to initialize Stripe:', error);
+    console.error("Failed to initialize Stripe:", error);
     return null;
   }
 })();
@@ -31,9 +33,9 @@ const stripePromise = (() => {
 const CardPaymentForm = ({
   onSubmit,
   isProcessing,
-  setIsProcessing,   // ✅ consistent naming
+  setIsProcessing, // ✅ consistent naming
   billingAddress,
-  onBillingAddressChange
+  onBillingAddressChange,
 }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -56,10 +58,10 @@ const CardPaymentForm = ({
       confirmParams: {
         return_url: `${window.location.origin}/donate?success=true`,
         payment_method_data: {
-          billing_details: { address: billingAddress }
-        }
+          billing_details: { address: billingAddress },
+        },
       },
-      redirect: "if_required"
+      redirect: "if_required",
     });
 
     if (error) {
@@ -92,7 +94,7 @@ const CardPaymentForm = ({
             { label: "City *", name: "city", required: true },
             { label: "State *", name: "state", required: true },
             { label: "Postal Code *", name: "postal_code", required: true },
-            { label: "Country *", name: "country", required: true }
+            { label: "Country *", name: "country", required: true },
           ].map(({ label, name, required }) => (
             <div key={name}>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -107,7 +109,7 @@ const CardPaymentForm = ({
                 onChange={(e) =>
                   onBillingAddressChange({
                     ...billingAddress,
-                    [name]: e.target.value
+                    [name]: e.target.value,
                   })
                 }
               />
@@ -130,11 +132,15 @@ const CardPaymentForm = ({
       <div className="text-xs text-gray-500 text-center flex flex-col items-center">
         <div className="flex justify-center gap-4 w-full">
           <span className="flex items-center">
-            <i className="fas fa-lock mr-1 text-green-500"></i>
+            <i className="fas fa-lock mr-1 text-green-500" />
             Your payment information is encrypted and secure
           </span>
           <div className="border border-[#635BFF] rounded-md px-3 py-1 inline-flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="80" viewBox="0 0 300 40">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="80"
+              viewBox="0 0 300 40"
+            >
               <text
                 x="50%"
                 y="50%"
@@ -160,7 +166,7 @@ const BankTransferForm = ({
   onSubmit,
   isProcessing,
   bankDetails,
-  onBankDetailsChange
+  onBankDetailsChange,
 }) => {
   const [bankInfo, setBankInfo] = useState(bankDetails);
 
@@ -179,16 +185,36 @@ const BankTransferForm = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="p-4 bg-green-50 border border-green-200 rounded-md">
-        <h3 className="font-medium text-green-800 mb-3">Bank Transfer Information</h3>
+        <h3 className="font-medium text-green-800 mb-3">
+          Bank Transfer Information
+        </h3>
         <div className="space-y-3">
           {[
-            { label: "Bank Name *", name: "bankName", placeholder: "e.g., Chase Bank" },
-            { label: "Account Number *", name: "accountNumber", placeholder: "Your account number" },
-            { label: "Transaction Number *", name: "transactionNumber", placeholder: "Your transaction number" },
-            { label: "Account Holder Name *", name: "accountName", placeholder: "Name on account" }
+            {
+              label: "Bank Name *",
+              name: "bankName",
+              placeholder: "e.g., Chase Bank",
+            },
+            {
+              label: "Account Number *",
+              name: "accountNumber",
+              placeholder: "Your account number",
+            },
+            {
+              label: "Transaction Number *",
+              name: "transactionNumber",
+              placeholder: "Your transaction number",
+            },
+            {
+              label: "Account Holder Name *",
+              name: "accountName",
+              placeholder: "Name on account",
+            },
           ].map(({ label, name, placeholder }) => (
             <div key={name}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {label}
+              </label>
               <input
                 type="text"
                 name={name}
@@ -238,13 +264,13 @@ const DonatePage = () => {
     city: "",
     state: "",
     postal_code: "",
-    country: ""
+    country: "",
   });
   const [bankDetails, setBankDetails] = useState({
     bankName: "",
     accountNumber: "",
     routingNumber: "",
-    accountName: ""
+    accountName: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
@@ -261,7 +287,8 @@ const DonatePage = () => {
 
   // Load data based on user role
   useEffect(() => {
-    document.title = "SMC: - Donation | St. Micheal`s & All Angels Church | Ifite-Awka";
+    document.title =
+      "SMC: - Donation | St. Micheal`s & All Angels Church | Ifite-Awka";
     if (isAdmin) {
       fetchDonationStats();
       fetchRecentDonations();
@@ -274,11 +301,13 @@ const DonatePage = () => {
   // Check for success or cancel parameters in URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('success') === 'true') {
+    if (urlParams.get("success") === "true") {
       setShowThankYou(true);
-      alert.success("Thank you for your donation! Your payment was successful.");
+      alert.success(
+        "Thank you for your donation! Your payment was successful.",
+      );
       window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (urlParams.get('canceled') === 'true') {
+    } else if (urlParams.get("canceled") === "true") {
       alert.info("Donation process was canceled.");
       window.history.replaceState({}, document.title, window.location.pathname);
     }
@@ -294,7 +323,7 @@ const DonatePage = () => {
           console.log("Creating payment intent for amount:", donationAmount);
           const res = await donationService.createPaymentIntent({
             amount: parseFloat(donationAmount),
-            currency: "usd"
+            currency: "usd",
           });
 
           console.log("Full payment intent response:", res);
@@ -336,14 +365,16 @@ const DonatePage = () => {
       setIsLoading(true);
       const response = await donationService.getUserDonations();
       if (response.success) {
-        setUserDonations(response.data.map(donation => new Donation(donation)));
+        setUserDonations(
+          response.data.map((donation) => new Donation(donation)),
+        );
       }
     } catch (error) {
-      console.error('Error fetching user donations:', error);
+      console.error("Error fetching user donations:", error);
       if (error.response?.status === 401) {
-        alert.info('Please log in to view your donation history');
+        alert.info("Please log in to view your donation history");
       } else {
-        alert.error('Failed to load donation history');
+        alert.error("Failed to load donation history");
       }
     } finally {
       setIsLoading(false);
@@ -358,11 +389,11 @@ const DonatePage = () => {
         setDonationStats(response.data);
       }
     } catch (error) {
-      console.error('Error fetching donation stats:', error);
+      console.error("Error fetching donation stats:", error);
       if (error.response?.status === 403) {
-        alert.error('Access denied. Admin privileges required.');
+        alert.error("Access denied. Admin privileges required.");
       } else {
-        alert.error('Failed to load donation statistics');
+        alert.error("Failed to load donation statistics");
       }
     } finally {
       setIsLoading(false);
@@ -374,14 +405,16 @@ const DonatePage = () => {
       setIsLoading(true);
       const response = await donationService.getRecent();
       if (response.success) {
-        setRecentDonations(response.data.map(donation => new Donation(donation)));
+        setRecentDonations(
+          response.data.map((donation) => new Donation(donation)),
+        );
       }
     } catch (error) {
-      console.error('Error fetching recent donations:', error);
+      console.error("Error fetching recent donations:", error);
       if (error.response?.status === 403) {
-        alert.error('Access denied. Admin privileges required.');
+        alert.error("Access denied. Admin privileges required.");
       } else {
-        alert.error('Failed to load recent donations');
+        alert.error("Failed to load recent donations");
       }
     } finally {
       setIsLoading(false);
@@ -395,7 +428,7 @@ const DonatePage = () => {
         // Handle all donations data for admin
       }
     } catch (error) {
-      console.error('Error fetching all donations:', error);
+      console.error("Error fetching all donations:", error);
     }
   };
 
@@ -419,25 +452,35 @@ const DonatePage = () => {
     }
 
     if (paymentMethod === "card") {
-      if (!billingAddress.line1 || !billingAddress.city || !billingAddress.state ||
-        !billingAddress.postal_code || !billingAddress.country) {
-        errors.billing = "Complete billing address is required for card payments";
+      if (
+        !billingAddress.line1 ||
+        !billingAddress.city ||
+        !billingAddress.state ||
+        !billingAddress.postal_code ||
+        !billingAddress.country
+      ) {
+        errors.billing =
+          "Complete billing address is required for card payments";
       }
     } else if (paymentMethod === "bank") {
-      if (!bankDetails.bankName || !bankDetails.accountNumber ||
-        !bankDetails.routingNumber || !bankDetails.accountName) {
+      if (
+        !bankDetails.bankName ||
+        !bankDetails.accountNumber ||
+        !bankDetails.routingNumber ||
+        !bankDetails.accountName
+      ) {
         errors.bank = "Complete bank details are required for bank transfers";
       }
     }
 
     return {
       isValid: Object.keys(errors).length === 0,
-      errors
+      errors,
     };
   };
 
   const handleDonation = async (e) => {
-    if (e && typeof e.preventDefault === 'function') {
+    if (e && typeof e.preventDefault === "function") {
       e.preventDefault();
     }
 
@@ -448,7 +491,7 @@ const DonatePage = () => {
 
     const validation = validateForm();
     if (!validation.isValid) {
-      Object.values(validation.errors).forEach(error => {
+      Object.values(validation.errors).forEach((error) => {
         alert.error(error);
       });
       return;
@@ -464,7 +507,7 @@ const DonatePage = () => {
         purpose: donationPurpose,
         isAnonymous,
         billingAddress: paymentMethod === "card" ? billingAddress : undefined,
-        bankDetails: paymentMethod === "bank" ? bankDetails : undefined
+        bankDetails: paymentMethod === "bank" ? bankDetails : undefined,
       };
 
       if (!user?.isLoggedIn) {
@@ -483,10 +526,18 @@ const DonatePage = () => {
         setCustomAmount("");
         setDonationPurpose("");
         setBillingAddress({
-          line1: "", line2: "", city: "", state: "", postal_code: "", country: ""
+          line1: "",
+          line2: "",
+          city: "",
+          state: "",
+          postal_code: "",
+          country: "",
         });
         setBankDetails({
-          bankName: "", accountNumber: "", routingNumber: "", accountName: ""
+          bankName: "",
+          accountNumber: "",
+          routingNumber: "",
+          accountName: "",
         });
 
         // Refresh user donations if logged in
@@ -497,7 +548,7 @@ const DonatePage = () => {
         alert.error(response.message || "Failed to process donation");
       }
     } catch (error) {
-      console.error('Donation error:', error);
+      console.error("Donation error:", error);
       alert.error("An error occurred while processing your donation");
     } finally {
       setIsProcessing(false);
@@ -508,32 +559,32 @@ const DonatePage = () => {
     try {
       const response = await donationService.update(donationId, { status });
       if (response.success) {
-        alert.success('Donation status updated successfully');
+        alert.success("Donation status updated successfully");
         fetchRecentDonations();
         fetchAllDonations();
       }
     } catch (error) {
-      console.error('Error updating donation status:', error);
-      alert.error('Failed to update donation status');
+      console.error("Error updating donation status:", error);
+      alert.error("Failed to update donation status");
     }
   };
 
   const viewDonationDetails = (donationId) => {
     // In a real implementation, this would open a modal or navigate to a details page
-    alert.info('Donation details feature would open here');
+    alert.info("Donation details feature would open here");
   };
 
   const handleAmountSelect = (amount) => {
-    const sanitizedAmount = amount.toString().replace(/[^0-9.]/g, '');
+    const sanitizedAmount = amount.toString().replace(/[^0-9.]/g, "");
     setDonationAmount(sanitizedAmount);
     setCustomAmount("");
   };
 
   const handleCustomAmountChange = (e) => {
-    const value = e.target.value.replace(/[^0-9.]/g, '');
+    const value = e.target.value.replace(/[^0-9.]/g, "");
     const decimalCount = (value.match(/\./g) || []).length;
 
-    if (decimalCount <= 1 && (value === '' || !isNaN(value))) {
+    if (decimalCount <= 1 && (value === "" || !isNaN(value))) {
       setCustomAmount(value);
       if (value) {
         setDonationAmount(value);
@@ -541,23 +592,25 @@ const DonatePage = () => {
     }
   };
 
-  const exportDonations = async (format = 'csv') => {
+  const exportDonations = async (format = "csv") => {
     try {
       await donationService.exportDonations(format);
-      alert.success(`Donations exported successfully as ${format.toUpperCase()}`);
+      alert.success(
+        `Donations exported successfully as ${format.toUpperCase()}`,
+      );
     } catch (error) {
-      console.error('Export error:', error);
-      alert.error('Failed to export donations. Please try again.');
+      console.error("Export error:", error);
+      alert.error("Failed to export donations. Please try again.");
     }
   };
 
   const downloadReceipt = async (donationId) => {
     try {
       await donationService.downloadReceipt(donationId);
-      alert.success('Receipt downloaded successfully');
+      alert.success("Receipt downloaded successfully");
     } catch (error) {
-      console.error('Error downloading receipt:', error);
-      alert.error('Failed to download receipt. Please try again.');
+      console.error("Error downloading receipt:", error);
+      alert.error("Failed to download receipt. Please try again.");
     }
   };
 
@@ -576,10 +629,10 @@ const DonatePage = () => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -594,10 +647,18 @@ const DonatePage = () => {
     setGuestName("");
     setIsAnonymous(false);
     setBillingAddress({
-      line1: "", line2: "", city: "", state: "", postal_code: "", country: ""
+      line1: "",
+      line2: "",
+      city: "",
+      state: "",
+      postal_code: "",
+      country: "",
     });
     setBankDetails({
-      bankName: "", accountNumber: "", routingNumber: "", accountName: ""
+      bankName: "",
+      accountNumber: "",
+      routingNumber: "",
+      accountName: "",
     });
   };
 
@@ -620,7 +681,7 @@ const DonatePage = () => {
       {/* Donation Form Section */}
       <DonationFormSection
         user={user}
-        clientSecret={clientSecret}  // ✅ pass down
+        clientSecret={clientSecret} // ✅ pass down
         stripePromise={stripePromise}
         donationAmount={donationAmount}
         customAmount={customAmount}
@@ -638,7 +699,7 @@ const DonatePage = () => {
         setCurrency={setCurrency}
         formatCurrency={formatCurrency}
         isProcessing={isProcessing}
-        setIsProcessing={setIsProcessing}  // ✅ consistent naming
+        setIsProcessing={setIsProcessing} // ✅ consistent naming
         showThankYou={showThankYou}
         onAmountSelect={handleAmountSelect}
         onCustomAmountChange={handleCustomAmountChange}
@@ -671,7 +732,7 @@ const DonatePage = () => {
             onClick={() => setShowAdminPanel(!showAdminPanel)}
             className="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700"
           >
-            {showAdminPanel ? 'Hide Admin Panel' : 'Show Admin Panel'}
+            {showAdminPanel ? "Hide Admin Panel" : "Show Admin Panel"}
           </button>
         </div>
       )}
@@ -699,13 +760,13 @@ const UserDonationsSection = ({
   userDonations,
   formatCurrency,
   formatDate,
-  onDownloadReceipt
+  onDownloadReceipt,
 }) => (
   <section className="bg-gray-50 py-8">
     <div className="container mx-auto px-4">
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-2xl font-bold mb-6 flex items-center">
-          <i className="fas fa-receipt mr-2 text-[#FF7E45]"></i>
+          <i className="fas fa-receipt mr-2 text-[#FF7E45]" />
           Your Donation History
         </h2>
         <div className="overflow-x-auto">
@@ -723,27 +784,33 @@ const UserDonationsSection = ({
             <tbody>
               {userDonations.map((donation, index) => (
                 <tr key={index} className="border-b">
-                  <td className="px-4 py-2 font-semibold">{formatCurrency(donation.amount)}</td>
+                  <td className="px-4 py-2 font-semibold">
+                    {formatCurrency(donation.amount)}
+                  </td>
                   <td className="px-4 py-2">{formatDate(donation.date)}</td>
                   <td className="px-4 py-2 capitalize">{donation.frequency}</td>
                   <td className="px-4 py-2">{donation.purpose || "General"}</td>
                   <td className="px-4 py-2">
-                    <span className={`px-2 py-1 rounded-full text-xs ${donation.status === 'succeeded'
-                      ? 'bg-green-100 text-green-800'
-                      : donation.status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-red-100 text-red-800'
-                      }`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs ${
+                        donation.status === "succeeded"
+                          ? "bg-green-100 text-green-800"
+                          : donation.status === "pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                      }`}
+                    >
                       {donation.status}
                     </span>
                   </td>
                   <td className="px-4 py-2">
-                    {donation.status === 'succeeded' && (
+                    {donation.status === "succeeded" && (
                       <button
                         onClick={() => onDownloadReceipt(donation.id)}
                         className="text-[#FF7E45] hover:text-[#F4B942] text-sm"
                       >
-                        <i className="fas fa-download mr-1"></i>Receipt
+                        <i className="fas fa-download mr-1" />
+                        Receipt
                       </button>
                     )}
                   </td>
@@ -767,7 +834,7 @@ const AdminPanel = ({
   onUpdateStatus,
   onDownloadReceipt,
   onViewDetails,
-  fetchAllDonations
+  fetchAllDonations,
 }) => (
   <section className="bg-gray-50 py-8">
     <div className="container mx-auto px-4">
@@ -777,19 +844,37 @@ const AdminPanel = ({
         {donationStats && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold text-blue-800">Total Donations</h3>
-              <p className="text-2xl font-bold">{formatCurrency(donationStats.totalAmount)}</p>
-              <p className="text-sm text-gray-600">{donationStats.totalCount} donations</p>
+              <h3 className="text-lg font-semibold text-blue-800">
+                Total Donations
+              </h3>
+              <p className="text-2xl font-bold">
+                {formatCurrency(donationStats.totalAmount)}
+              </p>
+              <p className="text-sm text-gray-600">
+                {donationStats.totalCount} donations
+              </p>
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold text-green-800">This Month</h3>
-              <p className="text-2xl font-bold">{formatCurrency(donationStats.monthlyAmount)}</p>
-              <p className="text-sm text-gray-600">{donationStats.monthlyCount} donations</p>
+              <h3 className="text-lg font-semibold text-green-800">
+                This Month
+              </h3>
+              <p className="text-2xl font-bold">
+                {formatCurrency(donationStats.monthlyAmount)}
+              </p>
+              <p className="text-sm text-gray-600">
+                {donationStats.monthlyCount} donations
+              </p>
             </div>
             <div className="bg-purple-50 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold text-purple-800">Recurring</h3>
-              <p className="text-2xl font-bold">{formatCurrency(donationStats.recurringAmount)}</p>
-              <p className="text-sm text-gray-600">{donationStats.recurringCount} active</p>
+              <h3 className="text-lg font-semibold text-purple-800">
+                Recurring
+              </h3>
+              <p className="text-2xl font-bold">
+                {formatCurrency(donationStats.recurringAmount)}
+              </p>
+              <p className="text-sm text-gray-600">
+                {donationStats.recurringCount} active
+              </p>
             </div>
           </div>
         )}
@@ -798,13 +883,13 @@ const AdminPanel = ({
           <h3 className="text-xl font-semibold">Recent Donations</h3>
           <div className="flex space-x-2">
             <button
-              onClick={() => onExportDonations('csv')}
+              onClick={() => onExportDonations("csv")}
               className="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded text-sm"
             >
               Export CSV
             </button>
             <button
-              onClick={() => onExportDonations('excel')}
+              onClick={() => onExportDonations("excel")}
               className="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded text-sm"
             >
               Export Excel
@@ -828,21 +913,28 @@ const AdminPanel = ({
               {recentDonations.map((donation, index) => (
                 <tr key={index} className="border-b">
                   <td className="px-4 py-2">
-                    {donation.isAnonymous ? 'Anonymous' : donation.donorName}
+                    {donation.isAnonymous ? "Anonymous" : donation.donorName}
                   </td>
-                  <td className="px-4 py-2 font-semibold">{formatCurrency(donation.amount)}</td>
+                  <td className="px-4 py-2 font-semibold">
+                    {formatCurrency(donation.amount)}
+                  </td>
                   <td className="px-4 py-2">{formatDate(donation.date)}</td>
-                  <td className="px-4 py-2 capitalize">{donation.paymentMethod}</td>
+                  <td className="px-4 py-2 capitalize">
+                    {donation.paymentMethod}
+                  </td>
                   <td className="px-4 py-2">
                     <select
                       value={donation.status}
-                      onChange={(e) => onUpdateStatus(donation.id, e.target.value)}
-                      className={`px-2 py-1 rounded-full text-xs ${donation.status === 'succeeded'
-                        ? 'bg-green-100 text-green-800'
-                        : donation.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                        }`}
+                      onChange={(e) =>
+                        onUpdateStatus(donation.id, e.target.value)
+                      }
+                      className={`px-2 py-1 rounded-full text-xs ${
+                        donation.status === "succeeded"
+                          ? "bg-green-100 text-green-800"
+                          : donation.status === "pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                      }`}
                     >
                       <option value="pending">Pending</option>
                       <option value="succeeded">Succeeded</option>
@@ -854,14 +946,16 @@ const AdminPanel = ({
                       onClick={() => onViewDetails(donation.id)}
                       className="text-blue-500 hover:text-blue-700 text-sm"
                     >
-                      <i className="fas fa-eye mr-1"></i>View
+                      <i className="fas fa-eye mr-1" />
+                      View
                     </button>
-                    {donation.status === 'succeeded' && (
+                    {donation.status === "succeeded" && (
                       <button
                         onClick={() => onDownloadReceipt(donation.id)}
                         className="text-green-500 hover:text-green-700 text-sm"
                       >
-                        <i className="fas fa-download mr-1"></i>Receipt
+                        <i className="fas fa-download mr-1" />
+                        Receipt
                       </button>
                     )}
                   </td>
@@ -914,11 +1008,11 @@ const DonationFormSection = ({
   onAnonymousChange,
   onDonationPurposeChange,
   onBillingAddressChange,
-  onBankDetailsChange,  // ✅ fixed
+  onBankDetailsChange, // ✅ fixed
   onGuestEmailChange,
   onGuestNameChange,
   onSubmit,
-  onReset
+  onReset,
 }) => (
   <section className="py-12">
     <div className="container mx-auto px-4">
@@ -932,23 +1026,23 @@ const DonationFormSection = ({
                 <p className="mb-4">Your donations help us:</p>
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-start">
-                    <i className="fas fa-church text-[#FF7E45] mt-1 mr-3"></i>
+                    <i className="fas fa-church text-[#FF7E45] mt-1 mr-3" />
                     <span>Maintain our church facilities</span>
                   </li>
                   <li className="flex items-start">
-                    <i className="fas fa-hands-helping text-[#FF7E45] mt-1 mr-3"></i>
+                    <i className="fas fa-hands-helping text-[#FF7E45] mt-1 mr-3" />
                     <span>Support local and global missions</span>
                   </li>
                   <li className="flex items-start">
-                    <i className="fas fa-graduation-cap text-[#FF7E45] mt-1 mr-3"></i>
+                    <i className="fas fa-graduation-cap text-[#FF7E45] mt-1 mr-3" />
                     <span>Provide educational resources</span>
                   </li>
                   <li className="flex items-start">
-                    <i className="fas fa-users text-[#FF7E45] mt-1 mr-3"></i>
+                    <i className="fas fa-users text-[#FF7E45] mt-1 mr-3" />
                     <span>Fund community outreach programs</span>
                   </li>
                   <li className="flex items-start">
-                    <i className="fas fa-hands text-[#FF7E45] mt-1 mr-3"></i>
+                    <i className="fas fa-hands text-[#FF7E45] mt-1 mr-3" />
                     <span>Care for those in need</span>
                   </li>
                 </ul>
@@ -956,7 +1050,8 @@ const DonationFormSection = ({
                 <div className="bg-white p-4 rounded-lg border border-gray-200">
                   <h3 className="font-semibold mb-2">Tax Deductible</h3>
                   <p className="text-sm text-gray-600">
-                    St. Michael's Church is a 501(c)(3) organization. Your donations are tax-deductible to the extent allowed by law.
+                    St. Michael's Church is a 501(c)(3) organization. Your
+                    donations are tax-deductible to the extent allowed by law.
                   </p>
                 </div>
               </div>
@@ -971,15 +1066,16 @@ const DonationFormSection = ({
                     Donation Amount
                   </label>
                   <div className="grid grid-cols-3 gap-2 mb-2">
-                    {[25, 50, 100, 250, 500, 1000].map(amount => (
+                    {[25, 50, 100, 250, 500, 1000].map((amount) => (
                       <button
                         key={amount}
                         type="button"
                         onClick={() => onAmountSelect(amount)}
-                        className={`py-2 px-3 rounded-md border ${donationAmount === amount.toString()
-                          ? 'bg-[#FF7E45] text-white border-[#FF7E45]'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                          }`}
+                        className={`py-2 px-3 rounded-md border ${
+                          donationAmount === amount.toString()
+                            ? "bg-[#FF7E45] text-white border-[#FF7E45]"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                        }`}
                       >
                         {formatCurrency(amount, currency)}
                       </button>
@@ -1026,11 +1122,14 @@ const DonationFormSection = ({
                     {/* Show formatted preview below input */}
                     {customAmount && (
                       <p className="text-xs text-gray-500 mt-1">
-                        {formatCurrency(customAmount, currency, currency === "NGN" ? "en-NG" : "en-US")}
+                        {formatCurrency(
+                          customAmount,
+                          currency,
+                          currency === "NGN" ? "en-NG" : "en-US",
+                        )}
                       </p>
                     )}
                   </div>
-
                 </div>
 
                 {/* Frequency Selection */}
@@ -1086,7 +1185,9 @@ const DonationFormSection = ({
                 {/* Guest Information for non-logged in users */}
                 {!user?.isLoggedIn && (
                   <div className="mb-6 p-4 bg-gray-50 rounded-md">
-                    <h3 className="font-medium text-gray-800 mb-3">Your Information</h3>
+                    <h3 className="font-medium text-gray-800 mb-3">
+                      Your Information
+                    </h3>
                     <div className="space-y-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1103,7 +1204,7 @@ const DonationFormSection = ({
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Full Name {!isAnonymous ? '*' : ''}
+                          Full Name {!isAnonymous ? "*" : ""}
                         </label>
                         <input
                           type="text"
@@ -1175,7 +1276,10 @@ const DonationFormSection = ({
                         <Loader type="spinner" text="Initializing payment..." />
                       </div>
                     ) : clientSecret ? (
-                      <Elements stripe={stripePromise} options={{ clientSecret }}>
+                      <Elements
+                        stripe={stripePromise}
+                        options={{ clientSecret }}
+                      >
                         <CardPaymentForm
                           onSubmit={onSubmit}
                           isProcessing={isProcessing}
@@ -1186,15 +1290,16 @@ const DonationFormSection = ({
                       </Elements>
                     ) : donationAmount > 0 ? (
                       <div className="text-yellow-600 text-sm py-2">
-                        Unable to initialize payment. Please try selecting the amount again.
+                        Unable to initialize payment. Please try selecting the
+                        amount again.
                       </div>
                     ) : null}
                   </div>
                 )}
 
                 <p className="text-xs text-gray-500 mt-4">
-                  By donating, you agree to our Terms of Service and Privacy Policy.
-                  Your payment information is securely processed.
+                  By donating, you agree to our Terms of Service and Privacy
+                  Policy. Your payment information is securely processed.
                 </p>
               </div>
             </div>
@@ -1211,17 +1316,13 @@ const DonationFormSection = ({
 const ThankYouSection = ({ onReset }) => (
   <div className="bg-white rounded-lg shadow-md p-8 text-center">
     <div className="w-20 h-20 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-6">
-      <i className="fas fa-check text-green-500 text-3xl"></i>
+      <i className="fas fa-check text-green-500 text-3xl" />
     </div>
-    <h2 className="text-3xl font-bold mb-4">
-      Thank You For Your Donation!
-    </h2>
+    <h2 className="text-3xl font-bold mb-4">Thank You For Your Donation!</h2>
     <p className="text-xl text-gray-600 mb-6">
       Your generosity helps us continue our mission.
     </p>
-    <p className="mb-8">
-      A receipt has been sent to your email address.
-    </p>
+    <p className="mb-8">A receipt has been sent to your email address.</p>
     <button
       onClick={onReset}
       className="border border-gray-300 px-6 py-2 rounded-md hover:bg-gray-50 transition-colors"

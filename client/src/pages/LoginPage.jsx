@@ -45,7 +45,10 @@ const LoginPage = () => {
       }
 
       // Delay slightly to allow context state sync
-      const timer = setTimeout(() => navigate(redirectTo, { replace: true }), 300);
+      const timer = setTimeout(
+        () => navigate(redirectTo, { replace: true }),
+        300,
+      );
       return () => clearTimeout(timer);
     }
   }, [user, isRegistering, navigate, location]);
@@ -92,11 +95,16 @@ const LoginPage = () => {
       const result = await login(credentials);
 
       if (result.success) {
-        alert.success(`Welcome back, ${result.user.name || result.user.email}!`);
-        localStorage.removeItem('pendingVerificationEmail');
+        alert.success(
+          `Welcome back, ${result.user.name || result.user.email}!`,
+        );
+        localStorage.removeItem("pendingVerificationEmail");
       } else if (result.requiresVerification) {
         navigate("/verify-email", {
-          state: { email: result.email, message: "Email verification required" },
+          state: {
+            email: result.email,
+            message: "Email verification required",
+          },
         });
       } else {
         setError(result.error || "Login failed");
@@ -136,11 +144,15 @@ const LoginPage = () => {
 
       if (data.success) {
         alert.success(
-          data.message || "Registration successful! Please check your email to verify your account."
+          data.message ||
+            "Registration successful! Please check your email to verify your account.",
         );
         localStorage.setItem("pendingVerificationEmail", userData.email);
         navigate("/verify-email", {
-          state: { email: userData.email, message: "Please verify your email." },
+          state: {
+            email: userData.email,
+            message: "Please verify your email.",
+          },
         });
       } else {
         setError(data.message || "Registration failed.");
@@ -148,7 +160,10 @@ const LoginPage = () => {
       }
     } catch (error) {
       console.error("Registration error:", error);
-      const errorMsg = error.response?.data?.message || error.message || "Registration failed.";
+      const errorMsg =
+        error.response?.data?.message ||
+        error.message ||
+        "Registration failed.";
       setError(errorMsg);
       alert.error(errorMsg);
     } finally {
@@ -173,7 +188,9 @@ const LoginPage = () => {
         alert.error(data.message || "Failed to send reset instructions.");
       }
     } catch {
-      alert.success("If an account exists with this email, reset instructions have been sent.");
+      alert.success(
+        "If an account exists with this email, reset instructions have been sent.",
+      );
       navigate("/reset-password", { state: { email } });
     }
   };
@@ -188,11 +205,11 @@ const LoginPage = () => {
     try {
       const response = await authService.resendVerification(email);
       if (response.success) {
-        alert.success('Verification email sent successfully!');
+        alert.success("Verification email sent successfully!");
         navigate(`/verify-email:${response.token}`, { state: { email } });
       }
     } catch (error) {
-      console.error('Resend verification error:', error);
+      console.error("Resend verification error:", error);
       setError("Failed to resend verification email. Please try again.");
     }
   };
@@ -202,7 +219,11 @@ const LoginPage = () => {
     const user = new User(userData.user);
     login(userData.token, user);
     alert.success(`Welcome ${user.name || user.email}!`);
-    navigate(isAdminOrModerator() ? `/admin/${user.id}/dashboard` : `/user/${user.id}/dashboard`);
+    navigate(
+      isAdminOrModerator()
+        ? `/admin/${user.id}/dashboard`
+        : `/user/${user.id}/dashboard`,
+    );
   };
 
   const handleSocialError = (error) => {
@@ -218,11 +239,15 @@ const LoginPage = () => {
           {/* Header */}
           <div className="bg-gradient-to-r from-[#FF7E45] to-[#F4B942] p-8 text-center">
             <div className="w-16 h-16 mx-auto mb-4 bg-white rounded-full flex items-center justify-center">
-              <i className="fas fa-church text-[#FF7E45] text-3xl"></i>
+              <i className="fas fa-church text-[#FF7E45] text-3xl" />
             </div>
-            <h1 className="text-3xl font-bold text-white">St Michael's Church</h1>
+            <h1 className="text-3xl font-bold text-white">
+              St Michael's Church
+            </h1>
             <p className="mt-2 text-white/90">
-              {isRegistering ? "Create your account" : "Welcome back to your community"}
+              {isRegistering
+                ? "Create your account"
+                : "Welcome back to your community"}
             </p>
           </div>
 
@@ -231,7 +256,7 @@ const LoginPage = () => {
             {error && (
               <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-red-600 text-sm flex items-center">
-                  <i className="fas fa-exclamation-circle mr-2"></i>
+                  <i className="fas fa-exclamation-circle mr-2" />
                   {error}
                 </p>
                 {(error.includes("verify") || error.includes("activated")) && (
@@ -251,7 +276,12 @@ const LoginPage = () => {
               <form onSubmit={handleLogin} className="space-y-6 bg-transparent">
                 {/* Email */}
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-dark-700">Email</label>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-dark-700"
+                  >
+                    Email
+                  </label>
                   <input
                     type="email"
                     name="email"
@@ -265,7 +295,12 @@ const LoginPage = () => {
 
                 {/* Password */}
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-dark-700">Password</label>
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-dark-700"
+                  >
+                    Password
+                  </label>
                   <div className="relative">
                     <input
                       type={showPassword.login ? "text" : "password"}
@@ -282,7 +317,9 @@ const LoginPage = () => {
                       className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"
                       aria-label="Toggle password visibility"
                     >
-                      <i className={`fas ${showPassword.login ? "fa-eye-slash" : "fa-eye"}`}></i>
+                      <i
+                        className={`fas ${showPassword.login ? "fa-eye-slash" : "fa-eye"}`}
+                      />
                     </button>
                   </div>
                 </div>
@@ -294,13 +331,20 @@ const LoginPage = () => {
                     onClick={toggleAdminCode}
                     className="text-sm text-[#FF7E45] hover:text-[#F4B942] flex items-center"
                   >
-                    <i className={`fas ${showAdminCode ? "fa-eye-slash" : "fa-eye"} mr-2`}></i>
+                    <i
+                      className={`fas ${showAdminCode ? "fa-eye-slash" : "fa-eye"} mr-2`}
+                    />
                     {showAdminCode ? "Hide" : "Show"} Admin Login
                   </button>
 
                   {showAdminCode && (
                     <div className="mt-2">
-                      <label htmlFor="adminCode" className="block text-sm font-medium">Admin Code</label>
+                      <label
+                        htmlFor="adminCode"
+                        className="block text-sm font-medium"
+                      >
+                        Admin Code
+                      </label>
                       <div className="relative">
                         <input
                           type={showPassword.admin ? "text" : "password"}
@@ -317,7 +361,9 @@ const LoginPage = () => {
                           className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"
                           aria-label="Toggle admin code visibility"
                         >
-                          <i className={`fas ${showPassword.admin ? "fa-eye-slash" : "fa-eye"}`}></i>
+                          <i
+                            className={`fas ${showPassword.admin ? "fa-eye-slash" : "fa-eye"}`}
+                          />
                         </button>
                       </div>
                     </div>
@@ -334,7 +380,9 @@ const LoginPage = () => {
                       id="remember"
                       className="h-4 w-4 text-[#FF7E45] border-gray-300 rounded"
                     />
-                    <span className="ml-2 text-sm text-gray-600">Remember me</span>
+                    <span className="ml-2 text-sm text-gray-600">
+                      Remember me
+                    </span>
                   </label>
                   <button
                     type="button"
@@ -352,9 +400,9 @@ const LoginPage = () => {
                   className="w-full py-3 px-4 rounded-lg font-semibold text-white bg-gradient-to-r from-[#FF7E45] to-[#F4B942] hover:from-[#FFA76A] hover:to-[#F6D365] transition-all disabled:opacity-50"
                 >
                   {isLoading ? (
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    <i className="fas fa-spinner fa-spin mr-2" />
                   ) : (
-                    <i className="fas fa-sign-in-alt mr-2"></i>
+                    <i className="fas fa-sign-in-alt mr-2" />
                   )}
                   {isLoading ? "Signing in..." : "Sign In"}
                 </button>
@@ -371,7 +419,7 @@ const LoginPage = () => {
                     </button>
                   </p>
                 </div>
-                { /*Social Login - Using the new component */}
+                {/* Social Login - Using the new component */}
                 <SocialLoginButtons
                   onSuccess={handleSocialSuccess}
                   onError={handleSocialError}
@@ -383,7 +431,12 @@ const LoginPage = () => {
               <form onSubmit={handleRegister} className="space-y-6">
                 {/* Name */}
                 <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-dark-700">First Name</label>
+                  <label
+                    htmlFor="firstName"
+                    className="block text-sm font-medium text-dark-700"
+                  >
+                    First Name
+                  </label>
                   <input
                     type="text"
                     name="firstName"
@@ -395,7 +448,12 @@ const LoginPage = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-dark-700">Last Name</label>
+                  <label
+                    htmlFor="lastName"
+                    className="block text-sm font-medium text-dark-700"
+                  >
+                    Last Name
+                  </label>
                   <input
                     type="text"
                     name="lastName"
@@ -408,7 +466,12 @@ const LoginPage = () => {
                 </div>
                 {/* Email */}
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-dark-700">Email</label>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-dark-700"
+                  >
+                    Email
+                  </label>
                   <input
                     type="email"
                     autoComplete="true"
@@ -421,7 +484,12 @@ const LoginPage = () => {
                 </div>
                 {/* Password */}
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-dark-700">Password</label>
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-dark-700"
+                  >
+                    Password
+                  </label>
                   <div className="relative">
                     <input
                       type={showPassword.register ? "text" : "password"}
@@ -438,13 +506,20 @@ const LoginPage = () => {
                       onClick={() => togglePasswordVisibility("register")}
                       className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"
                     >
-                      <i className={`fas ${showPassword.register ? "fa-eye-slash" : "fa-eye"}`}></i>
+                      <i
+                        className={`fas ${showPassword.register ? "fa-eye-slash" : "fa-eye"}`}
+                      />
                     </button>
                   </div>
                 </div>
                 {/* Confirm */}
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-dark-700">Confirm Password</label>
+                  <label
+                    htmlFor="confirmPassword"
+                    className="block text-sm font-medium text-dark-700"
+                  >
+                    Confirm Password
+                  </label>
                   <div className="relative">
                     <input
                       type={showPassword.confirm ? "text" : "password"}
@@ -460,7 +535,9 @@ const LoginPage = () => {
                       onClick={() => togglePasswordVisibility("confirm")}
                       className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"
                     >
-                      <i className={`fas ${showPassword.confirm ? "fa-eye-slash" : "fa-eye"}`}></i>
+                      <i
+                        className={`fas ${showPassword.confirm ? "fa-eye-slash" : "fa-eye"}`}
+                      />
                     </button>
                   </div>
                 </div>
@@ -471,12 +548,17 @@ const LoginPage = () => {
                     onClick={toggleAdminCode}
                     className="text-sm text-[#FF7E45] hover:text-[#F4B942] flex items-center"
                   >
-                    <i className={`fas ${showAdminCode ? "fa-eye-slash" : "fa-eye"} mr-2`}></i>
+                    <i
+                      className={`fas ${showAdminCode ? "fa-eye-slash" : "fa-eye"} mr-2`}
+                    />
                     {showAdminCode ? "Hide" : "Show"} Admin Registration
                   </button>
                   {showAdminCode && (
                     <div className="mt-2">
-                      <label htmlFor="adminCode" className="block text-sm font-medium ">
+                      <label
+                        htmlFor="adminCode"
+                        className="block text-sm font-medium "
+                      >
                         Admin Code (for staff only)
                       </label>
                       <input
@@ -500,11 +582,17 @@ const LoginPage = () => {
                   />
                   <label className="ml-2 text-sm text-gray-600">
                     I agree to the{" "}
-                    <Link to="/terms" className="text-[#FF7E45] hover:text-[#F4B942]">
+                    <Link
+                      to="/terms"
+                      className="text-[#FF7E45] hover:text-[#F4B942]"
+                    >
                       Terms of Service
                     </Link>{" "}
                     and{" "}
-                    <Link to="/privacy" className="text-[#FF7E45] hover:text-[#F4B942]">
+                    <Link
+                      to="/privacy"
+                      className="text-[#FF7E45] hover:text-[#F4B942]"
+                    >
                       Privacy Policy
                     </Link>
                   </label>
@@ -516,9 +604,9 @@ const LoginPage = () => {
                   className="w-full py-3 px-4 rounded-lg font-semibold text-white bg-gradient-to-r from-[#FF7E45] to-[#F4B942] hover:from-[#FFA76A] hover:to-[#F6D365] transition-all disabled:opacity-50"
                 >
                   {isLoading ? (
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    <i className="fas fa-spinner fa-spin mr-2" />
                   ) : (
-                    <i className="fas fa-user-plus mr-2"></i>
+                    <i className="fas fa-user-plus mr-2" />
                   )}
                   {isLoading ? "Creating account..." : "Create Account"}
                 </button>
@@ -541,8 +629,11 @@ const LoginPage = () => {
 
         {/* Back Home */}
         <div className="mt-6 text-center">
-          <Link to="/" className="text-[#FF7E45] hover:text-[#F4B942] flex items-center justify-center">
-            <i className="fas fa-arrow-left mr-2"></i> Back to Homepage
+          <Link
+            to="/"
+            className="text-[#FF7E45] hover:text-[#F4B942] flex items-center justify-center"
+          >
+            <i className="fas fa-arrow-left mr-2" /> Back to Homepage
           </Link>
         </div>
       </div>

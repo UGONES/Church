@@ -27,8 +27,9 @@ export const auth = async (req, res, next) => {
     }
 
     const token = authHeader.replace("Bearer ", "").trim();
-    if (!token)
+    if (!token) {
       return res.status(401).json({ success: false, message: "Empty token" });
+    }
 
     let decoded;
     try {
@@ -69,18 +70,21 @@ export const auth = async (req, res, next) => {
         attemptType: "session_validation",
         success: false,
         reason: "Invalid or expired session",
-      }).catch(() => { });
+      }).catch(() => {});
       return res
         .status(401)
         .json({ success: false, message: "Session expired or invalid" });
     }
 
     // --- Validate User ---
-    const user = await User.findById(decoded.userId)
-      .select("-password -verificationToken -resetPasswordToken -adminCode -__v")
+    const user = await User.findById(decoded.userId).select(
+      "-password -verificationToken -resetPasswordToken -adminCode -__v",
+    );
 
     if (!user) {
-      return res.status(401).json({ success: false, message: "User not found" });
+      return res
+        .status(401)
+        .json({ success: false, message: "User not found" });
     }
 
     if (!user.isActive) {
@@ -105,21 +109,37 @@ export const auth = async (req, res, next) => {
 
     console.log(`✅ Authenticated user: ${user._id} (${user.role})`);
 
-
     // --- Update last activity asynchronously ---
-    Session.updateOne({ _id: session._id }, { $set: { lastActivity: new Date() } }).catch(() => { });
-    AuthAttempt.logAttempt({ email: user.email, ipAddress: req.ip, userAgent: req.get("User-Agent"), attemptType: "session_validation", success: true, }).catch(() => { });
+    Session.updateOne(
+      { _id: session._id },
+      { $set: { lastActivity: new Date() } },
+    ).catch(() => {});
+    AuthAttempt.logAttempt({
+      email: user.email,
+      ipAddress: req.ip,
+      userAgent: req.get("User-Agent"),
+      attemptType: "session_validation",
+      success: true,
+    }).catch(() => {});
 
     return next(); // ✅ Always return here
-
   } catch (err) {
     console.error("Auth middleware error:", err);
 
     if (!res.headersSent) {
-      res.status(500).json({ success: false, message: "Authentication failed." });
+      res
+        .status(500)
+        .json({ success: false, message: "Authentication failed." });
     }
 
-    AuthAttempt.logAttempt({ email: req.user?.email || "system@internal", ipAddress: req.ip, userAgent: req.get("User-Agent"), attemptType: "session_validation", success: false, reason: "Server error during authentication", }).catch(() => { });
+    AuthAttempt.logAttempt({
+      email: req.user?.email || "system@internal",
+      ipAddress: req.ip,
+      userAgent: req.get("User-Agent"),
+      attemptType: "session_validation",
+      success: false,
+      reason: "Server error during authentication",
+    }).catch(() => {});
   }
 };
 
@@ -146,11 +166,18 @@ export const optionalAuth = async (req, res, next) => {
       req.user = user;
       req.token = token;
 
-      const session = await Session.findOne({ token, userId: decoded.userId, isActive: true, }).lean();
+      const session = await Session.findOne({
+        token,
+        userId: decoded.userId,
+        isActive: true,
+      }).lean();
 
       if (session) {
         req.session = session;
-        Session.updateOne({ _id: session._id }, { $set: { lastActivity: new Date() } }).catch(() => { });
+        Session.updateOne(
+          { _id: session._id },
+          { $set: { lastActivity: new Date() } },
+        ).catch(() => {});
       }
     }
 

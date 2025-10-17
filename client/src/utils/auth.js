@@ -5,7 +5,8 @@
 import axios from "axios";
 
 // ----------------- API Base URL -----------------
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
 // ----------------- CONFIG / PREFIXES -----------------
 const STORAGE_PREFIX = "smc_auth_"; // base prefix
@@ -23,7 +24,7 @@ const loadJwtDecode = async () => {
   if (jwtDecodeFn) return jwtDecodeFn;
   try {
     const mod = await import("jwt-decode");
-    jwtDecodeFn = (t) => mod.default ? mod.default(t) : mod(t);
+    jwtDecodeFn = (t) => (mod.default ? mod.default(t) : mod(t));
   } catch {
     jwtDecodeFn = (token) => {
       if (!token || typeof token !== "string") return null;
@@ -33,7 +34,7 @@ const loadJwtDecode = async () => {
         const padded = payload
           .replace(/-/g, "+")
           .replace(/_/g, "/")
-          .padEnd(payload.length + (4 - payload.length % 4) % 4, "=");
+          .padEnd(payload.length + ((4 - (payload.length % 4)) % 4), "=");
         return JSON.parse(atob(padded));
       } catch (e) {
         console.error("Fallback JWT decode failed:", e);
@@ -48,8 +49,10 @@ const safeDecodeSync = (token) => {
   if (!token) return null;
   try {
     const payload = token.split(".")[1];
-    const padded = payload.replace(/-/g, "+").replace(/_/g, "/")
-      .padEnd(payload.length + (4 - payload.length % 4) % 4, "=");
+    const padded = payload
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(payload.length + ((4 - (payload.length % 4)) % 4), "=");
     return JSON.parse(atob(padded));
   } catch {
     return null;
@@ -57,8 +60,10 @@ const safeDecodeSync = (token) => {
 };
 
 // ----------------- Key helpers -----------------
-const tokenKeyFor = (userId = "global") => `${STORAGE_PREFIX}${userId}${TOKEN_SUFFIX}`;
-const userKeyFor = (userId = "global") => `${STORAGE_PREFIX}${userId}${USER_SUFFIX}`;
+const tokenKeyFor = (userId = "global") =>
+  `${STORAGE_PREFIX}${userId}${TOKEN_SUFFIX}`;
+const userKeyFor = (userId = "global") =>
+  `${STORAGE_PREFIX}${userId}${USER_SUFFIX}`;
 
 // ----------------- Active User (per-tab) -----------------
 export const setActiveUser = (id) => {
@@ -74,7 +79,7 @@ export const isValidTokenFormat = (token) => {
   const parts = token.split(".");
   if (parts.length !== 3) return false;
   try {
-    parts.forEach(p => {
+    parts.forEach((p) => {
       const base64 = p.replace(/-/g, "+").replace(/_/g, "/");
       atob(base64);
     });
@@ -160,14 +165,24 @@ export const revokeAdminAccess = (role = null) => {
 
 // ----------------- Token & User (per-user keys) -----------------
 export const setAuthToken = async (rawToken, extraUser = {}) => {
-  if (!rawToken || typeof rawToken !== "string") throw new Error("Invalid token");
+  if (!rawToken || typeof rawToken !== "string") {
+    throw new Error("Invalid token");
+  }
   const token = rawToken.replace(/^"|"$/g, "").trim();
   if (!isValidTokenFormat(token)) throw new Error("Malformed JWT");
 
-  try { await loadJwtDecode(); } catch { }
+  try {
+    await loadJwtDecode();
+  } catch {}
 
   const decoded = safeDecodeSync(token) || {};
-  const id = (decoded.userId || decoded.id || decoded._id || extraUser.id || "global").toString();
+  const id = (
+    decoded.userId ||
+    decoded.id ||
+    decoded._id ||
+    extraUser.id ||
+    "global"
+  ).toString();
   const user = {
     id,
     userId: id,
@@ -191,7 +206,6 @@ export const getAuthToken = (userId = null) => {
     if (id) return localStorage.getItem(tokenKeyFor(id)) || null;
     const global = localStorage.getItem(tokenKeyFor("global"));
     if (global) return global;
-   
   } catch (e) {
     console.error("getAuthToken error:", e);
     return null;
@@ -229,7 +243,8 @@ export const getStoredUser = (userId = null) => {
 };
 
 export const setStoredUser = (userObj, userId = null) => {
-  const id = userId || userObj.id || userObj.userId || "global" || getActiveUserId();
+  const id =
+    userId || userObj.id || userObj.userId || "global" || getActiveUserId();
   if (!id) return;
   try {
     if (!userObj || !userObj.id) {
@@ -284,7 +299,7 @@ export const getTokenExpiryTime = (token = null) => {
 export const getAuthHeaders = (userId = null) => {
   const token = getAuthToken(userId);
   const headers = { "Content-Type": "application/json" };
-  if (token && isTokenValid(token)) headers["Authorization"] = `Bearer ${token}`;
+  if (token && isTokenValid(token)) headers.Authorization = `Bearer ${token}`;
   return headers;
 };
 
@@ -294,10 +309,14 @@ export const refreshToken = async (userId = null) => {
     const oldToken = getAuthToken(userId);
     if (!oldToken) return null;
 
-    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, {
-      headers: { Authorization: `Bearer ${oldToken}` },
-      withCredentials: true,
-    });
+    const response = await axios.post(
+      `${API_BASE_URL}/auth/refresh`,
+      {},
+      {
+        headers: { Authorization: `Bearer ${oldToken}` },
+        withCredentials: true,
+      },
+    );
 
     const newToken = response.data?.token || response.data?.accessToken;
     if (!newToken || !isValidTokenFormat(newToken)) {
@@ -320,10 +339,15 @@ export const refreshToken = async (userId = null) => {
 // Ensure each tab has unique ID
 if (!sessionStorage.getItem(`${STORAGE_PREFIX}tab_id`)) {
   try {
-    const tid = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const tid = crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}_${Math.random().toString(36).slice(2)}`;
     sessionStorage.setItem(`${STORAGE_PREFIX}tab_id`, tid);
   } catch {
-    sessionStorage.setItem(`${STORAGE_PREFIX}tab_id`, `${Date.now()}_${Math.random().toString(36).slice(2)}`);
+    sessionStorage.setItem(
+      `${STORAGE_PREFIX}tab_id`,
+      `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+    );
   }
 }
 
@@ -337,8 +361,10 @@ export const acquireTabFetchLock = (userId = "global", ttlMs = 8000) => {
       if (parsed && parsed.expiresAt > now) return false;
     }
     const lock = {
-      owner: sessionStorage.getItem(`${STORAGE_PREFIX}tab_id`) ||
-        (crypto.randomUUID ? crypto.randomUUID()
+      owner:
+        sessionStorage.getItem(`${STORAGE_PREFIX}tab_id`) ||
+        (crypto.randomUUID
+          ? crypto.randomUUID()
           : `${now}_${Math.random().toString(36).slice(2)}`),
       expiresAt: now + ttlMs,
     };
