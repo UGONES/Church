@@ -1,0 +1,8 @@
+// start-rtmp.js
+import { startServer } from './rtmp-server.js';
+
+console.log('🚀 Starting RTMP Server from dedicated starter...');
+startServer().catch(error => {
+  console.error('💥 Fatal error:', error);
+  process.exit(1);
+});

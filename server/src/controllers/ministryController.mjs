@@ -181,6 +181,7 @@ export async function getUserMinistries(req, res) {
   }
 }
 
+
 // Volunteer for ministry
 export async function volunteerForMinistry(req, res) {
   try {
@@ -740,50 +741,3 @@ export async function addMinistryCategory(req, res) {
   }
 }
 
-// Add ministry category (Admin)
-// export async function addMinistryCategory(req, res) {
-//   try {
-//     const { category } = req.body;
-
-//     if (!category || category.trim().length === 0) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Category name is required'
-//       });
-//     }
-
-//     const trimmedCategory = category.trim();
-
-//     // Check if category already exists
-//     const existingCategory = await Ministry.findOne({
-//       tags: { $in: [new RegExp(`^${trimmedCategory}$`, 'i')] }
-//     });
-
-//     if (existingCategory) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Category already exists'
-//       });
-//     }
-
-//     // Add category to one ministry to make it available (or you could create a separate Category model)
-//     await Ministry.updateOne(
-//       { name: 'System' }, // Use a system ministry or create one
-//       { $addToSet: { tags: trimmedCategory } },
-//       { upsert: true }
-//     );
-
-//     res.status(201).json({
-//       success: true,
-//       message: 'Ministry category added successfully',
-//       data: { category: trimmedCategory }
-//     });
-//   } catch (error) {
-//     console.error('Add ministry category error:', error);
-//     res.status(500).json({ 
-//       success: false,
-//       message: 'Failed to add ministry category', 
-//       error: process.env.NODE_ENV === 'development' ? error.message : undefined 
-//     });
-//   }
-// }

@@ -23,7 +23,8 @@ import {
   moderatePrayer,
   moderateBlog,
   uploadAvatar,
-  uploadCoverPhoto
+  uploadCoverPhoto,
+  // getFullProfile,
 } from "../controllers/userController.mjs";
 
 import { uploadImage } from "../middleware/upload.mjs";
@@ -50,7 +51,7 @@ const trackLoginMiddleware = async (req, res, next) => {
    (mounted at /api/users or whatever you choose)
    --------------------------------------- */
 router.get("/me", auth, trackLoginMiddleware, getCurrentUser);
-router.get("/profile", auth, getCurrentUser);
+router.get("/me/full-profile", auth, getCurrentUser);
 router.put("/profile/update", auth, updateProfile);
 router.post("/upload-avatar", auth, uploadImage.single("avatar"), uploadAvatar);
 router.post("/upload-cover", auth, uploadImage.single("coverPhoto"), uploadCoverPhoto);

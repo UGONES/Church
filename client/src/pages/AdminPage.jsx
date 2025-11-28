@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, props } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   adminService,
@@ -12,10 +12,13 @@ import {
   utilityService,
   ministryService
 } from '../services/apiService';
+import { useLiveStatus } from '../hooks/useLiveStatus';
 import Loader from '../components/Loader';
 import { useAlert } from '../utils/Alert';
 import { useForm } from '../hooks/useForm';
 import useAuth from '../hooks/useAuth';
+import { PaginationMeta } from '../models/API'
+import { v4 as uuidv4 } from 'uuid';
 
 /*====================================== Reusable Components ======================================*/
 
@@ -69,58 +72,263 @@ const ActivityItem = ({ icon, bgColor, text, time }) => (
 );
 
 // DataTable Component
-const DataTable = ({ columns, data, onEdit, onDelete, emptyMessage, actions = true }) => {
+const DataTable = ({ columns, data, onEdit, onDelete, emptyMessage, actions = true, pagination = null, onPageChange = null, onLimitChange = null }) => {
+  const getItemId = (item) => {
+    const id = item._id || item.id;
+    console.log('🔍 DataTable getItemId:', {
+      item,
+      rawId: item._id || item.id,
+      finalId: id,
+      itemType: typeof item
+    });
+    return id;
+  };
+
+  const handleEditClick = (item) => {
+    const itemId = getItemId(item);
+    console.log('✏️ DataTable EDIT CLICK:', {
+      item,
+      itemId,
+      itemTitle: item.title || item.name,
+      hasValidId: !!itemId && itemId !== 'undefined' && itemId !== 'null'
+    });
+
+    if (!itemId || itemId === 'undefined' || itemId === 'null') {
+      console.error('❌ DataTable: Invalid ID passed to onEdit:', itemId);
+      alert.error('Cannot edit: Invalid item ID');
+      return;
+    }
+
+    onEdit(item);
+  };
+
+  const handleDeleteClick = (item) => {
+    const itemId = getItemId(item);
+    console.log('🗑️ DataTable DELETE CLICK:', {
+      item,
+      itemId,
+      itemTitle: item.title || item.name,
+      hasValidId: !!itemId && itemId !== 'undefined' && itemId !== 'null'
+    });
+
+    if (!itemId || itemId === 'undefined' || itemId === 'null') {
+      console.error('❌ DataTable: Invalid ID passed to onDelete:', itemId);
+      alert.error('Cannot delete: Invalid item ID');
+      return;
+    }
+
+    onDelete(item);
+  };
+
+  const handlePageChange = (newPage) => {
+    if (onPageChange && pagination) {
+      onPageChange(newPage);
+    }
+  };
+
+  const handleLimitChange = (newLimit) => {
+    if (onLimitChange) {
+      onLimitChange(newLimit);
+    }
+  };
+
+  // Ensure pagination is an instance of PaginationMeta
+  const paginationMeta = pagination && typeof pagination === 'object' ? new PaginationMeta(pagination) : new PaginationMeta();
+
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full">
-        <thead>
-          <tr className="border-b">
-            {columns.map(column => (
-              <th key={column.key} className="py-3 px-4 text-left">
-                {column.title}
-              </th>
-            ))}
-            {actions && <th className="py-3 px-4 text-left">Actions</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {data.length > 0 ? (
-            data.map(item => (
-              <tr key={item._id || item.id} className="border-b">
-                {columns.map(column => (
-                  <td key={column.key} className="py-3 px-4">
-                    {column.render ? column.render(item) : item[column.key]}
-                  </td>
-                ))}
-                {actions && (
-                  <td className="py-3 px-4">
-                    <button
-                      onClick={() => onEdit(item)}
-                      className="text-gray-500 hover:text-[#FF7E45] mr-2"
-                      aria-label={`Edit ${item.title || item.name}`}
-                    >
-                      <i className="fas fa-edit"></i>
-                    </button>
-                    <button
-                      onClick={() => onDelete(item)}
-                      className="text-gray-500 hover:text-red-500"
-                      aria-label={`Delete ${item.title || item.name}`}
-                    >
-                      <i className="fas fa-trash-alt"></i>
-                    </button>
-                  </td>
-                )}
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={actions ? columns.length + 1 : columns.length} className="py-4 text-center text-gray-500">
-                {emptyMessage}
-              </td>
+    <div className="space-y-4">
+      {/* Data Table */}
+      <div className="overflow-x-auto bg-white rounded-lg shadow">
+        <table className="min-w-full">
+          <thead className="bg-gray-50">
+            <tr className="border-b">
+              {columns.map(column => (
+                <th
+                  key={column.key}
+                  className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  {column.title}
+                </th>
+              ))}
+              {actions && (
+                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              )}
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {data.length > 0 ? (
+              data.map(item => {
+                const itemId = getItemId(item);
+                console.log('📋 DataTable ROW DATA:', {
+                  itemId,
+                  itemTitle: item.title || item.name,
+                  item
+                });
+
+                return (
+                  <tr key={itemId} className="hover:bg-gray-50 transition-colors duration-150">
+                    {columns.map(column => (
+                      <td key={column.key} className="py-3 px-4 text-sm text-gray-900">
+                        {column.render ? column.render(item) : item[column.key]}
+                      </td>
+                    ))}
+                    {actions && (
+                      <td className="py-3 px-4 text-sm">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleEditClick(item)}
+                            className="text-blue-600 hover:text-blue-800 transition duration-200 p-1 rounded"
+                            aria-label={`Edit ${item.title || item.name}`}
+                            title="Edit"
+                          >
+                            <i className="fas fa-edit"></i>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(item)}
+                            className="text-red-600 hover:text-red-800 transition duration-200 p-1 rounded"
+                            aria-label={`Delete ${item.title || item.name}`}
+                            title="Delete"
+                          >
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td
+                  colSpan={actions ? columns.length + 1 : columns.length}
+                  className="py-8 text-center text-gray-500 text-sm"
+                >
+                  <div className="flex flex-col items-center justify-center">
+                    <i className="fas fa-inbox text-3xl text-gray-300 mb-2"></i>
+                    {emptyMessage || 'No data available'}
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination Controls */}
+      {pagination && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-lg shadow">
+          {/* Items per page selector */}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-700">Show</span>
+            <select
+              value={paginationMeta.limit}
+              onChange={(e) => handleLimitChange(Number(e.target.value))}
+              className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+            <span className="text-sm text-gray-700">entries</span>
+          </div>
+
+          {/* Page info */}
+          <div className="text-sm text-gray-700">
+            Showing {((paginationMeta.page - 1) * paginationMeta.limit) + 1} to{' '}
+            {Math.min(paginationMeta.page * paginationMeta.limit, paginationMeta.total)} of{' '}
+            {paginationMeta.total} entries
+          </div>
+
+          {/* Pagination buttons */}
+          <div className="flex space-x-1">
+            {/* First Page */}
+            <button
+              onClick={() => handlePageChange(1)}
+              disabled={!paginationMeta.hasPrev}
+              className={`px-3 py-1 rounded text-sm font-medium ${!paginationMeta.hasPrev
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
+            >
+              <i className="fas fa-angle-double-left"></i>
+            </button>
+
+            {/* Previous Page */}
+            <button
+              onClick={() => handlePageChange(paginationMeta.page - 1)}
+              disabled={!paginationMeta.hasPrev}
+              className={`px-3 py-1 rounded text-sm font-medium ${!paginationMeta.hasPrev
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
+            >
+              <i className="fas fa-angle-left"></i>
+            </button>
+
+            {/* Page Numbers */}
+            {(() => {
+              const pages = [];
+              const totalPages = paginationMeta.totalPages;
+              const currentPage = paginationMeta.page;
+
+              // Show up to 5 page buttons
+              let startPage = Math.max(1, currentPage - 2);
+              let endPage = Math.min(totalPages, currentPage + 2);
+
+              // Adjust if we're near the start or end
+              if (currentPage <= 3) {
+                endPage = Math.min(5, totalPages);
+              }
+              if (currentPage >= totalPages - 2) {
+                startPage = Math.max(1, totalPages - 4);
+              }
+
+              for (let i = startPage; i <= endPage; i++) {
+                pages.push(
+                  <button
+                    key={i}
+                    onClick={() => handlePageChange(i)}
+                    className={`px-3 py-1 rounded text-sm font-medium ${i === currentPage
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                      }`}
+                  >
+                    {i}
+                  </button>
+                );
+              }
+              return pages;
+            })()}
+
+            {/* Next Page */}
+            <button
+              onClick={() => handlePageChange(paginationMeta.page + 1)}
+              disabled={!paginationMeta.hasNext}
+              className={`px-3 py-1 rounded text-sm font-medium ${!paginationMeta.hasNext
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
+            >
+              <i className="fas fa-angle-right"></i>
+            </button>
+
+            {/* Last Page */}
+            <button
+              onClick={() => handlePageChange(paginationMeta.totalPages)}
+              disabled={!paginationMeta.hasNext}
+              className={`px-3 py-1 rounded text-sm font-medium ${!paginationMeta.hasNext
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
+            >
+              <i className="fas fa-angle-double-right"></i>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -172,7 +380,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
           <button onClick={onClose} className="btn btn-outline">
             Cancel
           </button>
-          <button onClick={onConfirm} className="btn btn-danger">
+          <button onClick={onConfirm} className="btn btn-danger btn-outline">
             Confirm
           </button>
         </div>
@@ -217,6 +425,7 @@ const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser 
   const [statusFilter, setStatusFilter] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [pagination, setPagination] = useState(new PaginationMeta());
   const [loading, setLoading] = useState(false);
   const alert = useAlert();
 
@@ -227,22 +436,34 @@ const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser 
     role: 'user',
     status: 'active',
     joinDate: new Date().toISOString().split('T')[0],
-    address: '',
+    address: {
+      street: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      country: "",
+    },
     notes: ''
   });
 
-  // Normalize user status
   const getNormalizedStatus = (status) => {
-    if (status === true) return 'active';
-    if (status === false) return 'inactive';
+    if (status === true || status === 'true') return 'active';
+    if (status === false || status === 'false') return 'inactive';
+
     const validStatuses = ['active', 'inactive', 'suspended'];
-    const normalized = (status || '').toString().toLowerCase();
+    const normalized = (status || '').toString().toLowerCase().trim();
+
     return validStatuses.includes(normalized) ? normalized : 'inactive';
   };
 
-  // Prefill form when editing
+  const isUserActive = (user) => {
+    const status = getNormalizedStatus(user.status);
+    return status === 'active';
+  };
+
+  // ✅ FIXED: Prefill form when editing
   useEffect(() => {
-    if (showCreateModal && selectedUser) {
+    if (selectedUser) {
       setValues({
         name: selectedUser.name || '',
         email: selectedUser.email || '',
@@ -250,29 +471,34 @@ const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser 
         role: selectedUser.role || 'user',
         status: getNormalizedStatus(selectedUser.status),
         joinDate: selectedUser.joinDate ? new Date(selectedUser.joinDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        address: selectedUser.address || '',
+        address: {
+          street: selectedUser.address?.street || "",
+          city: selectedUser.address?.city || "",
+          state: selectedUser.address?.state || "",
+          zipCode: selectedUser.address?.zipCode || "",
+          country: selectedUser.address?.country || "",
+        },
         notes: selectedUser.notes || ''
       });
-    } else if (showCreateModal && !selectedUser) {
-      resetForm();
     }
-  }, [showCreateModal, selectedUser, setValues, resetForm]);
+  }, [setValues, selectedUser]);
 
   // Filter users
   const filteredUsers = users
     .map((user) => ({
       ...user,
-      status: getNormalizedStatus(user.status),
+      normalizedStatus: getNormalizedStatus(user.status),
+      isActive: getNormalizedStatus(user.status) === 'active',
     }))
     .filter((user) => {
       const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-      const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+      const matchesStatus = statusFilter === 'all' || user.normalizedStatus === statusFilter;
       return matchesSearch && matchesRole && matchesStatus;
     });
 
-  // Handle form submission
+  // ✅ FIXED: Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -283,6 +509,17 @@ const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser 
         status: getNormalizedStatus(values.status),
       };
 
+      console.log('📤 Submitting user data:', {
+        selectedUser: selectedUser,
+        selectedUserId: selectedUser?._id,
+        values: normalizedValues
+      });
+
+      // ✅ Check if we have a valid selectedUser for updates
+      if (selectedUser && (!selectedUser._id || selectedUser._id === 'undefined')) {
+        throw new Error('Invalid user selected for editing');
+      }
+
       let result;
       if (selectedUser) {
         result = await onUpdateUser(selectedUser._id, normalizedValues);
@@ -290,17 +527,17 @@ const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser 
         result = await onCreateUser(normalizedValues);
       }
 
-      if (result.success) {
+      if (result?.success) {
         alert.success(`User ${selectedUser ? 'updated' : 'created'} successfully`);
         setShowCreateModal(false);
         setSelectedUser(null);
         resetForm();
       } else {
-        alert.error(result.message || `Failed to ${selectedUser ? 'update' : 'create'} user`);
+        alert.error(result?.message || `Failed to ${selectedUser ? 'update' : 'create'} user`);
       }
     } catch (error) {
       console.error('User operation error:', error);
-      alert.error(`Failed to ${selectedUser ? 'update' : 'create'} user`);
+      alert.error(`Failed to ${selectedUser ? 'update' : 'create'} user: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -344,15 +581,24 @@ const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser 
       title: 'Status',
       render: (user) => {
         const normalized = getNormalizedStatus(user.status);
+        const isActive = normalized === 'active';
         const colorMap = {
           active: 'bg-green-100 text-green-800',
           inactive: 'bg-yellow-100 text-yellow-800',
           suspended: 'bg-red-100 text-red-800',
         };
+
         return (
-          <span className={`px-2 py-1 text-xs font-medium rounded-full ${colorMap[normalized]}`}>
-            {normalized.charAt(0).toUpperCase() + normalized.slice(1)}
-          </span>
+          <div className="flex items-center space-x-2">
+            <span className={`px-2 py-1 text-xs font-medium rounded-full ${colorMap[normalized]}`}>
+              {normalized.charAt(0).toUpperCase() + normalized.slice(1)}
+            </span>
+            {isActive ? (
+              <i className="fas fa-check-circle text-green-500 text-sm" title="User can login"></i>
+            ) : (
+              <i className="fas fa-times-circle text-red-500 text-sm" title="User cannot login"></i>
+            )}
+          </div>
         );
       },
     },
@@ -418,13 +664,16 @@ const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser 
           }}
           onDelete={(user) => onDeleteUser(user._id)}
           emptyMessage="No users found matching your criteria"
+          pagination={null}
         />
       </div>
 
       {/* Create/Edit Modal */}
+      {/* Create/Edit Modal with Debugging */}
       <Modal
         isOpen={showCreateModal}
         onClose={() => {
+          console.log('🔴 Closing modal');
           setShowCreateModal(false);
           setSelectedUser(null);
           resetForm();
@@ -522,14 +771,53 @@ const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser 
 
           <div>
             <label className="block text-sm font-medium mb-1">Address</label>
-            <textarea
-              name="address"
-              value={values.address}
-              onChange={handleChange}
-              className="form-input"
-              rows="2"
-              disabled={loading}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <input
+                type="text"
+                name="address.street"
+                placeholder="Street"
+                value={values.address.street}
+                onChange={handleChange}
+                className="form-input"
+                disabled={loading}
+              />
+              <input
+                type="text"
+                name="address.city"
+                placeholder="City"
+                value={values.address.city}
+                onChange={handleChange}
+                className="form-input"
+                disabled={loading}
+              />
+              <input
+                type="text"
+                name="address.state"
+                placeholder="State"
+                value={values.address.state}
+                onChange={handleChange}
+                className="form-input"
+                disabled={loading}
+              />
+              <input
+                type="text"
+                name="address.zipCode"
+                placeholder="ZIP Code"
+                value={values.address.zipCode}
+                onChange={handleChange}
+                className="form-input"
+                disabled={loading}
+              />
+              <input
+                type="text"
+                name="address.country"
+                placeholder="Country"
+                value={values.address.country}
+                onChange={handleChange}
+                className="form-input"
+                disabled={loading}
+              />
+            </div>
           </div>
 
           <div>
@@ -544,10 +832,20 @@ const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser 
             />
           </div>
 
+          {selectedUser && (
+            <div className="bg-gray-50 p-3 rounded-md">
+              <p className="text-sm text-gray-600">
+                <strong>Current Status:</strong> {getNormalizedStatus(selectedUser.status).toUpperCase()} -
+                {isUserActive(selectedUser) ? ' ✅ User can login' : ' ❌ User cannot login'}
+              </p>
+            </div>
+          )}
+
           <div className="flex justify-end space-x-2 pt-4">
             <button
               type="button"
               onClick={() => {
+                console.log('🔴 Cancel button clicked');
                 setShowCreateModal(false);
                 setSelectedUser(null);
                 resetForm();
@@ -568,7 +866,7 @@ const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser 
 };
 
 // Ministries Management Component
-const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, onDeleteMinistry, onCreateMinistry }) => {
+const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMinistry, onDeleteMinistry, onCreateMinistry }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -576,6 +874,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
   const [selectedMinistry, setSelectedMinistry] = useState(null);
   const [ministryCategories, setMinistryCategories] = useState([]);
   const [newCategory, setNewCategory] = useState("");
+  const [localMinistries, setLocalMinistries] = useState(initialMinistries);
   const [loading, setLoading] = useState(false);
   const alert = useAlert();
 
@@ -603,21 +902,22 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
     }
   });
 
-  // ✅ Default categories for fallback
   const DEFAULT_CATEGORIES = [];
 
-  // ✅ Fetch existing categories - FIXED
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchMinistriesAndCategories = async () => {
       try {
         setLoading(true);
-        const response = await ministryService.getCategories();
+
+        // Fetch categories first
+        const categoriesResponse = await ministryService.getCategories();
         let categories = [];
 
-        if (response && response.data) {
-          categories = response.data.categories || response.data.data || response.data;
-        } else if (response) {
-          categories = response.categories || response;
+        // Process categories
+        if (categoriesResponse && categoriesResponse.data) {
+          categories = categoriesResponse.data.categories || categoriesResponse.data.data || categoriesResponse.data;
+        } else if (categoriesResponse) {
+          categories = categoriesResponse.categories || categoriesResponse;
         }
 
         if (Array.isArray(categories)) {
@@ -637,23 +937,49 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
 
         if (categories.length === 0) categories = [...DEFAULT_CATEGORIES];
         setMinistryCategories(categories);
+
+        // Then fetch ministries
+        const ministriesResponse = await ministryService.getUserMinistries();
+        let fetchedMinistries = [];
+
+        // Process ministries
+        if (ministriesResponse && ministriesResponse.data) {
+          fetchedMinistries = ministriesResponse.data.ministries || ministriesResponse.data.data || ministriesResponse.data;
+        } else if (ministriesResponse) {
+          fetchedMinistries = ministriesResponse.ministries || ministriesResponse;
+        }
+
+        if (!Array.isArray(fetchedMinistries)) {
+          fetchedMinistries = [];
+        }
+
+        // ✅ FIXED: Update local ministries state
+        setLocalMinistries(fetchedMinistries);
+
+        console.log('✅ Successfully loaded:', {
+          ministriesCount: fetchedMinistries.length,
+          categoriesCount: categories.length
+        });
+
       } catch (error) {
-        console.error("Error fetching categories:", error);
+        console.error("Error fetching data:", error);
         setMinistryCategories([...DEFAULT_CATEGORIES]);
+        setLocalMinistries([]); // Set empty array on error
+
         if (error.response?.status !== 500) {
-          alert.error("Failed to load categories. Using default categories.");
+          alert.error("Failed to load data. Please try again.");
         }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCategories();
+    fetchMinistriesAndCategories();
   }, []);
 
   // ✅ Prefill form when editing - FIXED
   useEffect(() => {
-    if (showCreateModal && selectedMinistry) {
+    if (selectedMinistry) {
       setValues({
         name: selectedMinistry.name || "",
         description: selectedMinistry.description || "",
@@ -682,10 +1008,8 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
           youtube: "",
         },
       });
-    } else if (showCreateModal && !selectedMinistry) {
-      resetForm();
     }
-  }, [showCreateModal, selectedMinistry]);
+  }, [setValues, selectedMinistry]);
 
   // ✅ Add new category - FIXED
   const handleAddCategory = async () => {
@@ -730,7 +1054,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
   };
 
   // ✅ Filter ministries - FIXED
-  const filteredMinistries = ministries.filter((ministry) => {
+  const filteredMinistries = localMinistries.filter((ministry) => {
     const matchesSearch = ministry.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ministry.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || ministry.status === statusFilter;
@@ -779,6 +1103,20 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
         setShowCreateModal(false);
         setSelectedMinistry(null);
         resetForm();
+
+        // Refresh the list to get the latest data
+        const ministriesResponse = await ministryService.getUserMinistries();
+        let updatedMinistries = [];
+
+        if (ministriesResponse && ministriesResponse.data) {
+          updatedMinistries = ministriesResponse.data.ministries || ministriesResponse.data.data || ministriesResponse.data;
+        } else if (ministriesResponse) {
+          updatedMinistries = ministriesResponse.ministries || ministriesResponse;
+        }
+
+        if (Array.isArray(updatedMinistries)) {
+          setLocalMinistries(updatedMinistries);
+        }
       } else {
         alert.error(result?.message || "Something went wrong.");
       }
@@ -896,13 +1234,14 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
     {
       key: "name",
       title: "Ministry Name",
+      sortable: true,
       render: (ministry) => (
         <div className="flex items-center">
           <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
             <i className={`fas fa-${ministry.icon || 'users'} text-gray-600`}></i>
           </div>
           <div className="ml-4">
-            <div className="text-sm font-semibold">{ministry.name}</div>
+            <div className="text-sm font-semibold">{ministry.name || 'Unnamed Ministry'}</div>
             <div className="text-xs text-gray-500">
               Created: {ministry.createdAt ? new Date(ministry.createdAt).toLocaleDateString() : 'Unknown'}
             </div>
@@ -913,6 +1252,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
     {
       key: "leaders",
       title: "Leaders",
+      sortable: false,
       render: (ministry) => (
         <div className="text-sm">
           {ministry.leaders && ministry.leaders.length > 0 ? (
@@ -922,7 +1262,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
               </div>
             ))
           ) : (
-            "No leaders"
+            <span className="text-gray-400">No leaders</span>
           )}
           {ministry.leaders && ministry.leaders.length > 2 && (
             <div className="text-xs text-gray-500">
@@ -935,17 +1275,24 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
     {
       key: "tags",
       title: "Categories",
+      sortable: false,
       render: (ministry) => (
         <div className="flex flex-wrap gap-1">
-          {ministry.tags && ministry.tags.slice(0, 2).map((tag, index) => (
-            <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-              {typeof tag === 'object' ? tag.name : tag}
-            </span>
-          ))}
-          {ministry.tags && ministry.tags.length > 2 && (
-            <span className="text-xs text-gray-500">
-              +{ministry.tags.length - 2}
-            </span>
+          {ministry.tags && ministry.tags.length > 0 ? (
+            <>
+              {ministry.tags.slice(0, 2).map((tag, index) => (
+                <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                  {typeof tag === 'object' ? tag.name : tag}
+                </span>
+              ))}
+              {ministry.tags.length > 2 && (
+                <span className="text-xs text-gray-500">
+                  +{ministry.tags.length - 2}
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-gray-400 text-xs">No categories</span>
           )}
         </div>
       ),
@@ -953,6 +1300,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
     {
       key: "status",
       title: "Status",
+      sortable: true,
       render: (ministry) => {
         const statusColors = {
           active: "bg-green-100 text-green-800",
@@ -970,8 +1318,9 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
     {
       key: "volunteers",
       title: "Volunteer Needs",
+      sortable: true,
       render: (ministry) => (
-        <span className="text-sm">
+        <span className="text-sm font-medium">
           {ministry.volunteerNeeds?.length || 0}
         </span>
       ),
@@ -1034,7 +1383,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <StatCard
           title="Total Ministries"
-          value={ministries.length}
+          value={localMinistries.length}
           change=""
           changeType="increase"
           icon="fa-hands-helping"
@@ -1043,7 +1392,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
         />
         <StatCard
           title="Active"
-          value={ministries.filter(m => m.status === 'active').length}
+          value={localMinistries.filter(m => m.status === 'active').length}
           change=""
           changeType="increase"
           icon="fa-check"
@@ -1061,7 +1410,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
         />
         <StatCard
           title="Volunteer Needs"
-          value={ministries.reduce((total, ministry) => total + (ministry.volunteerNeeds?.length || 0), 0)}
+          value={localMinistries.reduce((total, ministry) => total + (ministry.volunteerNeeds?.length || 0), 0)}
           change=""
           changeType="increase"
           icon="fa-users"
@@ -1081,6 +1430,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
           }}
           onDelete={(ministry) => onDeleteMinistry(ministry._id)}
           emptyMessage="No ministries found matching your criteria"
+          pagination={null}
         />
       </div>
 
@@ -1106,7 +1456,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
                   type="text"
                   name="name"
                   value={values.name}
-                  onChange={(e) => handleChange('name', e.target.value)}
+                  onChange={handleChange}
                   className="form-input"
                   required
                   placeholder="Enter ministry name"
@@ -1118,7 +1468,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
                 <select
                   name="status"
                   value={values.status}
-                  onChange={(e) => handleChange('status', e.target.value)}
+                  onChange={handleChange}
                   className="form-input"
                   required
                   disabled={loading}
@@ -1135,7 +1485,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
               <textarea
                 name="description"
                 value={values.description}
-                onChange={(e) => handleChange('description', e.target.value)}
+                onChange={handleChange}
                 className="form-input"
                 rows="3"
                 required
@@ -1150,7 +1500,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
                 <textarea
                   name="missionStatement"
                   value={values.missionStatement}
-                  onChange={(e) => handleChange('missionStatement', e.target.value)}
+                  onChange={handleChange}
                   className="form-input"
                   rows="2"
                   placeholder="The mission of this ministry..."
@@ -1162,7 +1512,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
                 <textarea
                   name="visionStatement"
                   value={values.visionStatement}
-                  onChange={(e) => handleChange('visionStatement', e.target.value)}
+                  onChange={handleChange}
                   className="form-input"
                   rows="2"
                   placeholder="The vision for this ministry..."
@@ -1451,7 +1801,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
                   type="email"
                   name="contactEmail"
                   value={values.contactEmail}
-                  onChange={(e) => handleChange('contactEmail', e.target.value)}
+                  onChange={handleChange}
                   className="form-input"
                   placeholder="ministry@church.org"
                   disabled={loading}
@@ -1464,10 +1814,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
                   name="contactPhone"
                   className="form-input"
                   value={values.contactPhone}
-                  onChange={(e) => {
-                    const clean = e.target.value.replace(/[^\d+]/g, "");
-                    handleChange("contactPhone", clean);
-                  }}
+                  onChange={handleChange}
                   placeholder="+2349012345678 or 09012345678"
                 />
 
@@ -1480,7 +1827,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
                   type="text"
                   name="meetingSchedule"
                   value={values.meetingSchedule}
-                  onChange={(e) => handleChange('meetingSchedule', e.target.value)}
+                  onChange={handleChange}
                   className="form-input"
                   placeholder="Every Tuesday at 7:00 PM"
                   disabled={loading}
@@ -1492,7 +1839,7 @@ const MinistriesManagement = ({ ministries = [], users = [], onUpdateMinistry, o
                   type="text"
                   name="meetingLocation"
                   value={values.meetingLocation}
-                  onChange={(e) => handleChange('meetingLocation', e.target.value)}
+                  onChange={handleChange}
                   className="form-input"
                   placeholder="Main Sanctuary"
                   disabled={loading}
@@ -1590,7 +1937,7 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
       render: (testimonial) => (
         <div className="flex items-center">
           <div className="h-10 w-10 flex-shrink-0 bg-gray-300 rounded-full flex items-center justify-center">
-            {testimonial.author?.charAt(0)?.toUpperCase() || 'T'}
+            {testimonial.author?.charAt(0)?.toUpperCase() || 'U'}
           </div>
           <div className="ml-4">
             <div className="text-sm font-medium text-gray-900">{testimonial.author}</div>
@@ -1677,6 +2024,7 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
           }}
           onDelete={(testimonial) => onDeleteTestimonial(testimonial._id)}
           emptyMessage="No testimonials found matching your criteria"
+          pagination={null}
         />
       </div>
 
@@ -2046,6 +2394,7 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
           }}
           onDelete={(post) => onDeletePost(post._id)}
           emptyMessage="No blog posts found matching your criteria"
+          pagination={null}
         />
       </div>
 
@@ -2418,6 +2767,7 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
           onEdit={() => { }}
           onDelete={() => { }}
           emptyMessage="No donations found matching your criteria"
+          pagination={null}
         />
       </div>
     </div>
@@ -2535,6 +2885,7 @@ const PrayerRequestsManagement = ({ prayerRequests, onUpdatePrayerRequest, onDel
           onEdit={() => { }}
           onDelete={(request) => onDeletePrayerRequest(request._id)}
           emptyMessage="No prayer requests found matching your criteria"
+          pagination={null}
         />
       </div>
     </div>
@@ -2570,6 +2921,10 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
     Object.entries(values).forEach(([key, value]) => {
       if (key === "imageFile" && value) {
         formData.append("image", value);
+      } else if (key === "leaders") {
+        formData.append("leaders", JSON.stringify(value));
+      } else if (key === "tags") {
+        formData.append("tags", JSON.stringify(value));
       } else if (key !== "imageSource") {
         formData.append(key, value);
       }
@@ -2577,7 +2932,6 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
 
     onSubmit(formData);
   };
-
 
   const addLeader = () => {
     setValues({
@@ -2595,6 +2949,12 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
   const updateLeader = (index, field, value) => {
     const updatedLeaders = [...values.leaders];
     updatedLeaders[index][field] = value;
+
+    if (field === 'userId') {
+      const selectedUser = potentialLeaders.find(u => u._id === value);
+      updatedLeaders[index].name = selectedUser?.name || '';
+    }
+
     setValues({ ...values, leaders: updatedLeaders });
   };
 
@@ -2874,7 +3234,7 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
                   onClick={() => removeLeader(index)}
                   className="ml-2 text-red-500 hover:text-red-700"
                 >
-                  <i className="fas fa-times"></i>
+                  <i className="fas fa-trash"></i>
                 </button>
               </div>
             </div>
@@ -2906,7 +3266,7 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
                 onClick={() => removeTag(index)}
                 className="ml-2 text-red-500 hover:text-red-700"
               >
-                <i className="fas fa-times"></i>
+                <i className="fas fa-trash"></i>
               </button>
             </div>
           ))}
@@ -3229,66 +3589,590 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
 };
 
 // Live Stream Control Component
-const LiveStreamControl = ({ isLive, onStartLive, onStopLive, liveStats }) => {
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-      <h3 className="text-xl font-bold mb-4">Live Stream Control</h3>
+const LiveStreamControl = ({ isLive, onStartLive, onStopLive, liveStats, sermons = [], onUpdateSermon }) => {
+  const alert = useAlert();
 
-      {isLive ? (
+  const [showStreamModal, setShowStreamModal] = useState(false);
+  const [generatedStreamKey, setGeneratedStreamKey] = useState("");
+  const [generatedHlsUrl, setGeneratedHlsUrl] = useState("");
+  const [currentSermon, setCurrentSermon] = useState(null);
+
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const UPLOAD_ENDPOINT = "/api/upload";
+  const [thumbnailPreview, setThumbnailPreview] = useState(null);
+  const [preRollVideoFile, setPreRollVideoFile] = useState(null);
+  const [preRollAudioFile, setPreRollAudioFile] = useState(null);
+
+  const [loading, setLoading] = useState(false);
+
+  const [streamForm, setStreamForm] = useState({
+    title: "",
+    speaker: "",
+    description: "",
+    category: "sunday-service",
+    serverUrl: import.meta.env.VITE_RTMP_SERVER || import.meta.env.REACT_APP_RTMP_SERVER || "rtmp://localhost:1935/live",
+    autoRecord: true,
+    scheduleAt: ""
+  });
+
+  // ✅ FIXED: Use consistent stream key generation from sermonController
+  const generateStreamKey = () => {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 12);
+    return `smc_${timestamp}_${random}`.substring(0, 40);
+  };
+
+  // ✅ FIXED: Sync active sermon from props and liveStats
+  useEffect(() => {
+    const liveSermon = Array.isArray(sermons)
+      ? sermons.find(s => s && s.isLive)
+      : null;
+
+    // Also check liveStats for current stream
+    if (liveStats && liveStats.sermonId) {
+      const statsSermon = Array.isArray(sermons)
+        ? sermons.find(s => s && s._id === liveStats.sermonId)
+        : null;
+      setCurrentSermon(statsSermon || liveSermon);
+    } else {
+      setCurrentSermon(liveSermon);
+    }
+  }, [sermons, liveStats]);
+
+  // ✅ FIXED: Create generated key + HLS url when opening modal
+  const handleOpenStreamModal = () => {
+    const key = generateStreamKey();
+    const hlsBase = import.meta.env.VITE_HLS_BASE || import.meta.env.REACT_APP_HLS_BASE || "http://localhost:8000";
+    setGeneratedStreamKey(key);
+    setGeneratedHlsUrl(`${hlsBase}/live/${key}/index.m3u8`);
+    setShowStreamModal(true);
+  };
+
+  // ✅ FIXED: Preview thumbnail when selected
+  useEffect(() => {
+    if (!thumbnailFile) {
+      setThumbnailPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(thumbnailFile);
+    setThumbnailPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [thumbnailFile]);
+
+  // ✅ FIXED: Handle starting stream with proper payload structure
+  const handleStartStream = async () => {
+    if (!streamForm.title || !streamForm.speaker) {
+      alert.error("Title and speaker are required");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      let imageUrl = null;
+      if (thumbnailFile) {
+        imageUrl = await uploadThumbnail(thumbnailFile);
+        if (!imageUrl) {
+          console.warn("thumbnail upload returned falsy, continuing without imageUrl");
+        }
+      }
+
+      // ✅ FIXED: Use proper payload structure that matches sermonController
+      const payload = {
+        title: streamForm.title,
+        speaker: streamForm.speaker,
+        description: streamForm.description,
+        category: streamForm.category,
+        autoRecord: !!streamForm.autoRecord,
+        streamKey: generatedStreamKey,
+        imageUrl: imageUrl || undefined,
+        isLive: false,
+        liveStreamStatus: 'pending',
+        // Include RTMP config as expected by sermonController
+        rtmpConfig: {
+          serverUrl: streamForm.serverUrl,
+          streamKey: generatedStreamKey,
+          hlsUrl: generatedHlsUrl,
+          autoRecord: !!streamForm.autoRecord,
+          recordingFormat: 'mp4'
+        },
+        recordingId: `rec_${uuidv4()}` // Generate recording ID
+      };
+
+      console.log('🎬 Starting live stream with payload:', payload);
+
+      // ✅ FIXED: Call onStartLive with proper payload
+      let result;
+      if (typeof onStartLive === "function") {
+        result = await onStartLive(payload);
+      } else {
+        // Fallback to direct service call
+        result = await sermonService.startLiveStream(payload);
+        result = result?.data || result;
+      }
+
+      // ✅ FIXED: Handle response according to sermonController structure
+      if (!result) {
+        alert.error("Failed to start live stream (no response)");
+        setLoading(false);
+        return;
+      }
+
+      if (!result.success) {
+        const message = result.message || result.error || "Failed to start live stream";
+        console.error("Start failed:", result);
+        alert.error(message);
+        setLoading(false);
+        return;
+      }
+
+      const sermon = result.sermon || result.data?.sermon || result;
+      const streamingConfig = result.streamingConfig || result.data?.streamingConfig || {};
+
+      console.log('✅ Live stream started successfully:', sermon);
+
+      // ✅ FIXED: Update state with server response
+      if (sermon.streamKey) setGeneratedStreamKey(sermon.streamKey);
+      if (streamingConfig.hlsPlaybackUrl) setGeneratedHlsUrl(streamingConfig.hlsPlaybackUrl);
+      if (sermon) setCurrentSermon(sermon);
+
+      alert.success("Live stream started — copy the stream key to OBS");
+
+      // ✅ FIXED: Notify parent components
+      if (typeof onUpdateSermon === "function") onUpdateSermon(sermon);
+
+      // ✅ FIXED: Reset form and close modal
+      setStreamForm(prev => ({
+        ...prev,
+        title: "",
+        speaker: "",
+        description: "",
+        category: "sunday-service",
+        autoRecord: true,
+        scheduleAt: ""
+      }));
+      setThumbnailFile(null);
+      setPreRollAudioFile(null);
+      setPreRollVideoFile(null);
+      setShowStreamModal(false);
+
+    } catch (err) {
+      console.error("❌ Error starting stream:", err);
+      const msg = err?.response?.data?.message || err?.message || "Failed to start live stream";
+      alert.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ FIXED: Handle stopping stream
+  const handleStopStream = async (sermonId) => {
+    try {
+      if (!sermonId) {
+        alert.error("Missing sermon ID");
+        return;
+      }
+
+      console.log('🛑 Stopping live stream for sermon:', sermonId);
+      setLoading(true);
+
+      // Call the parent handler (handleStopLiveStream)
+      let result;
+      if (typeof onStopLive === "function") {
+        result = await onStopLive(sermonId);
+      } else {
+        // Fallback: call service directly
+        const { sermonService } = await import('../services/apiService');
+        const response = await sermonService.stopLiveStream(sermonId);
+        result = response?.data || response;
+
+        if (result?.success !== false && !result?.error) {
+          result = { success: true, message: 'Live stream stopped' };
+        }
+      }
+
+      if (!result) {
+        throw new Error("No response from stop stream request");
+      }
+
+      if (!result.success) {
+        throw new Error(result.message || "Failed to stop live stream");
+      }
+
+      // Update local component state immediately
+      setCurrentSermon(null);
+      setGeneratedStreamKey("");
+      setGeneratedHlsUrl("");
+
+      alert.success(result.message || "Live stream stopped successfully");
+
+      // Notify parent component if callback exists
+      if (typeof onUpdateSermon === "function") {
+        onUpdateSermon(result.sermon || null);
+      }
+
+      // Close any open modals
+      setShowStreamModal(false);
+
+    } catch (err) {
+      console.error("❌ Error stopping stream:", err);
+
+      // Still update local state even on error
+      setCurrentSermon(null);
+      setLiveStreamStatus(false);
+
+      const errorMsg = err?.response?.data?.message ||
+        err?.message ||
+        "Failed to stop live stream";
+
+      alert.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ FIXED: Copy to clipboard utility
+  const copyToClipboard = (text, msg = "Copied") => {
+    navigator.clipboard.writeText(text || "").then(
+      () => alert.success(msg),
+      (e) => {
+        console.error("Clipboard error", e);
+        alert.error("Copy failed");
+      }
+    );
+  };
+
+  // ✅ FIXED: Upload thumbnail function
+  const uploadThumbnail = async (file) => {
+    if (!file) return null;
+    try {
+      const form = new FormData();
+      form.append("file", file);
+
+      // Use your API client for uploads
+      const { apiClient } = await import('../services/apiService');
+      const res = await apiClient.post(UPLOAD_ENDPOINT, form, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+
+      if (res?.data?.url) return res.data.url;
+      if (res?.data?.secure_url) return res.data.secure_url;
+      if (res?.data) return res.data;
+
+      return null;
+    } catch (err) {
+      console.warn("uploadThumbnail: remote upload failed, using base64 fallback", err?.message);
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  // ✅ FIXED: Determine active live sermon
+  const activeLiveSermon = currentSermon ||
+    (Array.isArray(sermons) ? sermons.find(s => s && s.isLive) : null) ||
+    (liveStats && liveStats.sermonId ? {
+      _id: liveStats.sermonId,
+      title: liveStats.title,
+      speaker: liveStats.speaker,
+      rtmpConfig: liveStats.rtmpConfig,
+      liveStreamStartTime: liveStats.startedAt,
+      streamKey: liveStats.streamKey
+    } : null);
+
+  const isActuallyLive = isLive || !!activeLiveSermon;
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6 mb-6">
+      <h3 className="text-xl font-semibold mb-4">Live Stream Control</h3>
+
+      {isActuallyLive ? (
         <div className="space-y-4">
           <div className="flex items-center">
-            <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></div>
+            <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2" />
             <span className="font-medium text-red-600">Live Stream Active</span>
           </div>
 
-          {liveStats && (
-            <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="bg-gray-50 p-4 rounded">
+            <h4 className="font-semibold mb-2">Current Stream</h4>
+            <p><strong>Title:</strong> {activeLiveSermon?.title || "Live Service"}</p>
+            <p><strong>Speaker:</strong> {activeLiveSermon?.speaker || "—"}</p>
+            <p><strong>Started:</strong> {activeLiveSermon?.liveStreamStartTime ? new Date(activeLiveSermon.liveStreamStartTime).toLocaleString() : (activeLiveSermon?.date ? new Date(activeLiveSermon.date).toLocaleString() : "—")}</p>
+            <p><strong>Viewers:</strong> {liveStats?.viewers || activeLiveSermon?.viewers || 0}</p>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded p-4">
+            <h4 className="font-semibold mb-2">OBS Studio Configuration</h4>
+            <div className="space-y-3">
               <div>
-                <span className="text-gray-600">Viewers:</span>
-                <span className="font-medium ml-2">{liveStats.viewers || 0}</span>
+                <strong className="block text-sm mb-1">Server URL</strong>
+                <div className="flex gap-2">
+                  <code className="bg-white px-3 py-2 rounded border flex-1 font-mono text-sm">
+                    {activeLiveSermon?.rtmpConfig?.serverUrl || streamForm.serverUrl}
+                  </code>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => copyToClipboard(activeLiveSermon?.rtmpConfig?.serverUrl || streamForm.serverUrl, "Server URL copied!")}
+                  >
+                    Copy
+                  </button>
+                </div>
               </div>
+
               <div>
-                <span className="text-gray-600">Duration:</span>
-                <span className="font-medium ml-2">{liveStats.duration || '0:00'}</span>
+                <strong className="block text-sm mb-1">Stream Key</strong>
+                <div className="flex gap-2">
+                  <code className="bg-yellow-100 px-3 py-2 rounded border flex-1 font-mono text-sm break-all">
+                    {activeLiveSermon?.rtmpConfig?.streamKey || activeLiveSermon?.streamKey || generatedStreamKey}
+                  </code>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => copyToClipboard(activeLiveSermon?.rtmpConfig?.streamKey || activeLiveSermon?.streamKey || generatedStreamKey, "Stream key copied!")}
+                  >
+                    Copy
+                  </button>
+                </div>
               </div>
             </div>
-          )}
+            <p className="text-xs text-blue-600 mt-2">Copy these to OBS → Settings → Stream → Custom</p>
+          </div>
 
-          <button
-            onClick={onStopLive}
-            className="btn btn-danger"
-          >
-            <i className="fas fa-stop mr-2"></i> End Live Stream
-          </button>
+          <div className="bg-green-50 border border-green-200 rounded p-4">
+            <h4 className="font-semibold mb-2">Viewer Playback (HLS)</h4>
+            <div className="flex gap-2">
+              <code className="bg-white px-3 py-2 rounded border flex-1 font-mono text-sm break-all">
+                {activeLiveSermon?.rtmpConfig?.hlsUrl || activeLiveSermon?.liveStreamUrl || generatedHlsUrl}
+              </code>
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={() => copyToClipboard(activeLiveSermon?.rtmpConfig?.hlsUrl || activeLiveSermon?.liveStreamUrl || generatedHlsUrl, "Playback URL copied!")}
+              >
+                Copy
+              </button>
+            </div>
+          </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-sm text-blue-700">
-              <i className="fas fa-info-circle mr-1"></i>
-              Your live stream is currently active and visible to members and guests.
-            </p>
+          <div className="flex gap-3">
+            <button
+              className="btn btn-danger"
+              onClick={() => handleStopStream(activeLiveSermon?._id)}
+            >
+              <i className="fas fa-stop mr-2" />End Live Stream
+            </button>
+            <button
+              className="btn btn-outline"
+              onClick={() => copyToClipboard(`Server: ${activeLiveSermon?.rtmpConfig?.serverUrl || streamForm.serverUrl}\nKey: ${activeLiveSermon?.rtmpConfig?.streamKey || activeLiveSermon?.streamKey || generatedStreamKey}`, "OBS settings copied!")}
+            >
+              <i className="fas fa-copy mr-2" />Copy OBS Settings
+            </button>
           </div>
         </div>
       ) : (
         <div className="space-y-4">
           <div className="flex items-center">
-            <div className="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
+            <div className="w-3 h-3 bg-gray-400 rounded-full mr-2" />
             <span className="font-medium text-gray-600">No Active Live Stream</span>
           </div>
+          <div>
+            <button
+              className="btn btn-primary"
+              onClick={handleOpenStreamModal}
+            >
+              <i className="fas fa-broadcast-tower mr-2" />Start New Live Stream
+            </button>
+          </div>
+          <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-700">
+            <i className="fas fa-info-circle mr-1" />
+            <strong>Before starting:</strong> configure OBS with the server and stream key shown here.
+          </div>
 
-          <button
-            onClick={onStartLive}
-            className="btn btn-primary"
-          >
-            <i className="fas fa-broadcast-tower mr-2"></i> Start Live Stream
-          </button>
-
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <p className="text-sm text-yellow-700">
-              <i className="fas fa-exclamation-triangle mr-1"></i>
-              Make sure your streaming software is configured before starting.
-            </p>
+          {/* Quick Instructions */}
+          <div className="bg-gray-50 p-4 rounded">
+            <h4 className="font-semibold mb-2">OBS Studio Setup Instructions</h4>
+            <ol className="list-decimal list-inside space-y-1 text-sm">
+              <li>Open the "Start New Live Stream" modal to generate a stream key and preview thumbnail.</li>
+              <li>Upload/preview thumbnail and optional pre-roll media (video/audio).</li>
+              <li>Configure OBS → Settings → Stream → Service: Custom</li>
+              <li>Paste RTMP server and Stream Key, then start streaming from OBS.</li>
+              <li>Click "Start Live Stream" in the modal when OBS is streaming.</li>
+            </ol>
           </div>
         </div>
+      )}
+
+      {/* Modal */}
+      {showStreamModal && (
+        <Modal isOpen={showStreamModal} onClose={() => setShowStreamModal(false)} title="Configure Live Stream" size="lg">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Stream Title *</label>
+              <input
+                type="text"
+                value={streamForm.title}
+                onChange={e => setStreamForm({ ...streamForm, title: e.target.value })}
+                className="form-input"
+                placeholder="Enter stream title"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Speaker *</label>
+                <input
+                  type="text"
+                  value={streamForm.speaker}
+                  onChange={e => setStreamForm({ ...streamForm, speaker: e.target.value })}
+                  className="form-input"
+                  placeholder="Speaker name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Category</label>
+                <select
+                  value={streamForm.category}
+                  onChange={e => setStreamForm({ ...streamForm, category: e.target.value })}
+                  className="form-input"
+                >
+                  <option value="sunday-service">Sunday Service</option>
+                  <option value="bible-study">Bible Study</option>
+                  <option value="prayer-meeting">Prayer Meeting</option>
+                  <option value="special">Special Event</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Description</label>
+              <textarea
+                value={streamForm.description}
+                onChange={e => setStreamForm({ ...streamForm, description: e.target.value })}
+                className="form-input"
+                rows="3"
+                placeholder="Stream description..."
+              />
+            </div>
+
+            {/* thumbnail + pre-roll */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">Thumbnail (preview + upload)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => setThumbnailFile(e.target.files?.[0] || null)}
+                />
+                {thumbnailPreview && (
+                  <img src={thumbnailPreview} alt="thumb preview" className="mt-2 w-full h-32 object-cover rounded" />
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Optional Pre-roll Video</label>
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={e => setPreRollVideoFile(e.target.files?.[0] || null)}
+                />
+                {preRollVideoFile && <p className="text-xs mt-1">{preRollVideoFile.name}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Optional Pre-roll Audio</label>
+                <input
+                  type="file"
+                  accept="audio/*"
+                  onChange={e => setPreRollAudioFile(e.target.files?.[0] || null)}
+                />
+                {preRollAudioFile && <p className="text-xs mt-1">{preRollAudioFile.name}</p>}
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="font-semibold mb-3">Streaming Configuration</h4>
+              <div>
+                <label className="block text-sm font-medium mb-1">RTMP Server URL</label>
+                <input
+                  type="url"
+                  value={streamForm.serverUrl}
+                  onChange={e => setStreamForm({ ...streamForm, serverUrl: e.target.value })}
+                  className="form-input"
+                />
+                <p className="text-xs text-gray-500 mt-1">Default: rtmp://localhost:1935/live</p>
+              </div>
+
+              <div className="mt-3 bg-blue-50 border border-blue-200 rounded p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <i className="fas fa-key text-blue-500 mr-2" />
+                    <span className="font-semibold text-blue-800">Your Stream Key</span>
+                  </div>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => copyToClipboard(generatedStreamKey, "Stream key copied!")}
+                  >
+                    Copy
+                  </button>
+                </div>
+                <code className="block w-full bg-white px-3 py-2 border rounded font-mono text-sm break-all">
+                  {generatedStreamKey}
+                </code>
+                <p className="text-xs text-blue-600 mt-2">Copy to OBS → Settings → Stream (Service: Custom)</p>
+              </div>
+
+              <div className="mt-3 bg-green-50 border border-green-200 rounded p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <i className="fas fa-play-circle text-green-500 mr-2" />
+                    <span className="font-semibold text-green-800">Playback URL</span>
+                  </div>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => copyToClipboard(generatedHlsUrl, "Playback URL copied!")}
+                  >
+                    Copy
+                  </button>
+                </div>
+                <code className="block w-full bg-white px-3 py-2 border rounded font-mono text-sm break-all">
+                  {generatedHlsUrl}
+                </code>
+                <p className="text-xs text-green-600 mt-2">Viewers will watch at this URL</p>
+              </div>
+            </div>
+
+            <div className="flex items-center mt-2">
+              <input
+                id="autoRecord"
+                type="checkbox"
+                checked={!!streamForm.autoRecord}
+                onChange={e => setStreamForm({ ...streamForm, autoRecord: e.target.checked })}
+                className="form-checkbox"
+              />
+              <label htmlFor="autoRecord" className="ml-2 text-sm">
+                Automatically record this stream
+              </label>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4">
+              <button
+                className="btn btn-outline"
+                onClick={() => setShowStreamModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleStartStream}
+                disabled={!streamForm.title || !streamForm.speaker || loading}
+              >
+                <i className="fas fa-broadcast-tower mr-2" />
+                {loading ? "Starting..." : "Start Live Stream"}
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
@@ -4046,8 +4930,7 @@ const AdminPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteType, setDeleteType] = useState('');
   const [deleteItem, setDeleteItem] = useState(null);
-  const [liveStreamStatus, setLiveStreamStatus] = useState(false);
-  const [liveStats, setLiveStats] = useState(null);
+  const { liveStatus, refreshLiveStatus } = useLiveStatus();
 
   const { user, loading: authLoading } = useAuth();
   const alert = useAlert();
@@ -4059,9 +4942,21 @@ const AdminPage = () => {
     if (user && (user.role === 'admin')) {
       fetchDashboardData();
       fetchSettings();
-      checkLiveStreamStatus();
     }
-  }, [user]);
+    const intervalId = setInterval(() => {
+      console.log('🔄 Polling live stream status...');
+      refreshLiveStatus();
+    }, 10000);
+    return () => clearInterval(intervalId);
+
+  }, [user, sermons.length]);
+
+  useEffect(() => {
+    console.log('📊 Live stream status changed:', {
+      liveStatus,
+      liveSermons: sermons.filter(s => s.isLive).length
+    });
+  }, [liveStatus, sermons]);
 
   // Fixed data fetching to match server response structure
   const fetchDashboardData = async () => {
@@ -4101,52 +4996,87 @@ const AdminPage = () => {
               break;
 
             case 1: // Recent Activity
-              const activities = data?.activities || data;
-              setRecentActivity(Array.isArray(activities) ? activities : []);
+              const activities = data?.activities || data || [];
+              setRecentActivity(Array.isArray(activities) ? activities.map(activity => ({
+                id: activity._id || activity.id || Math.random().toString(),
+                ...activity
+              })) : []);
               break;
 
-            case 2: // Users
-              const users = data?.users || data;
-              setUsers(Array.isArray(users) ? users : []);
+            case 2: // Users - FIXED
+              const users = data?.users || data || [];
+              setUsers(Array.isArray(users) ? users.map(user => ({
+                id: user._id || user.id,
+                _id: user._id || user.id,
+                ...user
+              })) : []);
               break;
 
-            case 3: // Ministries
-              const ministries = data?.ministries || data;
-              setMinistries(Array.isArray(ministries) ? ministries : []);
+            case 3: // Ministries - FIXED
+              const ministries = data?.ministries || data || [];
+              setMinistries(Array.isArray(ministries) ? ministries.map(ministry => ({
+                id: ministry._id || ministry.id,
+                _id: ministry._id || ministry.id,
+                ...ministry
+              })) : []);
               break;
 
-            case 4: // Testimonials
-              const testimonials = data?.testimonials || data;
-              setTestimonials(Array.isArray(testimonials) ? testimonials : []);
+            case 4: // Testimonials - FIXED
+              const testimonials = data?.testimonials || data || [];
+              setTestimonials(Array.isArray(testimonials) ? testimonials.map(testimonial => ({
+                id: testimonial._id || testimonial.id,
+                _id: testimonial._id || testimonial.id,
+                ...testimonial
+              })) : []);
               break;
 
-            case 5: // Blog Posts
-              const blogPosts = data?.posts || data;
-              setBlogPosts(Array.isArray(blogPosts) ? blogPosts : []);
+            case 5: // Blog Posts - FIXED
+              const blogPosts = data?.posts || data?.blogPosts || data || [];
+              setBlogPosts(Array.isArray(blogPosts) ? blogPosts.map(post => ({
+                id: post._id || post.id,
+                _id: post._id || post.id,
+                ...post
+              })) : []);
               break;
 
-            case 6: // Events
-              const events = data?.events || data;
-              setUpcomingEvents(Array.isArray(events) ? events : []);
+            case 6: // Events - FIXED
+              const events = data?.events || data || [];
+              setUpcomingEvents(Array.isArray(events) ? events.map(event => ({
+                id: event._id || event.id,
+                _id: event._id || event.id,
+                ...event
+              })) : []);
               break;
 
-            case 7: // Sermons - FIXED: Ensure this is always an array
-              const sermons = data?.sermons || data;
-              setSermons(Array.isArray(sermons) ? sermons : []);
+            case 7: // Sermons - FIXED
+              const sermons = data?.sermons || data || [];
+              setSermons(Array.isArray(sermons) ? sermons.map(sermon => ({
+                id: sermon._id || sermon.id,
+                _id: sermon._id || sermon.id,
+                ...sermon
+              })) : []);
               break;
 
-            case 8: // Donations
-              const donations = data?.donations || data;
-              setDonations(Array.isArray(donations) ? donations : []);
+            case 8: // Donations - FIXED
+              const donations = data?.donations || data || [];
+              setDonations(Array.isArray(donations) ? donations.map(donation => ({
+                id: donation._id || donation.id,
+                _id: donation._id || donation.id,
+                ...donation
+              })) : []);
               break;
 
-            case 9: // Prayer Requests
-              const prayers = data?.prayers || data;
-              setPrayerRequests(Array.isArray(prayers) ? prayers : []);
+            case 9: // Prayer Requests - FIXED
+              const prayers = data?.prayers || data?.prayerRequests || data || [];
+              setPrayerRequests(Array.isArray(prayers) ? prayers.map(prayer => ({
+                id: prayer._id || prayer.id,
+                _id: prayer._id || prayer.id,
+                ...prayer
+              })) : []);
               break;
 
             case 10: // Settings
-              const settings = data?.settings || data;
+              const settings = data?.settings || data || {};
               setSettings(typeof settings === 'object' ? settings : {});
               break;
           }
@@ -4191,6 +5121,7 @@ const AdminPage = () => {
       setIsLoading(false);
     }
   };
+
   // Settings Handlers
   const fetchSettings = async () => {
     try {
@@ -4237,44 +5168,149 @@ const AdminPage = () => {
   };
 
   // Live Stream Handlers
-  const checkLiveStreamStatus = async () => {
+  const handleStartLiveStream = async (sermonData) => {
     try {
-      const response = await sermonService.getLiveStatus();
-      setLiveStreamStatus(response.isLive || false);
-      setLiveStats(response.status || null);
-    } catch (error) {
-      console.error('Error getting live stream status:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to get live stream status';
-      alert.error(errorMessage);
+      console.log('🎬 Starting live stream with data:', sermonData);
 
+      // Create sermon in "pending" state first
+      const payload = {
+        ...sermonData,
+        isLive: false,
+        liveStreamStatus: 'pending',
+        streamKey: sermonData.streamKey || generateStreamKey()
+      };
+
+      // Validate stream data
+      if (!sermonData.title || !sermonData.speaker) {
+        throw new Error('Stream title and speaker are required');
+      }
+
+      const response = await sermonService.startLiveStream(payload);
+      const data = response?.data || response;
+
+      if (data?.success || data?.sermon) {
+        const newSermon = data.sermon || data;
+
+        console.log('✅ Live stream started successfully:', newSermon);
+
+        setSermons(prev => Array.isArray(prev) ? [newSermon, ...prev] : [newSermon]);
+
+        setStats({
+          sermonId: newSermon._id,
+          title: newSermon.title,
+          speaker: newSermon.speaker,
+          startedAt: newSermon.liveStreamStartTime,
+          viewers: 0,
+          liveStreamUrl: newSermon.rtmpConfig?.hlsUrl,
+          streamKey: newSermon.streamKey,
+          rtmpConfig: newSermon.rtmpConfig
+        });
+
+        // Force status check
+        setTimeout(() => {
+          refreshLiveStatus();
+        }, 2000);
+        await fetchDashboardData();
+
+
+        alert.success('Stream configured! Copy the stream key to OBS. Stream will go live when OBS connects.');
+        return {
+          success: true,
+          message: data.message || 'Stream started successfully',
+          sermon: newSermon,
+          streamingConfig: data.streamingConfig
+        };
+      } else {
+        console.error('❌ Backend response error:', data);
+        throw new Error(data?.message || "Failed to create sermon and start stream");
+      }
+    } catch (error) {
+      console.error('❌ Error starting live stream:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to start live stream';
+      alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
   };
 
-  const handleStartLiveStream = async () => {
+  const handleStopLiveStream = async (sermonId) => {
     try {
-      const response = await sermonService.startLiveStream();
-      setLiveStreamStatus(true);
-      alert.success('Live stream started successfully');
-      return { success: true, message: 'Live stream started successfully' };
-    } catch (error) {
-      console.error('Error starting live stream:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to start live stream';
-      alert.error(errorMessage);
-      return { success: false, message: errorMessage };
-    }
-  };
+      console.log('🛑 Stopping live stream:', sermonId);
 
-  const handleStopLiveStream = async () => {
-    try {
-      const response = await sermonService.stopLiveStream();
+      if (!sermonId) {
+        throw new Error('No sermon ID provided to stop live stream');
+      }
+
+      const response = await sermonService.stopLiveStream(sermonId);
+      console.log('🛑 Stop stream response:', response);
+
+      // Handle different response structures
+      const success = response?.success ||
+        response?.data?.success ||
+        (response?.status >= 200 && response?.status < 300);
+
+      if (success) {
+        // Update local state immediately
+        setTimeout(() => {
+          refreshLiveStatus();
+        }, 1000);
+        setStats(null);
+
+        // Update the sermon in the local state to mark as not live
+        setSermons(prev => prev.map(sermon =>
+          sermon._id === sermonId
+            ? {
+              ...sermon,
+              isLive: false,
+              liveStreamStatus: 'ended',
+              recordingStatus: 'processing',
+              endedAt: new Date().toISOString()
+            }
+            : sermon
+        ));
+
+        // Also update via API for persistence
+        try {
+          await sermonService.update(sermonId, {
+            isLive: false,
+            liveStreamStatus: 'ended',
+            recordingStatus: 'processing',
+            endedAt: new Date().toISOString()
+          });
+        } catch (updateError) {
+          console.warn('⚠️ Could not update sermon record, but stream stopped:', updateError.message);
+          // Continue anyway - the main stream stop was successful
+        }
+
+        // Refresh data
+        setTimeout(() => {
+          fetchDashboardData();
+          checkLiveStreamStatus();
+        }, 1500);
+
+        const message = response?.message ||
+          response?.data?.message ||
+          'Live stream ended successfully';
+
+        console.log('✅ Live stream stopped successfully');
+        return { success: true, message, sermon: response?.data?.sermon || response?.sermon };
+      } else {
+        const errorMessage = response?.message ||
+          response?.data?.message ||
+          response?.error ||
+          'Failed to stop stream - no success response';
+        throw new Error(errorMessage);
+      }
+    } catch (error) {
+      console.error('❌ Error stopping live stream:', error);
+
+      // Even if there's an error, try to update local state
       setLiveStreamStatus(false);
-      setLiveStats(null);
-      alert.success('Live stream ended successfully');
-      return { success: true, message: 'Live stream ended successfully' };
-    } catch (error) {
-      console.error('Error stopping live stream:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to stop live stream';
+      setStats(null);
+
+      const errorMessage = error.response?.data?.message ||
+        error.message ||
+        'Failed to stop live stream';
+
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -4283,35 +5319,63 @@ const AdminPage = () => {
   // User Management Handlers
   const handleCreateUser = async (userData) => {
     try {
+      console.log('🔄 Creating user:', userData);
+
       const response = await userService.createUser(userData);
-      const newUser = response.data?.user || response.user || response.data || response;
+      console.log('✅ Create response:', response);
+
+      const newUser = response?.data?.user || response?.user || response?.data || response;
 
       if (newUser && newUser._id) {
-        setUsers((prev) => [...prev, newUser]);
+        setUsers(prev => [newUser, ...prev]);
         alert.success("User created successfully");
         return { success: true };
-      } else throw new Error("Invalid response from server");
+      } else {
+        console.error('❌ Invalid response structure:', response);
+        throw new Error("Invalid response from server");
+      }
     } catch (error) {
-      console.error("Error creating user:", error);
-      alert.error(error.response?.data?.message || "Failed to create user");
-      return { success: false };
+      console.error("❌ Error creating user:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Failed to create user";
+      alert.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
+  // User Management Handlers
   const handleUpdateUser = async (userId, userData) => {
     try {
-      const response = await userService.updateUser(userId, userData);
-      const updatedUser = response.data?.user || response.user || response.data || response;
+      console.log('🔄 Updating user - ID:', userId, 'Data:', userData);
 
-      if (updatedUser && updatedUser._id) {
-        setUsers(prev => [...prev, updatedUser]);
+      // ✅ FIXED: Check if userId is valid
+      if (!userId || userId === 'undefined' || userId === 'null') {
+        throw new Error('Invalid user ID provided');
+      }
+
+      const response = await userService.updateUser(userId, userData);
+      console.log('✅ Update response:', response);
+
+      // Extract the updated user from different possible response structures
+      const updatedUser = response?.data?.user || response?.user || response?.data || response;
+
+      if (updatedUser && (updatedUser._id || updatedUser.id)) {
+        // ✅ FIXED: Properly update the users array with proper ID
+        const updatedUserId = updatedUser._id || updatedUser.id;
+
+        setUsers(prev => prev.map(user => {
+          const userIdToCompare = user._id || user.id;
+          return userIdToCompare === userId ? { ...user, ...updatedUser } : user;
+        }));
+
+        alert.success('User updated successfully');
         return { success: true, message: 'User updated successfully' };
       } else {
+        console.error('❌ Invalid response structure:', response);
         throw new Error('Invalid response from server');
       }
     } catch (error) {
-      console.error('Error updating user:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update user';
+      console.error('❌ Error updating user:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to update user';
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -4383,34 +5447,33 @@ const AdminPage = () => {
 
   const handleDeleteMinistry = async (ministryId) => {
     try {
-      const response = await ministryService.delete(ministryId);
-      const success = response?.data?.success !== false && response?.status !== 400;
+      setIsLoading(true);
+      const result = await handleDeleteMinistry(ministryId);
 
-      if (success) {
-        // ✅ Instantly remove deleted ministry from table
-        setMinistries((prev) =>
-          prev.filter((ministry) => ministry._id !== ministryId)
-        );
+      if (result?.success) {
+        // ✅ Refresh ministries after delete
+        const ministriesResponse = await ministryService.delete(ministryId);
+        let updatedMinistries = [];
 
-        // ✅ Optional: update dashboard stats instantly
-        setStats((prev) => ({
-          ...prev,
-          totalMinistries: Math.max((prev.totalMinistries || 1) - 1, 0),
-        }));
+        if (ministriesResponse && ministriesResponse.data) {
+          updatedMinistries = ministriesResponse.data.ministries || ministriesResponse.data.data || ministriesResponse.data;
+        } else if (ministriesResponse) {
+          updatedMinistries = ministriesResponse.ministries || ministriesResponse;
+        }
 
-        alert.success("🗑️ Ministry deleted successfully!");
-        return { success: true, message: "Ministry deleted successfully" };
+        if (Array.isArray(updatedMinistries)) {
+          setMinistries(updatedMinistries);
+        }
+
+        alert.success(result.message || "Ministry deleted successfully!");
       } else {
-        throw new Error("Failed to delete ministry");
+        alert.error(result?.message || "Failed to delete ministry.");
       }
     } catch (error) {
-      console.error("❌ Error deleting ministry:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to delete ministry";
-      alert.error(errorMessage);
-      return { success: false, message: errorMessage };
+      console.error("Error deleting ministry:", error);
+      alert.error("Failed to delete ministry.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -4702,28 +5765,41 @@ const AdminPage = () => {
 
   const handleConfirmDelete = async () => {
     try {
+      if (!deleteItem) {
+        alert.error('No item selected for deletion');
+        return;
+      }
+
+      // ✅ FIXED: Get proper ID from item
+      const itemId = deleteItem._id || deleteItem.id;
+
+      if (!itemId) {
+        alert.error('Invalid item ID');
+        return;
+      }
+
       let result;
       switch (deleteType) {
         case 'user':
-          result = await handleDeleteUser(deleteItem._id);
+          result = await handleDeleteUser(itemId);
           break;
         case 'ministry':
-          result = await handleDeleteMinistry(deleteItem._id);
+          result = await handleDeleteMinistry(itemId);
           break;
         case 'testimonial':
-          result = await handleDeleteTestimonial(deleteItem._id);
+          result = await handleDeleteTestimonial(itemId);
           break;
         case 'blog':
-          result = await handleDeleteBlogPost(deleteItem._id);
+          result = await handleDeleteBlogPost(itemId);
           break;
         case 'event':
-          result = await handleDeleteEvent(deleteItem._id);
+          result = await handleDeleteEvent(itemId);
           break;
         case 'sermon':
-          result = await handleDeleteSermon(deleteItem._id);
+          result = await handleDeleteSermon(itemId);
           break;
         case 'prayer':
-          result = await handleDeletePrayerRequest(deleteItem._id);
+          result = await handleDeletePrayerRequest(itemId);
           break;
         default:
           result = { success: false, message: 'Unknown item type' };
@@ -4735,6 +5811,7 @@ const AdminPage = () => {
         alert.error(result.message);
       }
     } catch (error) {
+      console.error('Delete error:', error);
       alert.error('An error occurred during deletion');
     } finally {
       closeDeleteModal();
@@ -4995,7 +6072,7 @@ const AdminPage = () => {
                       />
                     </div>
 
-                    {liveStreamStatus && (
+                    {liveStatus?.isLive && (
                       <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
                         <div className="flex items-center">
                           <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></div>
@@ -5081,6 +6158,7 @@ const AdminPage = () => {
                           onEdit={openEventModal}
                           onDelete={(event) => openDeleteModal(event, 'event')}
                           emptyMessage="No upcoming events"
+                          pagination={null}
                         />
                       </div>
 
@@ -5100,6 +6178,7 @@ const AdminPage = () => {
                           onEdit={openSermonModal}
                           onDelete={(sermon) => openDeleteModal(sermon, 'sermon')}
                           emptyMessage="No sermons available"
+                          pagination={null}
                         />
                       </div>
                     </div>
@@ -5171,6 +6250,7 @@ const AdminPage = () => {
                         onEdit={openEventModal}
                         onDelete={(event) => openDeleteModal(event, 'event')}
                         emptyMessage="No events available. Add your first event to get started."
+                        pagination={null}
                       />
                     </div>
                   </div>
@@ -5196,6 +6276,7 @@ const AdminPage = () => {
                         onEdit={openSermonModal}
                         onDelete={(sermon) => openDeleteModal(sermon, 'sermon')}
                         emptyMessage="No sermons available. Add your first sermon to get started."
+                        pagination={null}
                       />
                     </div>
                   </div>
@@ -5230,10 +6311,18 @@ const AdminPage = () => {
                     </div>
 
                     <LiveStreamControl
-                      isLive={liveStreamStatus}
+                      isLive={liveStatus.isLive}
                       onStartLive={handleStartLiveStream}
                       onStopLive={handleStopLiveStream}
-                      liveStats={liveStats}
+                      liveStats={liveStatus}
+                      sermons={sermons}
+                      onUpdateSermon={(updatedSermon) => {
+                        if (updatedSermon) {
+                          setSermons(prev => prev.map(s =>
+                            s._id === updatedSermon._id ? updatedSermon : s
+                          ));
+                        }
+                      }}
                     />
 
                     <div className="bg-white rounded-lg shadow-md p-6">

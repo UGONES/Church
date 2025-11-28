@@ -1,4 +1,3 @@
-// src/components/layouts/Header.jsx
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -15,7 +14,6 @@ const Header = () => {
 
   const isActive = (path) => (location.pathname === path ? "active" : "");
 
-  // Safely check authentication and user properties
   const isAuthenticated = !!user && user.role && user.role !== "guest";
   const userRole = (user?.role || "guest").toLowerCase();
   const userId = user?.id || user?._id || null;
@@ -124,12 +122,12 @@ const Header = () => {
 
           {/* Mobile Toggle */}
           <button
-            className="md:hidden text-gray-600 flex-shrink-0 ml-2"
+            className="md:hidden flex-shrink-0 ml-2"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle mobile menu"
             aria-expanded={mobileMenuOpen}
           >
-            <i className={`fas ${mobileMenuOpen ? "fa-times" : "fa-bars"} text-2xl`}></i>
+            <i className={`fas ${mobileMenuOpen ? "fa-times text-danger" : "fa-bars"} text-2xl`}></i>
           </button>
         </div>
       </div>

@@ -13,9 +13,9 @@ import {
     updateEvent, 
     deleteEvent 
 } from '../controllers/eventController.mjs';
-import { auth, optionalAuth } from '../middleware/auth.mjs';
+import { auth } from '../middleware/auth.mjs';
 import { moderatorCheck, adminCheck } from '../middleware/adminCheck.mjs';
-import { uploadImage } from '../middleware/upload.mjs';
+import { handleMediaUpload } from '../middleware/upload.mjs';
 
 // Public routes
 router.get('/', getAllEvents);
@@ -30,8 +30,8 @@ router.post('/:id/favorite', auth, addFavoriteEvent);
 router.delete('/:id/favorite', auth, removeFavoriteEvent);
 
 // Admin routes - ADDED /admin PREFIX
-router.post('/admin/create', auth, moderatorCheck, uploadImage.single('image'), createEvent);
-router.put('/admin/update/:id', auth, moderatorCheck, uploadImage.single('image'), updateEvent);
+router.post('/admin/create', auth, moderatorCheck, handleMediaUpload, createEvent);
+router.put('/admin/update/:id', auth, moderatorCheck, handleMediaUpload, updateEvent);
 router.delete('/admin/delete/:id', auth, adminCheck, deleteEvent);
 
 export default router;

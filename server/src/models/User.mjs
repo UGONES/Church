@@ -5,7 +5,7 @@ const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 12;
 const MIN_PASSWORD_LENGTH = Number(process.env.MIN_PASSWORD_LENGTH) || 8;
 const VALID_ROLES = ["user", "admin", "moderator"];
 
-const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/; 
+const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
 const phoneRegex = /^\+?[\d\s\-\(\)]{7,20}$/;
 
 const userSchema = new Schema(
@@ -138,6 +138,43 @@ const userSchema = new Schema(
       activeApplications: { type: Number, default: 0 },
     },
 
+    favorites: {
+      events: [{
+        type: Schema.Types.ObjectId,
+        ref: "Event"
+      }],
+      sermons: [{
+        type: Schema.Types.ObjectId,
+        ref: "Sermon"
+
+      }],
+      posts: [{
+        type: Schema.Types.ObjectId,
+        ref: "BlogPost"
+      }],
+      ministries: [{
+        type: Schema.Types.ObjectId,
+        ref: "Ministry"
+      }]
+    },
+
+    rsvps: [
+      {
+        event: {
+          type: Schema.Types.ObjectId,
+          ref: "Event"
+        },
+        rsvpDate: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
+
+    donations: [{ type: Schema.Types.ObjectId, ref: "Donation" }],
+
+    prayers: [{ type: Schema.Types.ObjectId, ref: "Prayer" }],
+
     lastLogin: { type: Date, default: null },
     loginCount: { type: Number, default: 0 },
   },
@@ -202,17 +239,17 @@ userSchema.pre('save', async function (next) {
 // Add password strength calculator
 userSchema.methods.calculatePasswordStrength = function (password) {
   let strength = 0;
-  
+
   // Length check
   if (password.length >= 12) strength += 2;
   else if (password.length >= 8) strength += 1;
-  
+
   // Character variety
   if (/[A-Z]/.test(password)) strength += 1;
   if (/[a-z]/.test(password)) strength += 1;
   if (/[0-9]/.test(password)) strength += 1;
   if (/[^A-Za-z0-9]/.test(password)) strength += 1;
-  
+
   return Math.min(strength, 4);
 };
 

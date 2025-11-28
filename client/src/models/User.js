@@ -9,7 +9,8 @@ class User {
     this.role = data.role || 'user', 'admin', 'moderator';
     this.isLoggedIn = data.isLoggedIn || false;
     this.emailVerified = data.emailVerified || false;
-    this.profileImage = data.profileImage || data.avatar || null;
+    this.avatar =  data.avatar || data.photoUrl || null;
+    this.coverPhoto = data.coverPhoto || data.photoUrl || null;
     this.familyMembers = data.familyMembers || [];
     this.communicationPreferences = data.communicationPreferences || {
       emailNotifications: true,

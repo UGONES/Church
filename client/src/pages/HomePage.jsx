@@ -12,7 +12,7 @@ import {
 import Loader from '../components/Loader';
 import { useAlert } from '../utils/Alert';
 import { Sermon } from '../models/Sermon';
-import { Event } from '../models/Events'; // Fixed import name (should be Event, not Events)
+import { Event } from '../models/Events'; 
 import { Testimonial } from '../models/Testimonial';
 
 const HomePage = () => {
