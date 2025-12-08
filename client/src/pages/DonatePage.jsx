@@ -28,13 +28,7 @@ const stripePromise = (() => {
 })();
 
 // Card Payment Form Component
-const CardPaymentForm = ({
-  onSubmit,
-  isProcessing,
-  setIsProcessing,   // ✅ consistent naming
-  billingAddress,
-  onBillingAddressChange
-}) => {
+const CardPaymentForm = ({ onSubmit, isProcessing, setIsProcessing, billingAddress, onBillingAddressChange }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [message, setMessage] = useState(null);
@@ -156,12 +150,7 @@ const CardPaymentForm = ({
 };
 
 // Bank Transfer Form Component
-const BankTransferForm = ({
-  onSubmit,
-  isProcessing,
-  bankDetails,
-  onBankDetailsChange
-}) => {
+const BankTransferForm = ({ onSubmit, isProcessing, bankDetails, onBankDetailsChange }) => {
   const [bankInfo, setBankInfo] = useState(bankDetails);
 
   const handleChange = (e) => {
@@ -215,7 +204,7 @@ const BankTransferForm = ({
 };
 
 const DonatePage = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [donationAmount, setDonationAmount] = useState("");
   const [customAmount, setCustomAmount] = useState("");
   const [currency, setCurrency] = useState("USD", "NGN", "EUR");
@@ -249,7 +238,6 @@ const DonatePage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
 
-  const isAdmin = user?.role === "admin";
   const isRegularUser = user?.isLoggedIn && user?.role === "user";
   const alert = useAlert();
 
@@ -695,12 +683,7 @@ const DonatePage = () => {
 };
 
 // User Donations Section Component
-const UserDonationsSection = ({
-  userDonations,
-  formatCurrency,
-  formatDate,
-  onDownloadReceipt
-}) => (
+const UserDonationsSection = ({ userDonations, formatCurrency, formatDate, onDownloadReceipt }) => (
   <section className="bg-gray-50 py-8">
     <div className="container mx-auto px-4">
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -758,17 +741,7 @@ const UserDonationsSection = ({
 );
 
 // Updated AdminPanel component with correct props
-const AdminPanel = ({
-  donationStats,
-  recentDonations,
-  formatCurrency,
-  formatDate,
-  onExportDonations,
-  onUpdateStatus,
-  onDownloadReceipt,
-  onViewDetails,
-  fetchAllDonations
-}) => (
+const AdminPanel = ({ donationStats, recentDonations, formatCurrency, formatDate, onExportDonations, onUpdateStatus, onDownloadReceipt, onViewDetails, fetchAllDonations }) => (
   <section className="bg-gray-50 py-8">
     <div className="container mx-auto px-4">
       <div className="bg-white rounded-lg shadow-md p-6">

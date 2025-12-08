@@ -37,6 +37,8 @@ export const sermonService = {
   getFavorites: () => apiClient.get(PUBLIC_ENDPOINTS.SERMONS_FAVORITES),
   addFavorite: (id) => apiClient.post(PUBLIC_ENDPOINTS.SERMONS_FAVORITE_ACTION(id)),
   removeFavorite: (id) => apiClient.delete(PUBLIC_ENDPOINTS.SERMONS_FAVORITE_ACTION(id)),
+  
+  getLiveKey: () => apiClient.get(PUBLIC_ENDPOINTS.SERMONS_STREAM_KEY),
 
   // Admin - Fixed to match your backend
   create: (data) => apiClient.post(ADMIN_ENDPOINTS.SERMONS.CREATE, data),

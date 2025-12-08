@@ -6,7 +6,7 @@ import { Testimonial } from '../models/Testimonial';
 import useAuth from '../hooks/useAuth';
 
 const TestimonialsPage = () => {
-  const { user } = useAuth();
+  const { isStaff } = useAuth();
   const alert = useAlert();
   const [showSubmitForm, setShowSubmitForm] = useState(false);
   const [testimonials, setTestimonials] = useState([]);
@@ -17,7 +17,6 @@ const TestimonialsPage = () => {
   const [categories, setCategories] = useState([]);
   const [testimonialStats, setTestimonialStats] = useState(null);
 
-  const isAdmin = user?.role === "admin" || user?.role === "moderator";
 
   useEffect(() => {
     document.title = "SMC: - Testimonies | St. Micheal`s & All Angels Church | Ifite-Awka";
@@ -120,7 +119,7 @@ const TestimonialsPage = () => {
           setCategories([]);
         }
 
-        if (isAdmin) {
+        if (isStaff) {
           try {
             const [allResponse, statsResponse] = await Promise.allSettled([
               testimonialService.getAllAdmin(),
@@ -177,7 +176,7 @@ const TestimonialsPage = () => {
     };
 
     fetchData();
-  }, [isAdmin, alert]);
+  }, [isStaff, alert]);
 
   // ✅ FIXED: Refetch function with consistent response handling
   const refetchTestimonials = async () => {
@@ -266,7 +265,7 @@ const TestimonialsPage = () => {
           </p>
 
           {/* ✅ Admin Controls */}
-          {isAdmin && testimonialStats && (
+          {isStaff && testimonialStats && (
             <div className="mt-6 space-x-4">
               <div className="bg-white text-[#FF7E45] px-6 py-2 rounded-lg font-semibold inline-block">
                 Stats: {testimonialStats.totalTestimonials} Total, {testimonialStats.approvedTestimonials} Approved

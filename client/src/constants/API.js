@@ -133,7 +133,7 @@ export const PUBLIC_ENDPOINTS = {
   SERMONS_CATEGORIES: "/sermons/categories",
   SERMONS_FAVORITES: "/sermons/favorites",
   SERMONS_FAVORITE_ACTION: (id) => `/sermons/favorites/${id}`,
-  // SERMONS_STREAM_CONFIG: 
+  SERMONS_STREAM_KEY: "/sermons/live-key",
 
   EVENTS: "/events",
   EVENTS_UPCOMING: "/events/upcoming",

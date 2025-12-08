@@ -16,7 +16,7 @@ const liveDir = path.join(mediaDir, 'live');
 
 
 const isProduction = process.env.NODE_ENV === 'production';
-const domain = process.env.DOMAIN || 'yourdomain.com';
+const domain = process.env.DOMAIN || 'localhost';
 
 if (!fs.existsSync(mediaDir)) {
   fs.mkdirSync(mediaDir, { recursive: true });
@@ -62,7 +62,7 @@ export async function startNodeMediaServer(options = {}) {
       port: httpPort,
       mediaroot: path.join(__dirname, 'media'),
       allow_origin: '*',
-      webroot: path.join(__dirname, 'www')
+      webroot: path.join(__dirname, 'client', 'dist')
     },
     auth: {
       play: (process.env.RTMP_AUTH_PLAY === 'true') || isProduction || false,
@@ -86,7 +86,7 @@ export async function startNodeMediaServer(options = {}) {
           mp4Flags: '[movflags=frag_keyframe+empty_moov]',
           hlsOutPath: path.join(__dirname, "media", "live"),
           hlsOutClean: false,
-          hlsOutputDir: path.join(__dirname, 'media', 'live'), 
+          hlsOutputDir: path.join(__dirname, 'media', 'live'),
         }
       ]
     },
@@ -923,7 +923,7 @@ if (process.env.NODE_ENV === 'production') {
   process.env.ALLOW_ANY_STREAM = 'true';
 }
 
-export const startServer = async () => {
+export const startRtmp = async () => {
   try {
     console.log('🚀 Starting RTMP Server...');
 
@@ -961,7 +961,7 @@ console.log('🔍 DEBUG: process.argv[1]:', process.argv[1]);
 // Simple direct execution
 if (import.meta.url.includes('rtmp-server.js')) {
   console.log('🚀 Starting RTMP Server...');
-  startServer().catch(error => {
+  startRtmp().catch(error => {
     console.error('💥 Fatal error:', error);
     process.exit(1);
   });

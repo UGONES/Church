@@ -1,5 +1,5 @@
 import { Schema, model } from 'mongoose';
-import crypto, { generateKey } from 'crypto';
+import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 
 
@@ -41,6 +41,11 @@ const sermonSchema = new Schema({
   date: {
     type: Date,
     required: true
+  },
+  streamStatus: {
+    type: String,
+    enum: ['offline', 'live', 'paused'],
+    default: 'offline'
   },
 
   // Live Streaming Fields - FIXED
@@ -248,7 +253,7 @@ sermonSchema.methods.endLiveStream = async function (recordingData = {}) {
       const hours = Math.floor(duration / 3600);
       const minutes = Math.floor((duration % 3600) / 60);
       const seconds = duration % 60;
-      this.duration = `${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+      this.duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
 
     if (recordingData.videoUrl) {
@@ -292,14 +297,16 @@ sermonSchema.statics.endLiveStreamByStreamKey = async function (streamKey, recor
 };
 
 // Method to generate stream key - UPDATED
-sermonSchema.methods.generateStreamKey = function () {
+sermonSchema.methods.generateStreamKey = async function () {
   const timestamp = Date.now().toString(36);
-  const randomBytes = crypto.randomBytes(16).toString('hex');
+  const randomBytes = crypto.randomBytes(16).toString("hex");
 
-  const key = `smc_${timestamp}_${randomBytes}`.substring(0, 32);
+  const key = `smc_${timestamp}_${randomBytes}`;
   this.streamKey = key;
 
+  await this.save();
   return key; // return key, not this.save()
+
 };
 
 // Method to generate recording ID - UPDATED

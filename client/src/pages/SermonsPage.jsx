@@ -732,6 +732,7 @@ const LiveStreamSection = ({ liveStatus, user, onRetry }) => {
                         className="video-js vjs-default-skin vjs-big-play-centered custom-video-js w-full h-full"
                         playsInline
                         controls
+                        src={`http://${hlsPort}/live/${streamKey}/index.m3u8`}
                         preload="auto"
                       >
                         <p className="vjs-no-js">

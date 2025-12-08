@@ -18,7 +18,8 @@ import {
   testStreamConnection,
   getStreamHealth,
   getLiveStatus, // ADD THIS
-  handleStreamWebhook // ADD THIS
+  handleStreamWebhook, // ADD THIS
+  generateKey
 } from '../controllers/sermonController.mjs';
 import { auth, optionalAuth } from '../middleware/auth.mjs';
 import { moderatorCheck } from '../middleware/adminCheck.mjs';
@@ -30,6 +31,7 @@ router.get('/live', getLiveSermons);
 router.get('/live/status', getLiveStatus); 
 router.get('/categories', getSermonCategories);
 router.get('/featured', getFeaturedSermons);
+router.get('/live-key', generateKey);
 
 // Webhook route (no auth required for RTMP server)
 router.post('/webhooks/stream', handleStreamWebhook); 

@@ -6,6 +6,26 @@ import { v4 as uuidv4 } from 'uuid';
 const generateRecordingId = () => 'rec_' + uuidv4();
 
 //////////////////////////
+export const generateKey = async (sermonId = null) => {
+  try {
+    if (sermonId) {
+      const sermon = await Sermon.findById(sermonId);
+      if (!sermon) throw new Error("Sermon not found");
+      return await sermon.generateStreamKey();
+    }
+
+    // if sermonId NOT provided → generate raw key
+    const timestamp = Date.now().toString(36);
+    const random = crypto.randomBytes(16).toString("hex");
+    return `smc_${timestamp}_${random}`.substring(0, 32);
+
+  } catch (error) {
+    console.error('Error generating stream key:', error);
+    throw error;
+  }
+};
+
+//////////////////////////
 // 📍 GET SERMONS
 //////////////////////////
 
@@ -26,6 +46,8 @@ export async function getAllSermons(req, res) {
       .populate('speakerId', 'name role avatar')
       .limit(limit)
       .skip((page - 1) * limit);
+
+    const limitNumber = parseInt(limit);
 
     const total = await Sermon.countDocuments(query);
 
@@ -198,11 +220,18 @@ export async function createSermon(req, res) {
     if (!data.date) data.date = new Date();
 
     if (data.isLive) {
-      data.streamKey = data.streamKey || generateStreamKey();
-      data.rtmpConfig = data.rtmpConfig || {};
-      data.rtmpConfig.serverUrl = data.rtmpConfig.serverUrl || (process.env.RTMP_SERVER_URL || `rtmp://localhost:${process.env.RTMP_PORT || 1935}/live`);
-      data.rtmpConfig.streamKey = data.rtmpConfig.streamKey || data.streamKey;
-      data.rtmpConfig.hlsUrl = data.rtmpConfig.hlsUrl || `${process.env.HLS_BASE_URL || `http://localhost:${process.env.HLS_PORT || 8000}`}/live/${data.streamKey}/index.m3u8`;
+      if (!data.streamKey) data.streamKey = await generateKey();
+      const rtmpPort = process.env.RTMP_PORT || 1935;
+      const hlsPort = process.env.HLS_PORT || 8000;
+      const hlsBase = process.env.HLS_BASE_URL || `http://localhost:${hlsPort}`;
+
+      data.rtmpConfig = {
+        serverUrl: data.rtmpConfig?.serverUrl || `rtmp://localhost:${rtmpPort}/live`,
+        streamKey: data.streamKey,
+        hlsUrl: data.rtmpConfig?.hlsUrl || `${hlsBase}/live/${data.streamKey}/index.m3u8`,
+        autoRecord: data.autoRecord !== false,
+        recordingFormat: data.recordingFormat || 'mp4'
+      };
       data.recordingId = data.recordingId || generateRecordingId();
       data.recordingStatus = data.recordingStatus || (data.autoRecord ? 'not_started' : 'not_started');
       data.status = data.status || 'published';
@@ -216,8 +245,6 @@ export async function createSermon(req, res) {
     }
 
     const sermon = new Sermon(data);
-
-    // ✅ Model will auto-generate streamKey if isLive=true
     await sermon.save();
 
     return res.status(201).json({
@@ -332,8 +359,14 @@ export async function getLiveStatus(req, res) {
     // Method 2: Check RTMP server directly as fallback
     try {
       const mediaServerUrl = process.env.MEDIA_SERVER_URL || 'http://localhost:8001';
-      const response = await fetch(`${mediaServerUrl}/api/streams`);
+      const hlsBaseUrl = process.env.HLS_BASE_URL || 'http://localhost:8000';
+      let response = null;
 
+      try {
+        response = await fetch(`${mediaServerUrl}/api/streams`);
+      } catch (e) {
+        response = await fetch(`${hlsBaseUrl}/api/streams`);
+      }
       if (response.ok) {
         const data = await response.json();
         const activeStreams = Object.keys(data.live || {});
@@ -359,7 +392,7 @@ export async function getLiveStatus(req, res) {
               title: matchingSermon?.title || 'Live Stream',
               speaker: matchingSermon?.speaker || 'Church Service',
               description: matchingSermon?.description,
-              liveStreamUrl: `${mediaServerUrl}/live/${streamKey}/index.m3u8`,
+              liveStreamUrl: `${hlsBaseUrl}/live/${streamKey}/index.m3u8`,
               streamKey: streamKey,
               viewers: stream.subscribers || 0,
               startedAt: new Date().toISOString(),
@@ -404,7 +437,7 @@ export async function startLiveStream(req, res) {
     }
 
     // Ensure we have a stable streamKey
-    const streamKey = payload.streamKey || `smc_${Date.now().toString(36)}_${crypto.randomBytes(6).toString('hex')}`;
+    const streamKey = payload.streamKey || await generateKey();
 
     const rtmpServer = payload.rtmpConfig?.serverUrl || process.env.RTMP_SERVER_URL || `rtmp://localhost:${process.env.RTMP_PORT || 1935}/live`;
     const hlsBase = process.env.HLS_BASE_URL || `http://localhost:${process.env.HLS_PORT || 8000}`;
@@ -448,6 +481,11 @@ export async function startLiveStream(req, res) {
       }
     }
 
+    if (sermon) {
+      Object.assign(sermon, sermonData);
+      await sermon.save();
+    }
+
     const streamingConfig = {
       rtmpUrl: rtmpServer,
       streamKey: sermon.streamKey,
@@ -484,25 +522,25 @@ export async function startLiveStream(req, res) {
 export async function stopLiveStream(req, res) {
   try {
     const id = req.params.sermonId || req.body.sermonId;
-   let streamKey = req.params.streamKey || req.body.streamKey;
+    let streamKey = req.params.streamKey || req.body.streamKey;
 
     if (!streamKey) {
-      const temp = new Sermon();
-      streamKey = temp.generateStreamKey();
+      return res.status(400).json({ message: "Stream key is required" });
     }
+
     console.log('🛑 Stopping live stream for sermon:', id);
 
     if (!id) {
       return res.status(400).json({ success: false, message: 'Sermon ID is required' });
     }
 
- const sermon = (id ? await Sermon.findById(id) : null) || (await Sermon.findByStreamKey(streamKey));
+    const sermon = (id ? await Sermon.findById(id) : null) || (await Sermon.findByStreamKey(streamKey));
     if (!sermon) {
       return res.status(404).json({ success: false, message: 'Sermon not found' });
     }
 
-    if (!sermon.isLive) {
-      return res.status(400).json({ success: false, message: 'Sermon is not currently live' });
+    if (sermon.liveStreamStatus !== "live") {
+      return res.status(400).json({ success: false, message: "Sermon is not currently live" });
     }
 
     const updateData = {
@@ -787,21 +825,6 @@ export async function getStreamConfig(req, res) {
         autoRecord: sermon.autoRecord,
         recordingCallback: `${process.env.API_BASE_URL || 'http://localhost:5000/api'}/sermons/recordings/${sermonId}/${sermon.recordingId}/upload`,
 
-        obsSettings: {
-          video: {
-            encoder: 'x264',
-            rateControl: 'CBR',
-            bitrate: 4000,
-            keyframeInterval: 2,
-            preset: 'veryfast',
-            profile: 'high'
-          },
-          audio: {
-            encoder: 'AAC',
-            bitrate: 128,
-            sampleRate: 44100
-          }
-        }
       }
     });
   } catch (error) {

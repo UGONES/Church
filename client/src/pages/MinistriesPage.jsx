@@ -7,7 +7,7 @@ import { Volunteer } from '../models/Volunteer';
 import { useAuth } from "../hooks/useAuth";
 
 const MinistriesPage = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, isStaff, loading: authLoading } = useAuth();
   const alert = useAlert();
 
   const [activeMinistry, setActiveMinistry] = useState(null);
@@ -29,7 +29,6 @@ const MinistriesPage = () => {
   const [showVolunteerOpportunities, setShowVolunteerOpportunities] = useState(false);
   const [showUserMinistries, setShowUserMinistries] = useState(false);
 
-  const isAdmin = user?.role === "admin" || user?.role === "moderator";
   const isAuthenticated = !!user;
 
 
@@ -37,8 +36,8 @@ const MinistriesPage = () => {
     document.title = "SMC: - MInistries | St. Micheal`s & All Angels Church | Ifite-Awka";
     fetchMinistries();
     fetchVolunteerOpportunities();
-    if (isAdmin) fetchMinistryStats();
-  }, [isAdmin]);
+    if (isStaff) fetchMinistryStats();
+  }, [isStaff]);
 
   useEffect(() => {
     if (!ministries || ministries.length === 0) return;
@@ -235,7 +234,7 @@ const MinistriesPage = () => {
       if (response && response.success) {
         alert.success(response.message || "Thank you for volunteering! We'll be in touch soon.");
         setShowVolunteerModal(false);
-        if (isAdmin) {
+        if (isStaff) {
           fetchMinistryVolunteers(ministryId);
         }
         if (isAuthenticated) {
@@ -505,7 +504,7 @@ const MinistriesPage = () => {
             </div>
           )}
 
-          {isAdmin && (
+          {isStaff && (
             <div className="mt-6 space-x-4">
               <button
                 onClick={() => setShowAdminDashboard(true)}
@@ -615,7 +614,7 @@ const MinistriesPage = () => {
                     <div className="text-center py-4">
                       <i className="fas fa-hands-helping text-gray-300 text-2xl mb-2"></i>
                       <p className="text-gray-500 italic">No ministries available</p>
-                      {isAdmin && (
+                      {isStaff && (
                         <button
                           onClick={() => setShowManageModal(true)}
                           className="mt-2 text-sm text-[#FF7E45] hover:text-[#F4B942]"
@@ -904,7 +903,7 @@ const MinistriesPage = () => {
                     >
                       Contact Ministry Leaders
                     </button>
-                    {isAdmin && (
+                    {isStaff && (
                       <button
                         onClick={() => handleEditMinistry(currentMinistry)}
                         className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center"
@@ -926,7 +925,7 @@ const MinistriesPage = () => {
                 <p className="text-gray-500 mb-4">
                   Choose a ministry from the sidebar to view its details and get involved.
                 </p>
-                {ministries.length === 0 && isAdmin && (
+                {ministries.length === 0 && isStaff && (
                   <button
                     onClick={() => setShowManageModal(true)}
                     className="bg-[#FF7E45] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#FFA76A] transition-colors"

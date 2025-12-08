@@ -6,7 +6,7 @@ const NotFoundPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-        document.title = "SMC: - Not-Found | St. Micheal`s & All Angels Church | Ifite-Awka";
+    document.title = "SMC: - Not-Found | St. Micheal`s & All Angels Church | Ifite-Awka";
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -48,7 +48,7 @@ const NotFoundPage = () => {
           <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
             Page Not Found
           </h1>
-          
+
           <p className="text-lg text-gray-600 mb-8">
             Oops! The page you're looking for seems to have wandered off into the digital wilderness.
           </p>
@@ -81,7 +81,7 @@ const NotFoundPage = () => {
               <i className="fas fa-home mr-2"></i>
               Return to Homepage
             </Link>
-            
+
             <button
               onClick={() => window.history.back()}
               className="border border-gray-300 hover:border-[#FF7E45] text-gray-700 hover:text-[#FF7E45] font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"

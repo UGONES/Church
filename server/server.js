@@ -6,7 +6,7 @@ import fs from 'fs';
 import http from 'http';
 import { Server } from 'socket.io';
 import { initChat } from './src/socket/chatSocket.mjs';
-// import { startNodeMediaServer } from './rtmp-server.js';
+// import { startRtmp } from './rtmp-server.js';
 
 import cloudinary from './src/config/cloudinary.mjs';
 
@@ -165,10 +165,10 @@ const startServer = async () => {
 
 app.set('io', io);
 
-// startNodeMediaServer().then(nms => {
-//   console.log('✅ RTMP/HLS server started');
-// }).catch(err => {
-//   console.error('❌ Failed to start RTMP server:', err);
+// console.log('🚀 Starting RTMP Server from dedicated starter...');
+// startRtmp().catch(error => {
+//   console.error('💥 Fatal error:', error);
+//   process.exit(1);
 // });
 
 startServer();

@@ -12,7 +12,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 const EventsPage = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { isStaff, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const alert = useAlert();
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -33,8 +33,6 @@ const EventsPage = () => {
     capacity: 50,
     imageUrl: ''
   });
-
-  const isAdmin = user?.role === "admin" || user?.role === "moderator";
 
   // Fetch events and user data
   useEffect(() => {
@@ -333,7 +331,7 @@ const EventsPage = () => {
           </p>
 
           {/* Admin Controls */}
-          {isAdmin && (
+          {isStaff && (
             <div className="mt-6">
               <button
                 onClick={handleCreateNewEvent}
@@ -503,7 +501,7 @@ const EventsPage = () => {
                 )}
 
                 {/* Show login prompt for unauthenticated users */}
-                {!isAuthenticated && !isAdmin && (
+                {!isAuthenticated && !isStaff && (
                   <button
                     onClick={() => {
                       setShowEventModal(false);
@@ -518,7 +516,7 @@ const EventsPage = () => {
               </div>
 
               {/* Admin actions */}
-              {isAdmin && (
+              {isStaff && (
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <h4 className="font-semibold mb-2">Admin Actions</h4>
                   <div className="flex space-x-2">
@@ -543,7 +541,7 @@ const EventsPage = () => {
       )}
 
       {/* Create Event Modal (same as before) */}
-      {showCreateModal && isAdmin && (
+      {showCreateModal && isStaff && (
         <div className="fixed inset-0 bg-[#333333e9] bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">

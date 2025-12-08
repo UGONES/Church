@@ -5,7 +5,7 @@ import useAuth from "../hooks/useAuth";
 import { BlogPost } from '../models/BlogPost';
 
 const BlogPage = () => {
-  const { user } = useAuth();
+  const { user, isStaff } = useAuth();
   const [activeCategory, setActiveCategory] = useState("all");
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -17,7 +17,7 @@ const BlogPage = () => {
   const [categories, setCategories] = useState([]);
   const [tagInput, setTagInput] = useState('');
 
-  const isAdmin = user?.role === "admin" || user?.role === "moderator";
+ 
   const isAuthenticated = user?.isLoggedIn;
   const alert = useAlert();
 
@@ -219,7 +219,7 @@ const fetchBlogPosts = async () => {
           </p>
 
           {/* Admin Controls */}
-          {isAdmin && (
+          {isStaff && (
             <div className="mt-6">
               <button
                 onClick={() => {
@@ -294,7 +294,7 @@ const fetchBlogPosts = async () => {
                             e.target.src = 'https://cdn.pixabay.com/photo/2017/08/06/12/06/people-2591874_1280.jpg';
                           }}
                         />
-                        {isAdmin && (
+                        {isStaff && (
                           <div className="absolute top-4 right-4 flex space-x-2">
                             <button
                               onClick={() => handleEditPost(filteredPosts[0])}

@@ -6,7 +6,7 @@ import { PrayerRequest } from '../models/PrayerRequest';
 import { useAuth } from "../hooks/useAuth";
 
 const PrayerPage = () => {
-  const { user } = useAuth;
+  const { user, isAdmin, isModerator } = useAuth;
   const alert = useAlert();
   const [showForm, setShowForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -21,8 +21,6 @@ const PrayerPage = () => {
   const [activeTab, setActiveTab] = useState('requests'); // ✅ Added active tab state
   const [meetingFilter, setMeetingFilter] = useState('upcoming'); // ✅ Added meeting filter
 
-  const isAdmin = user?.role === "admin";
-  const isModerator = user?.role === "moderator";
   const isAuthenticated = user?.isLoggedIn;
 
   useEffect(() => {

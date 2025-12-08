@@ -3365,7 +3365,6 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
               value={values.speaker}
               onChange={handleChange}
               className="form-input"
-              required
             >
               <option value="">Select a speaker</option>
               {potentialSpeakers.map(user => (
@@ -3617,9 +3616,7 @@ const LiveStreamControl = ({ isLive, onStartLive, onStopLive, liveStats, sermons
 
   // ✅ FIXED: Use consistent stream key generation from sermonController
   const generateStreamKey = () => {
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substring(2, 12);
-    return `smc_${timestamp}_${random}`.substring(0, 40);
+   sermonService.getLiveKey;
   };
 
   // ✅ FIXED: Sync active sermon from props and liveStats
@@ -4932,14 +4929,14 @@ const AdminPage = () => {
   const [deleteItem, setDeleteItem] = useState(null);
   const { liveStatus, refreshLiveStatus } = useLiveStatus();
 
-  const { user, loading: authLoading } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const alert = useAlert();
   const navigate = useNavigate();
 
   useEffect(() => {
     document.title = "SMC: - Admin | St. Micheal`s & All Angels Church | Ifite-Awka";
 
-    if (user && (user.role === 'admin')) {
+    if (user && isAdmin) {
       fetchDashboardData();
       fetchSettings();
     }
