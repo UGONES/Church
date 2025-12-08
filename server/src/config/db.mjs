@@ -18,18 +18,18 @@ const MONGODB_CONFIG = {
   minPoolSize: 10,
   maxIdleTimeMS: 30000,
   retryWrites: true,
-  w: 'majority',
-  authSource: 'admin',
-  compressors: ['zlib'],
+  w: "majority",
+  authSource: "admin",
+  compressors: ["zlib"],
   zlibCompressionLevel: 6,
 
   // Security enhancements
   autoIndex: process.env.NODE_ENV === 'development',
 
   // FIXED: Use either ssl OR tls, not both
-  ssl: process.env.NODE_ENV === 'production',
+  ssl: process.env.NODE_ENV === "production",
   // Remove conflicting tls settings when using ssl
-  ...(process.env.NODE_ENV === 'production' && {
+  ...(process.env.NODE_ENV === "production" && {
     sslValidate: true,
     tlsAllowInvalidCertificates: false,
     tlsAllowInvalidHostnames: false,
@@ -37,7 +37,7 @@ const MONGODB_CONFIG = {
 
   // Replica set options
   replicaSet: process.env.MONGODB_REPLICA_SET || null,
-  readPreference: 'primary',
+  readPreference: "primary",
 };
 
 // Connection state management
@@ -61,46 +61,46 @@ const updateConnectionStatus = () => {
 
 // Event handlers for connection monitoring
 const setupConnectionEvents = () => {
-  mongoose.connection.on('connected', () => {
-    console.log('✅ MongoDB connected successfully');
+  mongoose.connection.on("connected", () => {
+    console.log("✅ MongoDB connected successfully");
     isConnected = true;
     connectionRetries = 0;
     notifyConnectionHandlers(true);
   });
 
-  mongoose.connection.on('disconnected', () => {
-    console.log('⚠️ MongoDB disconnected');
+  mongoose.connection.on("disconnected", () => {
+    console.log("⚠️ MongoDB disconnected");
     isConnected = false;
     notifyConnectionHandlers(false);
   });
 
-  mongoose.connection.on('error', (error) => {
-    console.error('❌ MongoDB connection error:', error.message);
+  mongoose.connection.on("error", (error) => {
+    console.error("❌ MongoDB connection error:", error.message);
     isConnected = false;
     notifyConnectionHandlers(false, error);
   });
 
-  mongoose.connection.on('reconnected', () => {
-    console.log('🔄 MongoDB reconnected');
+  mongoose.connection.on("reconnected", () => {
+    console.log("🔄 MongoDB reconnected");
     isConnected = true;
     connectionRetries = 0;
     notifyConnectionHandlers(true);
   });
 
-  mongoose.connection.on('reconnectFailed', () => {
-    console.error('💥 MongoDB reconnect failed');
+  mongoose.connection.on("reconnectFailed", () => {
+    console.error("💥 MongoDB reconnect failed");
     isConnected = false;
-    notifyConnectionHandlers(false, new Error('Reconnection failed'));
+    notifyConnectionHandlers(false, new Error("Reconnection failed"));
   });
 };
 
 // Notify all registered connection handlers
 const notifyConnectionHandlers = (connected, error = null) => {
-  connectionHandlers.forEach(handler => {
+  connectionHandlers.forEach((handler) => {
     try {
       handler(connected, error);
     } catch (err) {
-      console.error('Error in connection handler:', err);
+      console.error("Error in connection handler:", err);
     }
   });
 };
@@ -108,17 +108,17 @@ const notifyConnectionHandlers = (connected, error = null) => {
 // Validate MongoDB URI for security
 const validateMongoDBURI = (uri) => {
   if (!uri) {
-    throw new Error('MONGODB_URI is required');
+    throw new Error("MONGODB_URI is required");
   }
 
   // Basic URI validation
-  if (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
-    throw new Error('Invalid MongoDB URI format');
+  if (!uri.startsWith("mongodb://") && !uri.startsWith("mongodb+srv://")) {
+    throw new Error("Invalid MongoDB URI format");
   }
 
   // Check for common security issues
-  if (uri.includes('<') || uri.includes('>')) {
-    throw new Error('MongoDB URI contains invalid characters');
+  if (uri.includes("<") || uri.includes(">")) {
+    throw new Error("MongoDB URI contains invalid characters");
   }
 
   return uri;
@@ -139,7 +139,9 @@ const connectDB = async (retries = MAX_RETRIES, delay = RETRY_DELAY) => {
       return mongoose.connection;
     }
 
-    console.log(`⏳ Attempting MongoDB connection (attempt ${connectionRetries + 1}/${MAX_RETRIES})...`);
+    console.log(
+      `⏳ Attempting MongoDB connection (attempt ${connectionRetries + 1}/${MAX_RETRIES})...`,
+    );
 
     // Validate and secure the connection URI
     const mongoURI = validateMongoDBURI(process.env.MONGODB_URI);
@@ -153,24 +155,32 @@ const connectDB = async (retries = MAX_RETRIES, delay = RETRY_DELAY) => {
     };
 
     // Set mongoose global options for security
-    mongoose.set('strictQuery', true);
-    mongoose.set('autoIndex', MONGODB_CONFIG.autoIndex);
-    mongoose.set('bufferCommands', MONGODB_CONFIG.bufferCommands);
+    mongoose.set("strictQuery", true);
+    mongoose.set("autoIndex", MONGODB_CONFIG.autoIndex);
+    mongoose.set("bufferCommands", MONGODB_CONFIG.bufferCommands);
 
     const conn = await mongoose.connect(mongoURI, connectionConfig);
 
-    console.log(`🚀 MongoDB Connected successfully to: ${conn.connection.host}`);
+    console.log(
+      `🚀 MongoDB Connected successfully to: ${conn.connection.host}`,
+    );
     console.log(`📊 Database: ${conn.connection.name}`);
-    console.log(`👤 User: ${conn.connection.user || 'Not authenticated'}`);
-    console.log(`🔗 Connection state: ${conn.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
+    console.log(`👤 User: ${conn.connection.user || "Not authenticated"}`);
+    console.log(
+      `🔗 Connection state: ${conn.connection.readyState === 1 ? "Connected" : "Disconnected"}`,
+    );
 
     isConnected = true;
     connectionRetries = 0;
 
     return conn;
 
+    return conn;
   } catch (error) {
-    console.error(`❌ Database connection error (attempt ${connectionRetries + 1}):`, error.message);
+    console.error(
+      `❌ Database connection error (attempt ${connectionRetries + 1}):`,
+      error.message,
+    );
 
     isConnected = false;
 
@@ -184,7 +194,9 @@ const connectDB = async (retries = MAX_RETRIES, delay = RETRY_DELAY) => {
     } else if (error.message.includes("ETIMEDOUT")) {
       console.warn("⏰ Connection timeout — check network/firewall");
     } else if (error.message.includes("tls/ssl must be the same")) {
-      console.warn("🔧 SSL/TLS configuration conflict — using simplified SSL settings");
+      console.warn(
+        "🔧 SSL/TLS configuration conflict — using simplified SSL settings",
+      );
     }
 
     connectionRetries++;
@@ -222,8 +234,10 @@ const connectDB = async (retries = MAX_RETRIES, delay = RETRY_DELAY) => {
         notifyConnectionHandlers(false, finalError);
 
         // In production, we might want to exit gracefully
-        if (process.env.NODE_ENV === 'production') {
-          console.error('🚨 Critical: Database connection failed in production');
+        if (process.env.NODE_ENV === "production") {
+          console.error(
+            "🚨 Critical: Database connection failed in production",
+          );
           process.exit(1);
         }
 
@@ -241,7 +255,7 @@ const gracefulShutdown = async (signal) => {
     // Close MongoDB connection
     if (mongoose.connection.readyState === 1) {
       await mongoose.connection.close();
-      console.log('✅ MongoDB connection closed gracefully');
+      console.log("✅ MongoDB connection closed gracefully");
     }
 
     isConnected = false;
@@ -294,7 +308,7 @@ export const waitForConnection = (timeout = 30000) => {
 
     const timeoutId = setTimeout(() => {
       connectionHandlers.delete(handler);
-      reject(new Error('Connection timeout'));
+      reject(new Error("Connection timeout"));
     }, timeout);
 
     const handler = (connected, error) => {
@@ -315,8 +329,8 @@ export const waitForConnection = (timeout = 30000) => {
 
 // Register connection event handler
 export const onConnectionChange = (handler) => {
-  if (typeof handler !== 'function') {
-    throw new Error('Connection handler must be a function');
+  if (typeof handler !== "function") {
+    throw new Error("Connection handler must be a function");
   }
 
   connectionHandlers.add(handler);
