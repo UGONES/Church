@@ -20,49 +20,63 @@ import useAuth from '../hooks/useAuth';
 import { PaginationMeta } from '../models/API'
 import { v4 as uuidv4 } from 'uuid';
 
-/*====================================== Reusable Components ======================================*/
+/* ====================================== Reusable Components ====================================== */
 
 // StatCard Component
-const StatCard = ({ title, value, change, changeType, icon, iconBgColor, iconTextColor }) => (
+const StatCard = ({
+  title,
+  value,
+  change,
+  changeType,
+  icon,
+  iconBgColor,
+  iconTextColor,
+}) => (
   <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
     <div className="flex justify-between items-center">
       <div className="flex-1">
         <p className="text-xs md:text-sm text-gray-500 mb-1">{title}</p>
         <h3 className="text-xl md:text-3xl font-bold">{value}</h3>
-        <p className={`text-xs ${changeType === 'increase' ? 'text-green-600' : 'text-red-600'} mt-1 md:mt-2`}>
-          <i className={`fas ${changeType === 'increase' ? 'fa-arrow-up' : 'fa-arrow-down'} mr-1`}></i>
+        <p
+          className={`text-xs ${changeType === "increase" ? "text-green-600" : "text-red-600"} mt-1 md:mt-2`}
+        >
+          <i
+            className={`fas ${changeType === "increase" ? "fa-arrow-up" : "fa-arrow-down"} mr-1`}
+          />
           {change}
         </p>
       </div>
-      <div className={`w-8 h-8 md:w-12 md:h-12 ${iconBgColor} rounded-full flex items-center justify-center ml-2`}>
-        <i className={`fas ${icon} ${iconTextColor} text-lg md:text-xl`}></i>
+      <div
+        className={`w-8 h-8 md:w-12 md:h-12 ${iconBgColor} rounded-full flex items-center justify-center ml-2`}
+      >
+        <i className={`fas ${icon} ${iconTextColor} text-lg md:text-xl`} />
       </div>
     </div>
   </div>
 );
 
-
 // SidebarButton Component
 const SidebarButton = ({ label, icon, tabName, activeTab, onClick }) => (
   <li>
     <button
-      className={`w-full text-left px-4 py-2 rounded-md flex items-center ${activeTab === tabName ? 'bg-[#FF7E45] text-white' : 'hover:bg-gray-100'}`}
+      className={`w-full text-left px-4 py-2 rounded-md flex items-center ${activeTab === tabName ? "bg-[#FF7E45] text-white" : "hover:bg-gray-100"}`}
       onClick={() => onClick(tabName)}
-      aria-current={activeTab === tabName ? 'page' : undefined}
+      aria-current={activeTab === tabName ? "page" : undefined}
       aria-label={`${label} tab`}
     >
-      <i className={`${icon} mr-3`} aria-hidden="true"></i>
+      <i className={`${icon} mr-3`} aria-hidden="true" />
       <span>{label}</span>
     </button>
   </li>
 );
 
-
 // ActivityItem Component
 const ActivityItem = ({ icon, bgColor, text, time }) => (
   <div className="flex items-start">
-    <div className={`w-10 h-10 ${bgColor} rounded-full flex items-center justify-center mr-3 flex-shrink-0`}>
-      <i className={`fas ${icon}`}></i>
+    <div
+      className={`w-10 h-10 ${bgColor} rounded-full flex items-center justify-center mr-3 flex-shrink-0`}
+    >
+      <i className={`fas ${icon}`} />
     </div>
     <div>
       <p className="font-medium">{text}</p>
@@ -333,14 +347,14 @@ const DataTable = ({ columns, data, onEdit, onDelete, emptyMessage, actions = tr
   );
 };
 
-const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
+const Modal = ({ isOpen, onClose, title, children, size = "md" }) => {
   if (!isOpen) return null;
 
   const sizeClasses = {
-    sm: 'max-w-md',
-    md: 'max-w-2xl',
-    lg: 'max-w-4xl',
-    xl: 'max-w-6xl'
+    sm: "max-w-md",
+    md: "max-w-2xl",
+    lg: "max-w-4xl",
+    xl: "max-w-6xl",
   };
 
   return (
@@ -352,18 +366,18 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
         aria-labelledby="modal-title"
       >
         <div className="flex justify-between items-center p-6 border-b">
-          <h2 id="modal-title" className="text-xl font-bold">{title}</h2>
+          <h2 id="modal-title" className="text-xl font-bold">
+            {title}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
             aria-label="Close modal"
           >
-            <i className="fas fa-times"></i>
+            <i className="fas fa-times" />
           </button>
         </div>
-        <div className="p-6">
-          {children}
-        </div>
+        <div className="p-6">{children}</div>
       </div>
     </div>
   );
@@ -410,19 +424,22 @@ const TabContentWrapper = ({ children, activeTab, tabName }) => {
   }
 
   return (
-    <div className={activeTab !== tabName ? 'hidden' : ''}>
-      {children}
-    </div>
+    <div className={activeTab !== tabName ? "hidden" : ""}>{children}</div>
   );
 };
 
 /* ====================================== Components for Each Tab ====================================== */
 
 // Users Management Component
-const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+const UsersManagement = ({
+  users = [],
+  onUpdateUser,
+  onDeleteUser,
+  onCreateUser,
+}) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [pagination, setPagination] = useState(new PaginationMeta());
@@ -465,10 +482,10 @@ const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser 
   useEffect(() => {
     if (selectedUser) {
       setValues({
-        name: selectedUser.name || '',
-        email: selectedUser.email || '',
-        phone: selectedUser.phone || '',
-        role: selectedUser.role || 'user',
+        name: selectedUser.name || "",
+        email: selectedUser.email || "",
+        phone: selectedUser.phone || "",
+        role: selectedUser.role || "user",
         status: getNormalizedStatus(selectedUser.status),
         joinDate: selectedUser.joinDate ? new Date(selectedUser.joinDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         address: {
@@ -491,7 +508,8 @@ const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser 
       isActive: getNormalizedStatus(user.status) === 'active',
     }))
     .filter((user) => {
-      const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch =
+        user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesRole = roleFilter === 'all' || user.role === roleFilter;
       const matchesStatus = statusFilter === 'all' || user.normalizedStatus === statusFilter;
@@ -546,46 +564,53 @@ const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser 
   // User table columns
   const userColumns = [
     {
-      key: 'user',
-      title: 'User',
+      key: "user",
+      title: "User",
       render: (user) => (
         <div className="flex items-center">
           <div className="h-10 w-10 flex-shrink-0 bg-gray-300 rounded-full flex items-center justify-center">
-            {user.name?.charAt(0)?.toUpperCase() || 'U'}
+            {user.name?.charAt(0)?.toUpperCase() || "U"}
           </div>
           <div className="ml-4">
             <div className="text-sm font-medium text-gray-900">{user.name}</div>
             <div className="text-sm text-gray-500">
-              Joined: {new Date(user.createdAt || user.joinDate).toLocaleDateString()}
+              Joined:{" "}
+              {new Date(user.createdAt || user.joinDate).toLocaleDateString()}
             </div>
           </div>
         </div>
       ),
     },
-    { key: 'email', title: 'Email' },
+    { key: "email", title: "Email" },
     {
-      key: 'role',
-      title: 'Role',
+      key: "role",
+      title: "Role",
       render: (user) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
-          user.role === 'moderator' ? 'bg-blue-100 text-blue-800' :
-            user.role === 'staff' ? 'bg-green-100 text-green-800' :
-              'bg-gray-100 text-gray-800'
-          }`}>
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            user.role === "admin"
+              ? "bg-purple-100 text-purple-800"
+              : user.role === "moderator"
+                ? "bg-blue-100 text-blue-800"
+                : user.role === "staff"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-gray-100 text-gray-800"
+          }`}
+        >
           {user.role}
         </span>
       ),
     },
     {
-      key: 'status',
-      title: 'Status',
+      key: "status",
+      title: "Status",
       render: (user) => {
         const normalized = getNormalizedStatus(user.status);
         const isActive = normalized === 'active';
         const colorMap = {
-          active: 'bg-green-100 text-green-800',
-          inactive: 'bg-yellow-100 text-yellow-800',
-          suspended: 'bg-red-100 text-red-800',
+          active: "bg-green-100 text-green-800",
+          inactive: "bg-yellow-100 text-yellow-800",
+          suspended: "bg-red-100 text-red-800",
         };
 
         return (
@@ -648,7 +673,7 @@ const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser 
             className="btn btn-primary"
             disabled={loading}
           >
-            <i className="fas fa-plus mr-2"></i> New User
+            <i className="fas fa-plus mr-2" /> New User
           </button>
         </div>
       </div>
@@ -678,13 +703,15 @@ const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser 
           setSelectedUser(null);
           resetForm();
         }}
-        title={selectedUser ? 'Edit User' : 'Create New User'}
+        title={selectedUser ? "Edit User" : "Create New User"}
         size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Full Name*</label>
+              <label className="block text-sm font-medium mb-1">
+                Full Name*
+              </label>
               <input
                 type="text"
                 name="name"
@@ -722,7 +749,9 @@ const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser 
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Join Date</label>
+              <label className="block text-sm font-medium mb-1">
+                Join Date
+              </label>
               <input
                 type="date"
                 name="joinDate"
@@ -855,8 +884,16 @@ const UsersManagement = ({ users = [], onUpdateUser, onDeleteUser, onCreateUser 
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Saving...' : selectedUser ? 'Update User' : 'Create User'}
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading}
+            >
+              {loading
+                ? "Saving..."
+                : selectedUser
+                  ? "Update User"
+                  : "Create User"}
             </button>
           </div>
         </form>
@@ -898,8 +935,8 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
       facebook: "",
       instagram: "",
       twitter: "",
-      youtube: ""
-    }
+      youtube: "",
+    },
   });
 
   const DEFAULT_CATEGORIES = [];
@@ -925,11 +962,13 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
             .filter((cat) => {
               if (cat == null) return false;
               if (typeof cat === "string") return cat.trim().length > 0;
-              if (typeof cat === "object" && cat.name) return cat.name.trim().length > 0;
+              if (typeof cat === "object" && cat.name) {
+                return cat.name.trim().length > 0;
+              }
               return false;
             })
             .map((cat) =>
-              typeof cat === "string" ? cat.trim() : cat.name?.trim() || ""
+              typeof cat === "string" ? cat.trim() : cat.name?.trim() || "",
             );
         } else {
           categories = [];
@@ -1021,9 +1060,11 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
     const categoryName = newCategory.trim();
 
     // Check for duplicate locally
-    if (ministryCategories.some(cat =>
-      cat.toLowerCase() === categoryName.toLowerCase()
-    )) {
+    if (
+      ministryCategories.some(
+        (cat) => cat.toLowerCase() === categoryName.toLowerCase(),
+      )
+    ) {
       alert.warning("Category already exists.");
       return;
     }
@@ -1033,18 +1074,22 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
 
       // Try to save to server first
       try {
-        const response = await ministryService.createCategory({ name: categoryName });
-        console.log('✅ Category saved to server:', response);
+        const response = await ministryService.createCategory({
+          name: categoryName,
+        });
+        console.log("✅ Category saved to server:", response);
       } catch (serverError) {
-        console.log('⚠️ Server save failed, saving locally only:', serverError.message);
+        console.log(
+          "⚠️ Server save failed, saving locally only:",
+          serverError.message,
+        );
         // Continue with local state update even if server fails
       }
 
       // Update local state
-      setMinistryCategories(prev => [...prev, categoryName]);
+      setMinistryCategories((prev) => [...prev, categoryName]);
       alert.success(`✅ Category "${categoryName}" added successfully!`);
       setNewCategory("");
-
     } catch (error) {
       console.error("❌ Error adding category:", error);
       alert.error("Failed to add category. Please try again.");
@@ -1057,11 +1102,15 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
   const filteredMinistries = localMinistries.filter((ministry) => {
     const matchesSearch = ministry.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ministry.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || ministry.status === statusFilter;
-    const matchesCategory = categoryFilter === "all" ||
-      (ministry.tags && ministry.tags.some(tag =>
-        (typeof tag === 'string' ? tag : tag.name) === categoryFilter
-      ));
+    const matchesStatus =
+      statusFilter === "all" || ministry.status === statusFilter;
+    const matchesCategory =
+      categoryFilter === "all" ||
+      (ministry.tags &&
+        ministry.tags.some(
+          (tag) =>
+            (typeof tag === "string" ? tag : tag.name) === categoryFilter,
+        ));
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
@@ -1078,18 +1127,22 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
         visionStatement: values.visionStatement?.trim() || "",
         icon: values.icon || "users",
         imageUrl: values.imageUrl?.trim() || "",
-        leaders: (values.leaders || []).filter(l => l.user),
-        programs: (values.programs || []).filter(p => p.name && p.description),
-        volunteerNeeds: (values.volunteerNeeds || []).filter(v => v.role && v.description),
+        leaders: (values.leaders || []).filter((l) => l.user),
+        programs: (values.programs || []).filter(
+          (p) => p.name && p.description,
+        ),
+        volunteerNeeds: (values.volunteerNeeds || []).filter(
+          (v) => v.role && v.description,
+        ),
         contactEmail: values.contactEmail?.trim() || "",
         contactPhone: values.contactPhone?.trim() || "",
         meetingSchedule: values.meetingSchedule?.trim() || "",
         meetingLocation: values.meetingLocation?.trim() || "",
         status: values.status || "active",
-        tags: (values.tags || []).filter(tag => tag && tag.trim()),
+        tags: (values.tags || []).filter((tag) => tag && tag.trim()),
       };
 
-      console.log('📤 Submitting ministry data:', submissionData);
+      console.log("📤 Submitting ministry data:", submissionData);
 
       let result;
       if (selectedMinistry) {
@@ -1120,7 +1173,6 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
       } else {
         alert.error(result?.message || "Something went wrong.");
       }
-
     } catch (error) {
       console.error("Error saving ministry:", error);
       alert.error(error.response?.data?.message || "Failed to save ministry.");
@@ -1131,16 +1183,16 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
 
   // ✅ Leader management functions
   const addLeader = () => {
-    setValues(prev => ({
+    setValues((prev) => ({
       ...prev,
-      leaders: [...prev.leaders, { user: "", role: "", isPrimary: false }]
+      leaders: [...prev.leaders, { user: "", role: "", isPrimary: false }],
     }));
   };
 
   const removeLeader = (index) => {
     const updatedLeaders = [...values.leaders];
     updatedLeaders.splice(index, 1);
-    setValues(prev => ({ ...prev, leaders: updatedLeaders }));
+    setValues((prev) => ({ ...prev, leaders: updatedLeaders }));
   };
 
   const updateLeader = (index, field, value) => {
@@ -1148,85 +1200,92 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
     updatedLeaders[index] = { ...updatedLeaders[index], [field]: value };
 
     // If setting as primary, ensure only one primary leader
-    if (field === 'isPrimary' && value === true) {
+    if (field === "isPrimary" && value === true) {
       updatedLeaders.forEach((leader, i) => {
         if (i !== index) leader.isPrimary = false;
       });
     }
 
-    setValues(prev => ({ ...prev, leaders: updatedLeaders }));
+    setValues((prev) => ({ ...prev, leaders: updatedLeaders }));
   };
 
   // ✅ Program management functions
   const addProgram = () => {
-    setValues(prev => ({
+    setValues((prev) => ({
       ...prev,
-      programs: [...prev.programs, { name: "", description: "", schedule: "", location: "" }]
+      programs: [
+        ...prev.programs,
+        { name: "", description: "", schedule: "", location: "" },
+      ],
     }));
   };
 
   const removeProgram = (index) => {
     const updatedPrograms = [...values.programs];
     updatedPrograms.splice(index, 1);
-    setValues(prev => ({ ...prev, programs: updatedPrograms }));
+    setValues((prev) => ({ ...prev, programs: updatedPrograms }));
   };
 
   const updateProgram = (index, field, value) => {
     const updatedPrograms = [...values.programs];
     updatedPrograms[index] = { ...updatedPrograms[index], [field]: value };
-    setValues(prev => ({ ...prev, programs: updatedPrograms }));
+    setValues((prev) => ({ ...prev, programs: updatedPrograms }));
   };
 
   // ✅ Volunteer needs management functions
   const addVolunteerNeed = () => {
-    setValues(prev => ({
+    setValues((prev) => ({
       ...prev,
-      volunteerNeeds: [...prev.volunteerNeeds, {
-        role: "",
-        description: "",
-        requirements: "",
-        timeCommitment: "",
-        isActive: true
-      }]
+      volunteerNeeds: [
+        ...prev.volunteerNeeds,
+        {
+          role: "",
+          description: "",
+          requirements: "",
+          timeCommitment: "",
+          isActive: true,
+        },
+      ],
     }));
   };
 
   const removeVolunteerNeed = (index) => {
     const updatedNeeds = [...values.volunteerNeeds];
     updatedNeeds.splice(index, 1);
-    setValues(prev => ({ ...prev, volunteerNeeds: updatedNeeds }));
+    setValues((prev) => ({ ...prev, volunteerNeeds: updatedNeeds }));
   };
 
   const updateVolunteerNeed = (index, field, value) => {
     const updatedNeeds = [...values.volunteerNeeds];
     updatedNeeds[index] = { ...updatedNeeds[index], [field]: value };
-    setValues(prev => ({ ...prev, volunteerNeeds: updatedNeeds }));
+    setValues((prev) => ({ ...prev, volunteerNeeds: updatedNeeds }));
   };
 
   // ✅ Tag management functions
   const addTag = () => {
-    setValues(prev => ({
+    setValues((prev) => ({
       ...prev,
-      tags: [...prev.tags, ""]
+      tags: [...prev.tags, ""],
     }));
   };
 
   const removeTag = (index) => {
     const updatedTags = [...values.tags];
     updatedTags.splice(index, 1);
-    setValues(prev => ({ ...prev, tags: updatedTags }));
+    setValues((prev) => ({ ...prev, tags: updatedTags }));
   };
 
   const updateTag = (index, value) => {
     const updatedTags = [...values.tags];
     updatedTags[index] = value;
-    setValues(prev => ({ ...prev, tags: updatedTags }));
+    setValues((prev) => ({ ...prev, tags: updatedTags }));
   };
 
   // ✅ Filter potential leaders (staff, moderators, admins, volunteers)
   const potentialLeaders = users.filter(
-    user => ["admin", "moderator", "staff", "volunteer"].includes(user.role) &&
-      (user.status === "active" || user.status === true)
+    (user) =>
+      ["admin", "moderator", "staff", "volunteer"].includes(user.role) &&
+      (user.status === "active" || user.status === true),
   );
 
   // ✅ Ministry table columns
@@ -1238,12 +1297,15 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
       render: (ministry) => (
         <div className="flex items-center">
           <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
-            <i className={`fas fa-${ministry.icon || 'users'} text-gray-600`}></i>
+            <i className={`fas fa-${ministry.icon || "users"} text-gray-600`} />
           </div>
           <div className="ml-4">
             <div className="text-sm font-semibold">{ministry.name || 'Unnamed Ministry'}</div>
             <div className="text-xs text-gray-500">
-              Created: {ministry.createdAt ? new Date(ministry.createdAt).toLocaleDateString() : 'Unknown'}
+              Created:{" "}
+              {ministry.createdAt
+                ? new Date(ministry.createdAt).toLocaleDateString()
+                : "Unknown"}
             </div>
           </div>
         </div>
@@ -1307,9 +1369,11 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
           inactive: "bg-yellow-100 text-yellow-800",
           planning: "bg-blue-100 text-blue-800",
         };
-        const status = ministry.status || 'active';
+        const status = ministry.status || "active";
         return (
-          <span className={`px-2 py-1 text-xs rounded-full font-medium ${statusColors[status] || 'bg-gray-100 text-gray-800'}`}>
+          <span
+            className={`px-2 py-1 text-xs rounded-full font-medium ${statusColors[status] || "bg-gray-100 text-gray-800"}`}
+          >
             {status.charAt(0).toUpperCase() + status.slice(1)}
           </span>
         );
@@ -1349,8 +1413,11 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
           >
             <option value="all">All Categories</option>
             {ministryCategories.map((category, index) => (
-              <option key={index} value={typeof category === 'object' ? category.name : category}>
-                {typeof category === 'object' ? category.name : category}
+              <option
+                key={index}
+                value={typeof category === "object" ? category.name : category}
+              >
+                {typeof category === "object" ? category.name : category}
               </option>
             ))}
           </select>
@@ -1374,7 +1441,7 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
             className="btn btn-primary"
             disabled={loading}
           >
-            <i className="fas fa-plus mr-2"></i> New Ministry
+            <i className="fas fa-plus mr-2" /> New Ministry
           </button>
         </div>
       </div>
@@ -1445,13 +1512,18 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
         title={selectedMinistry ? "Edit Ministry" : "Create New Ministry"}
         size="xl"
       >
-        <form onSubmit={handleSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 max-h-[80vh] overflow-y-auto"
+        >
           {/* Basic Information */}
           <div className="bg-gray-50 p-4 rounded-lg">
             <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Ministry Name*</label>
+                <label className="block text-sm font-medium mb-1">
+                  Ministry Name*
+                </label>
                 <input
                   type="text"
                   name="name"
@@ -1464,7 +1536,9 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Status*</label>
+                <label className="block text-sm font-medium mb-1">
+                  Status*
+                </label>
                 <select
                   name="status"
                   value={values.status}
@@ -1481,7 +1555,9 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
             </div>
 
             <div className="mt-4">
-              <label className="block text-sm font-medium mb-1">Description*</label>
+              <label className="block text-sm font-medium mb-1">
+                Description*
+              </label>
               <textarea
                 name="description"
                 value={values.description}
@@ -1496,7 +1572,9 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Mission Statement</label>
+                <label className="block text-sm font-medium mb-1">
+                  Mission Statement
+                </label>
                 <textarea
                   name="missionStatement"
                   value={values.missionStatement}
@@ -1508,7 +1586,9 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Vision Statement</label>
+                <label className="block text-sm font-medium mb-1">
+                  Vision Statement
+                </label>
                 <textarea
                   name="visionStatement"
                   value={values.visionStatement}
@@ -1528,7 +1608,9 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
 
             {/* Create New Category */}
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Create New Category</label>
+              <label className="block text-sm font-medium mb-2">
+                Create New Category
+              </label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -1544,25 +1626,29 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                   className="btn btn-outline"
                   disabled={loading || !newCategory.trim()}
                 >
-                  {loading ? 'Adding...' : 'Add Category'}
+                  {loading ? "Adding..." : "Add Category"}
                 </button>
               </div>
             </div>
 
             {/* Existing Categories */}
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Available Categories</label>
+              <label className="block text-sm font-medium mb-2">
+                Available Categories
+              </label>
               <div className="flex flex-wrap gap-2">
                 {ministryCategories.map((category, index) => (
                   <span
                     key={index}
                     className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
                   >
-                    {typeof category === 'object' ? category.name : category}
+                    {typeof category === "object" ? category.name : category}
                   </span>
                 ))}
                 {ministryCategories.length === 0 && (
-                  <span className="text-gray-500 text-sm">No categories yet. Add one above.</span>
+                  <span className="text-gray-500 text-sm">
+                    No categories yet. Add one above.
+                  </span>
                 )}
               </div>
             </div>
@@ -1570,7 +1656,9 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
             {/* Ministry Tags */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium">Pick A Category</label>
+                <label className="block text-sm font-medium">
+                  Pick A Category
+                </label>
                 <button
                   type="button"
                   onClick={addTag}
@@ -1597,13 +1685,18 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                     className="ml-2 text-red-500 hover:text-red-700"
                     disabled={loading}
                   >
-                    <i className="fas fa-trash"></i>
+                    <i className="fas fa-trash" />
                   </button>
                 </div>
               ))}
               <datalist id="categorySuggestions">
                 {ministryCategories.map((category, index) => (
-                  <option key={index} value={typeof category === 'object' ? category.name : category} />
+                  <option
+                    key={index}
+                    value={
+                      typeof category === "object" ? category.name : category
+                    }
+                  />
                 ))}
               </datalist>
             </div>
@@ -1614,15 +1707,20 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
             <h3 className="text-lg font-semibold mb-4">Leadership</h3>
             <div className="space-y-4">
               {values.leaders.map((leader, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-white rounded border">
+                <div
+                  key={index}
+                  className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-white rounded border"
+                >
                   <select
                     value={leader.user}
-                    onChange={(e) => updateLeader(index, 'user', e.target.value)}
+                    onChange={(e) =>
+                      updateLeader(index, "user", e.target.value)
+                    }
                     className="form-input"
                     disabled={loading}
                   >
                     <option value="">Select Leader</option>
-                    {potentialLeaders.map(user => (
+                    {potentialLeaders.map((user) => (
                       <option key={user._id} value={user._id}>
                         {user.name} ({user.role})
                       </option>
@@ -1632,7 +1730,9 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                     type="text"
                     placeholder="Role"
                     value={leader.role}
-                    onChange={(e) => updateLeader(index, 'role', e.target.value)}
+                    onChange={(e) =>
+                      updateLeader(index, "role", e.target.value)
+                    }
                     className="form-input"
                     disabled={loading}
                   />
@@ -1641,7 +1741,9 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                       <input
                         type="checkbox"
                         checked={leader.isPrimary}
-                        onChange={(e) => updateLeader(index, 'isPrimary', e.target.checked)}
+                        onChange={(e) =>
+                          updateLeader(index, "isPrimary", e.target.checked)
+                        }
                         className="form-checkbox"
                         disabled={loading}
                       />
@@ -1653,7 +1755,7 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                       className="text-red-500 hover:text-red-700 ml-auto"
                       disabled={loading}
                     >
-                      <i className="fas fa-trash"></i>
+                      <i className="fas fa-trash" />
                     </button>
                   </div>
                 </div>
@@ -1664,29 +1766,38 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                 className="btn btn-outline"
                 disabled={loading}
               >
-                <i className="fas fa-plus mr-2"></i> Add Leader
+                <i className="fas fa-plus mr-2" /> Add Leader
               </button>
             </div>
           </div>
 
           {/* Programs */}
           <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold mb-4">Programs & Activities</h3>
+            <h3 className="text-lg font-semibold mb-4">
+              Programs & Activities
+            </h3>
             <div className="space-y-4">
               {values.programs.map((program, index) => (
-                <div key={index} className="grid grid-cols-1 gap-4 p-4 bg-white rounded border">
+                <div
+                  key={index}
+                  className="grid grid-cols-1 gap-4 p-4 bg-white rounded border"
+                >
                   <input
                     type="text"
                     placeholder="Program Name"
                     value={program.name}
-                    onChange={(e) => updateProgram(index, 'name', e.target.value)}
+                    onChange={(e) =>
+                      updateProgram(index, "name", e.target.value)
+                    }
                     className="form-input"
                     disabled={loading}
                   />
                   <textarea
                     placeholder="Description"
                     value={program.description}
-                    onChange={(e) => updateProgram(index, 'description', e.target.value)}
+                    onChange={(e) =>
+                      updateProgram(index, "description", e.target.value)
+                    }
                     className="form-input"
                     rows="2"
                     disabled={loading}
@@ -1696,7 +1807,9 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                       type="text"
                       placeholder="Schedule"
                       value={program.schedule}
-                      onChange={(e) => updateProgram(index, 'schedule', e.target.value)}
+                      onChange={(e) =>
+                        updateProgram(index, "schedule", e.target.value)
+                      }
                       className="form-input"
                       disabled={loading}
                     />
@@ -1704,7 +1817,9 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                       type="text"
                       placeholder="Location"
                       value={program.location}
-                      onChange={(e) => updateProgram(index, 'location', e.target.value)}
+                      onChange={(e) =>
+                        updateProgram(index, "location", e.target.value)
+                      }
                       className="form-input"
                       disabled={loading}
                     />
@@ -1715,7 +1830,7 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                     className="text-red-500 hover:text-red-700 self-start"
                     disabled={loading}
                   >
-                    <i className="fas fa-trash mr-2"></i> Remove Program
+                    <i className="fas fa-trash mr-2" /> Remove Program
                   </button>
                 </div>
               ))}
@@ -1725,7 +1840,7 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                 className="btn btn-outline"
                 disabled={loading}
               >
-                <i className="fas fa-plus mr-2"></i> Add Program
+                <i className="fas fa-plus mr-2" /> Add Program
               </button>
             </div>
           </div>
@@ -1735,19 +1850,26 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
             <h3 className="text-lg font-semibold mb-4">Volunteer Needs</h3>
             <div className="space-y-4">
               {values.volunteerNeeds.map((need, index) => (
-                <div key={index} className="grid grid-cols-1 gap-4 p-4 bg-white rounded border">
+                <div
+                  key={index}
+                  className="grid grid-cols-1 gap-4 p-4 bg-white rounded border"
+                >
                   <input
                     type="text"
                     placeholder="Role Title"
                     value={need.role}
-                    onChange={(e) => updateVolunteerNeed(index, 'role', e.target.value)}
+                    onChange={(e) =>
+                      updateVolunteerNeed(index, "role", e.target.value)
+                    }
                     className="form-input"
                     disabled={loading}
                   />
                   <textarea
                     placeholder="Role Description"
                     value={need.description}
-                    onChange={(e) => updateVolunteerNeed(index, 'description', e.target.value)}
+                    onChange={(e) =>
+                      updateVolunteerNeed(index, "description", e.target.value)
+                    }
                     className="form-input"
                     rows="2"
                     disabled={loading}
@@ -1757,7 +1879,13 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                       type="text"
                       placeholder="Requirements"
                       value={need.requirements}
-                      onChange={(e) => updateVolunteerNeed(index, 'requirements', e.target.value)}
+                      onChange={(e) =>
+                        updateVolunteerNeed(
+                          index,
+                          "requirements",
+                          e.target.value,
+                        )
+                      }
                       className="form-input"
                       disabled={loading}
                     />
@@ -1765,7 +1893,13 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                       type="text"
                       placeholder="Time Commitment"
                       value={need.timeCommitment}
-                      onChange={(e) => updateVolunteerNeed(index, 'timeCommitment', e.target.value)}
+                      onChange={(e) =>
+                        updateVolunteerNeed(
+                          index,
+                          "timeCommitment",
+                          e.target.value,
+                        )
+                      }
                       className="form-input"
                       disabled={loading}
                     />
@@ -1776,7 +1910,7 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                     className="text-red-500 hover:text-red-700 self-start"
                     disabled={loading}
                   >
-                    <i className="fas fa-trash mr-2"></i> Remove Role
+                    <i className="fas fa-trash mr-2" /> Remove Role
                   </button>
                 </div>
               ))}
@@ -1786,7 +1920,7 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                 className="btn btn-outline"
                 disabled={loading}
               >
-                <i className="fas fa-plus mr-2"></i> Add Volunteer Role
+                <i className="fas fa-plus mr-2" /> Add Volunteer Role
               </button>
             </div>
           </div>
@@ -1796,7 +1930,9 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
             <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Contact Email</label>
+                <label className="block text-sm font-medium mb-1">
+                  Contact Email
+                </label>
                 <input
                   type="email"
                   name="contactEmail"
@@ -1808,7 +1944,9 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Contact Phone</label>
+                <label className="block text-sm font-medium mb-1">
+                  Contact Phone
+                </label>
                 <input
                   type="tel"
                   name="contactPhone"
@@ -1817,12 +1955,13 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                   onChange={handleChange}
                   placeholder="+2349012345678 or 09012345678"
                 />
-
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Meeting Schedule</label>
+                <label className="block text-sm font-medium mb-1">
+                  Meeting Schedule
+                </label>
                 <input
                   type="text"
                   name="meetingSchedule"
@@ -1834,7 +1973,9 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Meeting Location</label>
+                <label className="block text-sm font-medium mb-1">
+                  Meeting Location
+                </label>
                 <input
                   type="text"
                   name="meetingLocation"
@@ -1862,8 +2003,16 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Saving...' : selectedMinistry ? "Update Ministry" : "Create Ministry"}
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading}
+            >
+              {loading
+                ? "Saving..."
+                : selectedMinistry
+                  ? "Update Ministry"
+                  : "Create Ministry"}
             </button>
           </div>
         </form>
@@ -1873,43 +2022,52 @@ const MinistriesManagement = ({ initialMinistries = [], users = [], onUpdateMini
 };
 
 // Testimonials Management Component
-const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTestimonial, onCreateTestimonial }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+const TestimonialsManagement = ({
+  testimonials,
+  onUpdateTestimonial,
+  onDeleteTestimonial,
+  onCreateTestimonial,
+}) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTestimonial, setSelectedTestimonial] = useState(null);
   const alert = useAlert();
 
   const { values, handleChange, setValues, resetForm } = useForm({
-    author: '',
-    content: '',
-    status: 'pending',
-    videoUrl: '',
-    imageUrl: '',
-    category: 'general',
+    author: "",
+    content: "",
+    status: "pending",
+    videoUrl: "",
+    imageUrl: "",
+    category: "general",
     featured: false,
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split("T")[0],
   });
 
   useEffect(() => {
     if (selectedTestimonial) {
       setValues({
-        author: selectedTestimonial.author || '',
-        content: selectedTestimonial.content || '',
-        status: selectedTestimonial.status || 'pending',
-        videoUrl: selectedTestimonial.videoUrl || '',
-        imageUrl: selectedTestimonial.imageUrl || '',
-        category: selectedTestimonial.category || 'general',
+        author: selectedTestimonial.author || "",
+        content: selectedTestimonial.content || "",
+        status: selectedTestimonial.status || "pending",
+        videoUrl: selectedTestimonial.videoUrl || "",
+        imageUrl: selectedTestimonial.imageUrl || "",
+        category: selectedTestimonial.category || "general",
         featured: selectedTestimonial.featured || false,
-        date: selectedTestimonial.date ? new Date(selectedTestimonial.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+        date: selectedTestimonial.date
+          ? new Date(selectedTestimonial.date).toISOString().split("T")[0]
+          : new Date().toISOString().split("T")[0],
       });
     }
   }, [selectedTestimonial, setValues]);
 
-  const filteredTestimonials = testimonials.filter(testimonial => {
-    const matchesSearch = testimonial.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredTestimonials = testimonials.filter((testimonial) => {
+    const matchesSearch =
+      testimonial.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       testimonial.content?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || testimonial.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" || testimonial.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -1924,59 +2082,77 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
       setShowCreateModal(false);
       setSelectedTestimonial(null);
       resetForm();
-      alert.success(`Testimonial ${selectedTestimonial ? 'updated' : 'created'} successfully`);
+      alert.success(
+        `Testimonial ${selectedTestimonial ? "updated" : "created"} successfully`,
+      );
     } catch (error) {
-      alert.error(`Failed to ${selectedTestimonial ? 'update' : 'create'} testimonial`);
+      alert.error(
+        `Failed to ${selectedTestimonial ? "update" : "create"} testimonial`,
+      );
     }
   };
 
   const testimonialColumns = [
     {
-      key: 'author',
-      title: 'Author',
+      key: "author",
+      title: "Author",
       render: (testimonial) => (
         <div className="flex items-center">
           <div className="h-10 w-10 flex-shrink-0 bg-gray-300 rounded-full flex items-center justify-center">
             {testimonial.author?.charAt(0)?.toUpperCase() || 'U'}
           </div>
           <div className="ml-4">
-            <div className="text-sm font-medium text-gray-900">{testimonial.author}</div>
-            <div className="text-sm text-gray-500">Created: {new Date(testimonial.createdAt).toLocaleDateString()}</div>
+            <div className="text-sm font-medium text-gray-900">
+              {testimonial.author}
+            </div>
+            <div className="text-sm text-gray-500">
+              Created: {new Date(testimonial.createdAt).toLocaleDateString()}
+            </div>
           </div>
         </div>
-      )
+      ),
     },
     {
-      key: 'content',
-      title: 'Content',
+      key: "content",
+      title: "Content",
       render: (testimonial) => (
-        <p className="text-sm text-gray-700 line-clamp-2">{testimonial.content}</p>
-      )
+        <p className="text-sm text-gray-700 line-clamp-2">
+          {testimonial.content}
+        </p>
+      ),
     },
     {
-      key: 'status',
-      title: 'Status',
+      key: "status",
+      title: "Status",
       render: (testimonial) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${testimonial.status === 'published'
-          ? 'bg-green-100 text-green-800'
-          : testimonial.status === 'pending'
-            ? 'bg-yellow-100 text-yellow-800'
-            : 'bg-red-100 text-red-800'
-          }`}>
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            testimonial.status === "published"
+              ? "bg-green-100 text-green-800"
+              : testimonial.status === "pending"
+                ? "bg-yellow-100 text-yellow-800"
+                : "bg-red-100 text-red-800"
+          }`}
+        >
           {testimonial.status}
         </span>
-      )
+      ),
     },
     {
-      key: 'featured',
-      title: 'Featured',
+      key: "featured",
+      title: "Featured",
       render: (testimonial) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${testimonial.featured ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-          }`}>
-          {testimonial.featured ? 'Yes' : 'No'}
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            testimonial.featured
+              ? "bg-blue-100 text-blue-800"
+              : "bg-gray-100 text-gray-800"
+          }`}
+        >
+          {testimonial.featured ? "Yes" : "No"}
         </span>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -2009,7 +2185,7 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
             }}
             className="btn btn-primary"
           >
-            <i className="fas fa-plus mr-2"></i> New Testimonial
+            <i className="fas fa-plus mr-2" /> New Testimonial
           </button>
         </div>
       </div>
@@ -2036,13 +2212,17 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
           setSelectedTestimonial(null);
           resetForm();
         }}
-        title={selectedTestimonial ? 'Edit Testimonial' : 'Create New Testimonial'}
+        title={
+          selectedTestimonial ? "Edit Testimonial" : "Create New Testimonial"
+        }
         size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Author Name*</label>
+              <label className="block text-sm font-medium mb-1">
+                Author Name*
+              </label>
               <input
                 type="text"
                 name="author"
@@ -2071,7 +2251,9 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Testimonial Content*</label>
+            <label className="block text-sm font-medium mb-1">
+              Testimonial Content*
+            </label>
             <textarea
               name="content"
               value={values.content}
@@ -2112,7 +2294,9 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Video URL</label>
+              <label className="block text-sm font-medium mb-1">
+                Video URL
+              </label>
               <input
                 type="url"
                 name="videoUrl"
@@ -2123,7 +2307,9 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Image URL</label>
+              <label className="block text-sm font-medium mb-1">
+                Image URL
+              </label>
               <input
                 type="url"
                 name="imageUrl"
@@ -2140,11 +2326,18 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
               type="checkbox"
               name="featured"
               checked={values.featured}
-              onChange={(e) => handleChange({ target: { name: 'featured', value: e.target.checked } })}
+              onChange={(e) =>
+                handleChange({
+                  target: { name: "featured", value: e.target.checked },
+                })
+              }
               className="form-checkbox h-4 w-4 text-[#FF7E45]"
               id="featuredTestimonial"
             />
-            <label htmlFor="featuredTestimonial" className="ml-2 text-sm font-medium">
+            <label
+              htmlFor="featuredTestimonial"
+              className="ml-2 text-sm font-medium"
+            >
               Feature this testimonial on the homepage
             </label>
           </div>
@@ -2162,7 +2355,7 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
-              {selectedTestimonial ? 'Update' : 'Create'} Testimonial
+              {selectedTestimonial ? "Update" : "Create"} Testimonial
             </button>
           </div>
         </form>
@@ -2172,11 +2365,16 @@ const TestimonialsManagement = ({ testimonials, onUpdateTestimonial, onDeleteTes
 };
 
 // Blog Management Component
-const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [authorFilter, setAuthorFilter] = useState('all');
+const BlogManagement = ({
+  posts,
+  onUpdatePost,
+  onDeletePost,
+  onCreatePost,
+}) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [authorFilter, setAuthorFilter] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [blogCategories, setBlogCategories] = useState([]);
@@ -2184,36 +2382,38 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
   const alert = useAlert();
 
   const { values, handleChange, setValues, resetForm } = useForm({
-    title: '',
-    content: '',
-    excerpt: '',
-    author: '',
-    status: 'draft',
-    category: '',
+    title: "",
+    content: "",
+    excerpt: "",
+    author: "",
+    status: "draft",
+    category: "",
     tags: [],
 
-    featuredImage: '',
-    publishedAt: new Date().toISOString().split('T')[0],
-    metaTitle: '',
-    metaDescription: '',
-    featured: false
+    featuredImage: "",
+    publishedAt: new Date().toISOString().split("T")[0],
+    metaTitle: "",
+    metaDescription: "",
+    featured: false,
   });
 
   useEffect(() => {
     if (selectedPost) {
       setValues({
-        title: selectedPost.title || '',
-        content: selectedPost.content || '',
-        excerpt: selectedPost.excerpt || '',
-        author: selectedPost.author || '',
-        status: selectedPost.status || 'draft',
-        category: selectedPost.category || '',
+        title: selectedPost.title || "",
+        content: selectedPost.content || "",
+        excerpt: selectedPost.excerpt || "",
+        author: selectedPost.author || "",
+        status: selectedPost.status || "draft",
+        category: selectedPost.category || "",
         tags: selectedPost.tags || [],
-        featuredImage: selectedPost.featuredImage || '',
-        publishedAt: selectedPost.publishedAt ? new Date(selectedPost.publishedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        metaTitle: selectedPost.metaTitle || '',
-        metaDescription: selectedPost.metaDescription || '',
-        featured: selectedPost.featured || false
+        featuredImage: selectedPost.featuredImage || "",
+        publishedAt: selectedPost.publishedAt
+          ? new Date(selectedPost.publishedAt).toISOString().split("T")[0]
+          : new Date().toISOString().split("T")[0],
+        metaTitle: selectedPost.metaTitle || "",
+        metaDescription: selectedPost.metaDescription || "",
+        featured: selectedPost.featured || false,
       });
     }
   }, [selectedPost, setValues]);
@@ -2225,7 +2425,7 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
         const response = await apiClient.get(API_ENDPOINTS.BLOG.CATEGORIES);
         setBlogCategories(response.categories || []);
       } catch (error) {
-        console.error('Error fetching blog categories:', error);
+        console.error("Error fetching blog categories:", error);
       }
     };
 
@@ -2233,12 +2433,14 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
     const fetchAuthors = async () => {
       try {
         const response = await apiClient.get(API_ENDPOINTS.USERS.BASE);
-        const authorUsers = response.users.filter(user =>
-          ['admin', 'moderator', 'staff'].includes(user.role) && user.status === 'active'
+        const authorUsers = response.users.filter(
+          (user) =>
+            ["admin", "moderator", "staff"].includes(user.role) &&
+            user.status === "active",
         );
         setAuthors(authorUsers);
       } catch (error) {
-        console.error('Error fetching authors:', error);
+        console.error("Error fetching authors:", error);
       }
     };
 
@@ -2246,12 +2448,16 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
     fetchAuthors();
   }, []);
 
-  const filteredPosts = posts.filter(post => {
-    const matchesSearch = post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredPosts = posts.filter((post) => {
+    const matchesSearch =
+      post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.content?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || post.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || post.category === categoryFilter;
-    const matchesAuthor = authorFilter === 'all' || post.author === authorFilter;
+    const matchesStatus =
+      statusFilter === "all" || post.status === statusFilter;
+    const matchesCategory =
+      categoryFilter === "all" || post.category === categoryFilter;
+    const matchesAuthor =
+      authorFilter === "all" || post.author === authorFilter;
     return matchesSearch && matchesStatus && matchesCategory && matchesAuthor;
   });
 
@@ -2266,16 +2472,18 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
       setShowCreateModal(false);
       setSelectedPost(null);
       resetForm();
-      alert.success(`Blog post ${selectedPost ? 'updated' : 'created'} successfully`);
+      alert.success(
+        `Blog post ${selectedPost ? "updated" : "created"} successfully`,
+      );
     } catch (error) {
-      alert.error(`Failed to ${selectedPost ? 'update' : 'create'} blog post`);
+      alert.error(`Failed to ${selectedPost ? "update" : "create"} blog post`);
     }
   };
 
   const addTag = () => {
     setValues({
       ...values,
-      tags: [...values.tags, '']
+      tags: [...values.tags, ""],
     });
   };
 
@@ -2293,40 +2501,51 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
 
   const postColumns = [
     {
-      key: 'title',
-      title: 'Title',
+      key: "title",
+      title: "Title",
       render: (post) => (
         <div>
           <div className="text-sm font-medium text-gray-900">{post.title}</div>
-          <div className="text-sm text-gray-500">By {post.authorName} on {new Date(post.publishedAt || post.createdAt).toLocaleDateString()}</div>
+          <div className="text-sm text-gray-500">
+            By {post.authorName} on{" "}
+            {new Date(post.publishedAt || post.createdAt).toLocaleDateString()}
+          </div>
         </div>
-      )
+      ),
     },
-    { key: 'category', title: 'Category' },
+    { key: "category", title: "Category" },
     {
-      key: 'status',
-      title: 'Status',
+      key: "status",
+      title: "Status",
       render: (post) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${post.status === 'published'
-          ? 'bg-green-100 text-green-800'
-          : post.status === 'draft'
-            ? 'bg-yellow-100 text-yellow-800'
-            : 'bg-red-100 text-red-800'
-          }`}>
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            post.status === "published"
+              ? "bg-green-100 text-green-800"
+              : post.status === "draft"
+                ? "bg-yellow-100 text-yellow-800"
+                : "bg-red-100 text-red-800"
+          }`}
+        >
           {post.status}
         </span>
-      )
+      ),
     },
     {
-      key: 'featured',
-      title: 'Featured',
+      key: "featured",
+      title: "Featured",
       render: (post) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${post.featured ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-          }`}>
-          {post.featured ? 'Yes' : 'No'}
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            post.featured
+              ? "bg-blue-100 text-blue-800"
+              : "bg-gray-100 text-gray-800"
+          }`}
+        >
+          {post.featured ? "Yes" : "No"}
         </span>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -2347,8 +2566,10 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
             className="form-input"
           >
             <option value="all">All Categories</option>
-            {blogCategories.map(category => (
-              <option key={category} value={category}>{category}</option>
+            {blogCategories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
             ))}
           </select>
           <select
@@ -2367,8 +2588,10 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
             className="form-input"
           >
             <option value="all">All Authors</option>
-            {authors.map(author => (
-              <option key={author._id} value={author._id}>{author.name}</option>
+            {authors.map((author) => (
+              <option key={author._id} value={author._id}>
+                {author.name}
+              </option>
             ))}
           </select>
           <button
@@ -2379,7 +2602,7 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
             }}
             className="btn btn-primary"
           >
-            <i className="fas fa-plus mr-2"></i> New Post
+            <i className="fas fa-plus mr-2" /> New Post
           </button>
         </div>
       </div>
@@ -2406,7 +2629,7 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
           setSelectedPost(null);
           resetForm();
         }}
-        title={selectedPost ? 'Edit Blog Post' : 'Create New Blog Post'}
+        title={selectedPost ? "Edit Blog Post" : "Create New Blog Post"}
         size="xl"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -2433,13 +2656,17 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
                 required
               >
                 <option value="">Select an author</option>
-                {authors.map(author => (
-                  <option key={author._id} value={author._id}>{author.name}</option>
+                {authors.map((author) => (
+                  <option key={author._id} value={author._id}>
+                    {author.name}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Category*</label>
+              <label className="block text-sm font-medium mb-1">
+                Category*
+              </label>
               <select
                 name="category"
                 value={values.category}
@@ -2448,8 +2675,10 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
                 required
               >
                 <option value="">Select a category</option>
-                {blogCategories.map(category => (
-                  <option key={category} value={category}>{category}</option>
+                {blogCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
                 ))}
               </select>
             </div>
@@ -2471,7 +2700,9 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Publish Date</label>
+              <label className="block text-sm font-medium mb-1">
+                Publish Date
+              </label>
               <input
                 type="date"
                 name="publishedAt"
@@ -2532,7 +2763,7 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
                   onClick={() => removeTag(index)}
                   className="ml-2 text-red-500 hover:text-red-700"
                 >
-                  <i className="fas fa-times"></i>
+                  <i className="fas fa-times" />
                 </button>
               </div>
             ))}
@@ -2540,7 +2771,9 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Featured Image URL</label>
+              <label className="block text-sm font-medium mb-1">
+                Featured Image URL
+              </label>
               <input
                 type="url"
                 name="featuredImage"
@@ -2555,18 +2788,27 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
                 type="checkbox"
                 name="featured"
                 checked={values.featured}
-                onChange={(e) => handleChange({ target: { name: 'featured', value: e.target.checked } })}
+                onChange={(e) =>
+                  handleChange({
+                    target: { name: "featured", value: e.target.checked },
+                  })
+                }
                 className="form-checkbox h-4 w-4 text-[#FF7E45]"
                 id="featuredPost"
               />
-              <label htmlFor="featuredPost" className="ml-2 text-sm font-medium">
+              <label
+                htmlFor="featuredPost"
+                className="ml-2 text-sm font-medium"
+              >
                 Feature this post
               </label>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Meta Title (SEO)</label>
+            <label className="block text-sm font-medium mb-1">
+              Meta Title (SEO)
+            </label>
             <input
               type="text"
               name="metaTitle"
@@ -2578,7 +2820,9 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Meta Description (SEO)</label>
+            <label className="block text-sm font-medium mb-1">
+              Meta Description (SEO)
+            </label>
             <textarea
               name="metaDescription"
               value={values.metaDescription}
@@ -2602,7 +2846,7 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
-              {selectedPost ? 'Update' : 'Create'} Post
+              {selectedPost ? "Update" : "Create"} Post
             </button>
           </div>
         </form>
@@ -2613,27 +2857,29 @@ const BlogManagement = ({ posts, onUpdatePost, onDeletePost, onCreatePost }) => 
 
 // Donations Management Component
 const DonationsManagement = ({ donations, onUpdateDonation }) => {
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('all');
-  const [methodFilter, setMethodFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [methodFilter, setMethodFilter] = useState("all");
 
-  const filteredDonations = donations.filter(donation => {
-    const matchesStatus = statusFilter === 'all' || donation.status === statusFilter;
-    const matchesMethod = methodFilter === 'all' || donation.paymentMethod === methodFilter;
+  const filteredDonations = donations.filter((donation) => {
+    const matchesStatus =
+      statusFilter === "all" || donation.status === statusFilter;
+    const matchesMethod =
+      methodFilter === "all" || donation.paymentMethod === methodFilter;
 
     let matchesDate = true;
-    if (dateFilter === 'today') {
+    if (dateFilter === "today") {
       const today = new Date().toDateString();
       matchesDate = new Date(donation.createdAt).toDateString() === today;
-    } else if (dateFilter === 'week') {
+    } else if (dateFilter === "week") {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
       matchesDate = new Date(donation.createdAt) >= weekAgo;
-    } else if (dateFilter === 'month') {
+    } else if (dateFilter === "month") {
       const monthAgo = new Date();
       monthAgo.setMonth(monthAgo.getMonth() - 1);
       matchesDate = new Date(donation.createdAt) >= monthAgo;
-    } else if (dateFilter === 'year') {
+    } else if (dateFilter === "year") {
       const yearAgo = new Date();
       yearAgo.setFullYear(yearAgo.getFullYear() - 1);
       matchesDate = new Date(donation.createdAt) >= yearAgo;
@@ -2643,50 +2889,60 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
   });
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
     }).format(amount);
   };
 
   const donationColumns = [
     {
-      key: 'donor',
-      title: 'Donor',
+      key: "donor",
+      title: "Donor",
       render: (donation) => (
         <div>
-          <div className="text-sm font-medium text-gray-900">{donation.donorName || 'Anonymous'}</div>
-          <div className="text-sm text-gray-500">{donation.donorEmail || 'No email provided'}</div>
+          <div className="text-sm font-medium text-gray-900">
+            {donation.donorName || "Anonymous"}
+          </div>
+          <div className="text-sm text-gray-500">
+            {donation.donorEmail || "No email provided"}
+          </div>
         </div>
-      )
+      ),
     },
     {
-      key: 'amount',
-      title: 'Amount',
-      render: (donation) => formatCurrency(donation.amount)
+      key: "amount",
+      title: "Amount",
+      render: (donation) => formatCurrency(donation.amount),
     },
     {
-      key: 'date',
-      title: 'Date',
-      render: (donation) => new Date(donation.createdAt).toLocaleDateString()
+      key: "date",
+      title: "Date",
+      render: (donation) => new Date(donation.createdAt).toLocaleDateString(),
     },
     {
-      key: 'method',
-      title: 'Method',
-      render: (donation) => donation.paymentMethod ? donation.paymentMethod.charAt(0).toUpperCase() + donation.paymentMethod.slice(1) : 'Unknown'
+      key: "method",
+      title: "Method",
+      render: (donation) =>
+        donation.paymentMethod
+          ? donation.paymentMethod.charAt(0).toUpperCase() +
+            donation.paymentMethod.slice(1)
+          : "Unknown",
     },
     {
-      key: 'type',
-      title: 'Type',
-      render: (donation) => donation.recurring ? 'Recurring' : 'One-time'
+      key: "type",
+      title: "Type",
+      render: (donation) => (donation.recurring ? "Recurring" : "One-time"),
     },
     {
-      key: 'status',
-      title: 'Status',
+      key: "status",
+      title: "Status",
       render: (donation) => (
         <select
           value={donation.status}
-          onChange={(e) => onUpdateDonation(donation._id, { status: e.target.value })}
+          onChange={(e) =>
+            onUpdateDonation(donation._id, { status: e.target.value })
+          }
           className="form-input text-sm"
         >
           <option value="pending">Pending</option>
@@ -2694,11 +2950,14 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
           <option value="failed">Failed</option>
           <option value="refunded">Refunded</option>
         </select>
-      )
+      ),
     },
   ];
 
-  const totalAmount = filteredDonations.reduce((sum, donation) => sum + donation.amount, 0);
+  const totalAmount = filteredDonations.reduce(
+    (sum, donation) => sum + donation.amount,
+    0,
+  );
 
   return (
     <div>
@@ -2740,7 +2999,7 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
             <option value="year">This Year</option>
           </select>
           <button className="btn btn-primary">
-            <i className="fas fa-download mr-2"></i> Export
+            <i className="fas fa-download mr-2" /> Export
           </button>
         </div>
       </div>
@@ -2748,13 +3007,21 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
       <div className="bg-white rounded-lg shadow-md p-4 mb-6">
         <div className="flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-semibold">Total: {formatCurrency(totalAmount)}</h3>
-            <p className="text-sm text-gray-500">{filteredDonations.length} donations</p>
+            <h3 className="text-lg font-semibold">
+              Total: {formatCurrency(totalAmount)}
+            </h3>
+            <p className="text-sm text-gray-500">
+              {filteredDonations.length} donations
+            </p>
           </div>
           <div className="text-right">
             <p className="text-sm text-gray-500">Recurring donations</p>
             <p className="font-semibold">
-              {formatCurrency(filteredDonations.filter(d => d.recurring).reduce((sum, d) => sum + d.amount, 0))}
+              {formatCurrency(
+                filteredDonations
+                  .filter((d) => d.recurring)
+                  .reduce((sum, d) => sum + d.amount, 0),
+              )}
             </p>
           </div>
         </div>
@@ -2764,8 +3031,8 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
         <DataTable
           columns={donationColumns}
           data={filteredDonations}
-          onEdit={() => { }}
-          onDelete={() => { }}
+          onEdit={() => {}}
+          onDelete={() => {}}
           emptyMessage="No donations found matching your criteria"
           pagination={null}
         />
@@ -2775,57 +3042,77 @@ const DonationsManagement = ({ donations, onUpdateDonation }) => {
 };
 
 // Prayer Requests Management Component
-const PrayerRequestsManagement = ({ prayerRequests, onUpdatePrayerRequest, onDeletePrayerRequest }) => {
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [privacyFilter, setPrivacyFilter] = useState('all');
+const PrayerRequestsManagement = ({
+  prayerRequests,
+  onUpdatePrayerRequest,
+  onDeletePrayerRequest,
+}) => {
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [privacyFilter, setPrivacyFilter] = useState("all");
 
-  const filteredPrayerRequests = prayerRequests.filter(request => {
-    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || request.category === categoryFilter;
-    const matchesPrivacy = privacyFilter === 'all' ||
-      (privacyFilter === 'public' && request.isPublic) ||
-      (privacyFilter === 'private' && !request.isPublic);
+  const filteredPrayerRequests = prayerRequests.filter((request) => {
+    const matchesStatus =
+      statusFilter === "all" || request.status === statusFilter;
+    const matchesCategory =
+      categoryFilter === "all" || request.category === categoryFilter;
+    const matchesPrivacy =
+      privacyFilter === "all" ||
+      (privacyFilter === "public" && request.isPublic) ||
+      (privacyFilter === "private" && !request.isPublic);
     return matchesStatus && matchesCategory && matchesPrivacy;
   });
 
   const prayerColumns = [
     {
-      key: 'name',
-      title: 'Name',
+      key: "name",
+      title: "Name",
       render: (request) => (
         <div>
-          <div className="text-sm font-medium text-gray-900">{request.name || 'Anonymous'}</div>
-          <div className="text-sm text-gray-500">{request.email || 'No email provided'}</div>
+          <div className="text-sm font-medium text-gray-900">
+            {request.name || "Anonymous"}
+          </div>
+          <div className="text-sm text-gray-500">
+            {request.email || "No email provided"}
+          </div>
         </div>
-      )
+      ),
     },
     {
-      key: 'request',
-      title: 'Request',
+      key: "request",
+      title: "Request",
       render: (request) => (
-        <div className="text-sm text-gray-900 line-clamp-2">{request.request}</div>
-      )
+        <div className="text-sm text-gray-900 line-clamp-2">
+          {request.request}
+        </div>
+      ),
     },
-    { key: 'category', title: 'Category' },
+    { key: "category", title: "Category" },
     {
-      key: 'privacy',
-      title: 'Privacy',
+      key: "privacy",
+      title: "Privacy",
       render: (request) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${request.isPublic ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-          }`}>
-          {request.isPublic ? 'Public' : 'Private'}
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            request.isPublic
+              ? "bg-blue-100 text-blue-800"
+              : "bg-gray-100 text-gray-800"
+          }`}
+        >
+          {request.isPublic ? "Public" : "Private"}
         </span>
-      )
+      ),
     },
-    { key: 'prayerCount', title: 'Prayers' },
+    { key: "prayerCount", title: "Prayers" },
     {
-      key: 'status',
-      title: 'Status',
+      key: "status",
+      title: "Status",
       render: (request) => (
         <select
           value={request.status}
-          onChange={(e) => onUpdatePrayerRequest(request._id, { status: e.target.value })}
+          onChange={(e) =>
+            onUpdatePrayerRequest(request._id, { status: e.target.value })
+          }
           className="form-input text-sm"
         >
           <option value="pending">Pending</option>
@@ -2833,7 +3120,7 @@ const PrayerRequestsManagement = ({ prayerRequests, onUpdatePrayerRequest, onDel
           <option value="answered">Answered</option>
           <option value="rejected">Rejected</option>
         </select>
-      )
+      ),
     },
   ];
 
@@ -2882,7 +3169,7 @@ const PrayerRequestsManagement = ({ prayerRequests, onUpdatePrayerRequest, onDel
         <DataTable
           columns={prayerColumns}
           data={filteredPrayerRequests}
-          onEdit={() => { }}
+          onEdit={() => {}}
           onDelete={(request) => onDeletePrayerRequest(request._id)}
           emptyMessage="No prayer requests found matching your criteria"
           pagination={null}
@@ -2893,24 +3180,30 @@ const PrayerRequestsManagement = ({ prayerRequests, onUpdatePrayerRequest, onDel
 };
 
 // Event Form Modal Component
-const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) => {
+const EventFormModal = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  eventData = {},
+  users,
+}) => {
   const { values, handleChange, setValues } = useForm({
-    title: '',
-    description: '',
-    startTime: '',
-    endTime: '',
-    location: '',
+    title: "",
+    description: "",
+    startTime: "",
+    endTime: "",
+    location: "",
     address: {},
-    category: 'service',
-    imageSource: 'url',
+    category: "service",
+    imageSource: "url",
     imageFile: null,
-    imageUrl: '',
+    imageUrl: "",
     capacity: 0,
     requiresRSVP: false,
     price: 0,
     leaders: [],
     tags: [],
-    ...eventData
+    ...eventData,
   });
 
   const handleSubmit = (e) => {
@@ -2936,7 +3229,7 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
   const addLeader = () => {
     setValues({
       ...values,
-      leaders: [...values.leaders, { userId: '', role: '' }]
+      leaders: [...values.leaders, { userId: "", role: "" }],
     });
   };
 
@@ -2961,7 +3254,7 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
   const addTag = () => {
     setValues({
       ...values,
-      tags: [...values.tags, '']
+      tags: [...values.tags, ""],
     });
   };
 
@@ -2979,23 +3272,32 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
 
   useEffect(() => {
     if (isOpen) {
-      document.querySelector('.form-input')?.focus();
+      document.querySelector(".form-input")?.focus();
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   // Filter users who can be leaders (staff, moderators, admins, volunteers)
-  const potentialLeaders = users.filter(user =>
-    ['admin', 'moderator', 'staff', 'volunteer'].includes(user.role) && user.status === 'active'
+  const potentialLeaders = users.filter(
+    (user) =>
+      ["admin", "moderator", "staff", "volunteer"].includes(user.role) &&
+      user.status === "active",
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={eventData._id ? 'Edit Event' : 'Create Event'} size="lg">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={eventData._id ? "Edit Event" : "Create Event"}
+      size="lg"
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Event Title*</label>
+            <label className="block text-sm font-medium mb-1">
+              Event Title*
+            </label>
             <input
               type="text"
               name="title"
@@ -3030,7 +3332,9 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Start Time*</label>
+            <label className="block text-sm font-medium mb-1">
+              Start Time*
+            </label>
             <input
               type="datetime-local"
               name="startTime"
@@ -3115,7 +3419,9 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
                 name="imageSource"
                 value="file"
                 checked={values.imageSource === "file"}
-                onChange={() => setValues({ ...values, imageSource: "file", imageUrl: "" })}
+                onChange={() =>
+                  setValues({ ...values, imageSource: "file", imageUrl: "" })
+                }
                 className="form-radio text-[#FF7E45]"
               />
               <span>Upload from device</span>
@@ -3127,7 +3433,9 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
                 name="imageSource"
                 value="url"
                 checked={values.imageSource === "url"}
-                onChange={() => setValues({ ...values, imageSource: "url", imageFile: null })}
+                onChange={() =>
+                  setValues({ ...values, imageSource: "url", imageFile: null })
+                }
                 className="form-radio text-[#FF7E45]"
               />
               <span>Use image link</span>
@@ -3143,7 +3451,11 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
                 onChange={(e) => {
                   const file = e.target.files[0];
                   if (file) {
-                    setValues({ ...values, imageFile: file, imageUrl: URL.createObjectURL(file) });
+                    setValues({
+                      ...values,
+                      imageFile: file,
+                      imageUrl: URL.createObjectURL(file),
+                    });
                   }
                 }}
                 className="block w-full text-sm text-gray-700 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-3 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-[#FF7E45] file:text-white hover:file:bg-[#F4B942]"
@@ -3210,15 +3522,20 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
             </button>
           </div>
           {values.leaders.map((leader, index) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+            <div
+              key={index}
+              className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2"
+            >
               <select
                 value={leader.userId}
-                onChange={(e) => updateLeader(index, 'userId', e.target.value)}
+                onChange={(e) => updateLeader(index, "userId", e.target.value)}
                 className="form-input"
               >
                 <option value="">Select a leader</option>
-                {potentialLeaders.map(user => (
-                  <option key={user._id} value={user._id}>{user.name} ({user.role})</option>
+                {potentialLeaders.map((user) => (
+                  <option key={user._id} value={user._id}>
+                    {user.name} ({user.role})
+                  </option>
                 ))}
               </select>
               <div className="flex">
@@ -3226,7 +3543,7 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
                   type="text"
                   placeholder="Role"
                   value={leader.role}
-                  onChange={(e) => updateLeader(index, 'role', e.target.value)}
+                  onChange={(e) => updateLeader(index, "role", e.target.value)}
                   className="form-input flex-1"
                 />
                 <button
@@ -3277,7 +3594,7 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
             Cancel
           </button>
           <button type="submit" className="btn btn-primary">
-            {eventData._id ? 'Update' : 'Create'} Event
+            {eventData._id ? "Update" : "Create"} Event
           </button>
         </div>
       </form>
@@ -3286,24 +3603,30 @@ const EventFormModal = ({ isOpen, onClose, onSubmit, eventData = {}, users }) =>
 };
 
 // Sermon Form Modal Component
-const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) => {
+const SermonFormModal = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  sermonData = {},
+  users,
+}) => {
   const { values, handleChange, setValues } = useForm({
-    title: '',
-    speaker: '',
-    description: '',
-    scripture: '',
-    category: 'sunday-service',
-    date: '',
-    duration: '00:00',
-    videoUrl: '',
-    audioUrl: '',
-    imageUrl: '',
+    title: "",
+    speaker: "",
+    description: "",
+    scripture: "",
+    category: "sunday-service",
+    date: "",
+    duration: "00:00",
+    videoUrl: "",
+    audioUrl: "",
+    imageUrl: "",
     isLive: false,
-    liveStreamUrl: '',
+    liveStreamUrl: "",
     tags: [],
-    series: '',
-    seriesPart: '',
-    ...sermonData
+    series: "",
+    seriesPart: "",
+    ...sermonData,
   });
 
   const handleSubmit = (e) => {
@@ -3314,7 +3637,7 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
   const addTag = () => {
     setValues({
       ...values,
-      tags: [...values.tags, '']
+      tags: [...values.tags, ""],
     });
   };
 
@@ -3332,23 +3655,32 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
 
   useEffect(() => {
     if (isOpen) {
-      document.querySelector('.form-input')?.focus();
+      document.querySelector(".form-input")?.focus();
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   // Filter users who can be speakers (staff, moderators, admins, volunteers)
-  const potentialSpeakers = users.filter(user =>
-    ['admin', 'moderator', 'staff', 'volunteer'].includes(user.role) && user.status === 'active'
+  const potentialSpeakers = users.filter(
+    (user) =>
+      ["admin", "moderator", "staff", "volunteer"].includes(user.role) &&
+      user.status === "active",
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={sermonData._id ? 'Edit Sermon' : 'Create Sermon'} size="lg">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={sermonData._id ? "Edit Sermon" : "Create Sermon"}
+      size="lg"
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Sermon Title*</label>
+            <label className="block text-sm font-medium mb-1">
+              Sermon Title*
+            </label>
             <input
               type="text"
               name="title"
@@ -3368,8 +3700,10 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
               required
             >
               <option value="">Select a speaker</option>
-              {potentialSpeakers.map(user => (
-                <option key={user._id} value={user._id}>{user.name} ({user.role})</option>
+              {potentialSpeakers.map((user) => (
+                <option key={user._id} value={user._id}>
+                  {user.name} ({user.role})
+                </option>
               ))}
             </select>
           </div>
@@ -3421,7 +3755,9 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Scripture Reference</label>
+            <label className="block text-sm font-medium mb-1">
+              Scripture Reference
+            </label>
             <input
               type="text"
               name="scripture"
@@ -3458,7 +3794,9 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Series Part</label>
+            <label className="block text-sm font-medium mb-1">
+              Series Part
+            </label>
             <input
               type="number"
               name="seriesPart"
@@ -3495,14 +3833,19 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
               className="form-checkbox h-4 w-4 text-[#FF7E45]"
               id="isLiveCheckbox"
             />
-            <label htmlFor="isLiveCheckbox" className="ml-2 text-sm font-medium">
+            <label
+              htmlFor="isLiveCheckbox"
+              className="ml-2 text-sm font-medium"
+            >
               This is a live stream
             </label>
           </div>
 
           {values.isLive ? (
             <div>
-              <label className="block text-sm font-medium mb-1">Live Stream URL*</label>
+              <label className="block text-sm font-medium mb-1">
+                Live Stream URL*
+              </label>
               <input
                 type="url"
                 name="liveStreamUrl"
@@ -3519,7 +3862,9 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
           ) : (
             <>
               <div>
-                <label className="block text-sm font-medium mb-1">Video URL</label>
+                <label className="block text-sm font-medium mb-1">
+                  Video URL
+                </label>
                 <input
                   type="url"
                   name="videoUrl"
@@ -3530,7 +3875,9 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Audio URL</label>
+                <label className="block text-sm font-medium mb-1">
+                  Audio URL
+                </label>
                 <input
                   type="url"
                   name="audioUrl"
@@ -3569,7 +3916,7 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
                 onClick={() => removeTag(index)}
                 className="ml-2 text-red-500 hover:text-red-700"
               >
-                <i className="fas fa-times"></i>
+                <i className="fas fa-times" />
               </button>
             </div>
           ))}
@@ -3580,7 +3927,7 @@ const SermonFormModal = ({ isOpen, onClose, onSubmit, sermonData = {}, users }) 
             Cancel
           </button>
           <button type="submit" className="btn btn-primary">
-            {sermonData._id ? 'Update' : 'Create'} Sermon
+            {sermonData._id ? "Update" : "Create"} Sermon
           </button>
         </div>
       </form>
@@ -4181,14 +4528,14 @@ const LiveStreamControl = ({ isLive, onStartLive, onStopLive, liveStats, sermons
 // Settings Form Component
 const SettingsForm = ({ settings, onUpdateSettings }) => {
   const { values, handleChange, setValues } = useForm({
-    churchName: settings.churchName || '',
+    churchName: settings.churchName || "",
     churchAddress: settings.churchAddress || {},
-    contactEmail: settings.contactEmail || '',
-    contactPhone: settings.contactPhone || '',
-    pastorName: settings.pastorName || '',
+    contactEmail: settings.contactEmail || "",
+    contactPhone: settings.contactPhone || "",
+    pastorName: settings.pastorName || "",
     serviceTimes: settings.serviceTimes || [],
     socialMedia: settings.socialMedia || {},
-    liveStreamUrl: settings.liveStreamUrl || '',
+    liveStreamUrl: settings.liveStreamUrl || "",
     givingOptions: settings.givingOptions || {},
     emailSettings: settings.emailSettings || {},
     sermonSettings: settings.sermonSettings || {},
@@ -4197,7 +4544,7 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
     testimonialSettings: settings.testimonialSettings || {},
     blogSettings: settings.blogSettings || {},
     ministrySettings: settings.ministrySettings || {},
-    ...settings
+    ...settings,
   });
 
   const handleSubmit = (e) => {
@@ -4208,7 +4555,10 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
   const addServiceTime = () => {
     setValues({
       ...values,
-      serviceTimes: [...values.serviceTimes, { day: '', time: '', description: '' }]
+      serviceTimes: [
+        ...values.serviceTimes,
+        { day: "", time: "", description: "" },
+      ],
     });
   };
 
@@ -4229,8 +4579,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       churchAddress: {
         ...values.churchAddress,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -4239,8 +4589,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       socialMedia: {
         ...values.socialMedia,
-        [platform]: value
-      }
+        [platform]: value,
+      },
     });
   };
 
@@ -4249,8 +4599,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       givingOptions: {
         ...values.givingOptions,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -4259,8 +4609,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       emailSettings: {
         ...values.emailSettings,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -4269,8 +4619,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       sermonSettings: {
         ...values.sermonSettings,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -4279,8 +4629,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       eventSettings: {
         ...values.eventSettings,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -4289,8 +4639,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       prayerRequestSettings: {
         ...values.prayerRequestSettings,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -4299,8 +4649,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       testimonialSettings: {
         ...values.testimonialSettings,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -4309,8 +4659,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       blogSettings: {
         ...values.blogSettings,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -4319,8 +4669,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       ...values,
       ministrySettings: {
         ...values.ministrySettings,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -4330,8 +4680,12 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       <div className="border-b border-gray-200 px-8 py-6 bg-gradient-to-r from-gray-50 to-white">
         <div className="flex items-center ">
           <div className=" text-center justify-between md:text-left">
-            <h2 className="text-3xl font-bold text-gray-900">System Settings</h2>
-            <p className="text-gray-600 mt-2">Manage your church website configuration and preferences</p>
+            <h2 className="text-3xl font-bold text-gray-900">
+              System Settings
+            </h2>
+            <p className="text-gray-600 mt-2">
+              Manage your church website configuration and preferences
+            </p>
           </div>
         </div>
       </div>
@@ -4339,18 +4693,19 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
       {/* Main Content */}
       <div className="p-8 max-h-[75vh] overflow-y-auto">
         <form id="settings-form" onSubmit={handleSubmit} className="space-y-8">
-
           {/* Church Information Section */}
           <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
             <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 flex items-center">
-              <i className="fas fa-church text-[#FF7E45] mr-3"></i>
+              <i className="fas fa-church text-[#FF7E45] mr-3" />
               Church Information
             </h3>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Church Name*</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Church Name*
+                  </label>
                   <input
                     type="text"
                     name="churchName"
@@ -4363,7 +4718,9 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Pastor Name</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Pastor Name
+                  </label>
                   <input
                     type="text"
                     name="pastorName"
@@ -4376,7 +4733,9 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Contact Email</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Contact Email
+                    </label>
                     <input
                       type="email"
                       name="contactEmail"
@@ -4387,7 +4746,9 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Contact Phone</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Contact Phone
+                    </label>
                     <input
                       type="tel"
                       name="contactPhone"
@@ -4401,36 +4762,38 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Church Address</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Church Address
+                </label>
                 <div className="grid grid-cols-1 gap-4 bg-white p-4 rounded-lg border border-gray-200">
                   <input
                     type="text"
                     placeholder="Street Address"
-                    value={values.churchAddress.street || ''}
-                    onChange={(e) => updateAddress('street', e.target.value)}
+                    value={values.churchAddress.street || ""}
+                    onChange={(e) => updateAddress("street", e.target.value)}
                     className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
                   />
                   <div className="grid grid-cols-2 gap-4">
                     <input
                       type="text"
                       placeholder="City"
-                      value={values.churchAddress.city || ''}
-                      onChange={(e) => updateAddress('city', e.target.value)}
+                      value={values.churchAddress.city || ""}
+                      onChange={(e) => updateAddress("city", e.target.value)}
                       className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
                     />
                     <input
                       type="text"
                       placeholder="State"
-                      value={values.churchAddress.state || ''}
-                      onChange={(e) => updateAddress('state', e.target.value)}
+                      value={values.churchAddress.state || ""}
+                      onChange={(e) => updateAddress("state", e.target.value)}
                       className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
                     />
                   </div>
                   <input
                     type="text"
                     placeholder="ZIP Code"
-                    value={values.churchAddress.zipCode || ''}
-                    onChange={(e) => updateAddress('zipCode', e.target.value)}
+                    value={values.churchAddress.zipCode || ""}
+                    onChange={(e) => updateAddress("zipCode", e.target.value)}
                     className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
                   />
                 </div>
@@ -4442,7 +4805,7 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
           <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
             <div className="flex justify-between items-center mb-6 pb-3 border-b border-gray-200">
               <h3 className="text-xl font-semibold text-gray-900 flex items-center">
-                <i className="far fa-clock text-[#FF7E45] mr-3"></i>
+                <i className="far fa-clock text-[#FF7E45] mr-3" />
                 Service Times
               </h3>
               <button
@@ -4450,20 +4813,25 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
                 onClick={addServiceTime}
                 className="btn btn-primary bg-[#FF7E45] hover:bg-[#F4B942] text-white px-4 py-2 rounded-lg font-medium"
               >
-                <i className="fas fa-plus mr-2"></i>
+                <i className="fas fa-plus mr-2" />
                 Add Service Time
               </button>
             </div>
 
             <div className="space-y-4">
               {values.serviceTimes.map((service, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start bg-white p-4 rounded-lg border border-gray-200">
+                <div
+                  key={index}
+                  className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start bg-white p-4 rounded-lg border border-gray-200"
+                >
                   <div className="md:col-span-4">
                     <input
                       type="text"
                       placeholder="Day (e.g., Sunday)"
                       value={service.day}
-                      onChange={(e) => updateServiceTime(index, 'day', e.target.value)}
+                      onChange={(e) =>
+                        updateServiceTime(index, "day", e.target.value)
+                      }
                       className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
                     />
                   </div>
@@ -4472,7 +4840,9 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
                       type="text"
                       placeholder="Time (e.g., 10:00 AM)"
                       value={service.time}
-                      onChange={(e) => updateServiceTime(index, 'time', e.target.value)}
+                      onChange={(e) =>
+                        updateServiceTime(index, "time", e.target.value)
+                      }
                       className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
                     />
                   </div>
@@ -4481,7 +4851,9 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
                       type="text"
                       placeholder="Description"
                       value={service.description}
-                      onChange={(e) => updateServiceTime(index, 'description', e.target.value)}
+                      onChange={(e) =>
+                        updateServiceTime(index, "description", e.target.value)
+                      }
                       className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
                     />
                   </div>
@@ -4492,14 +4864,14 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
                       className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50 transition-colors"
                       title="Remove service time"
                     >
-                      <i className="fas fa-times text-lg"></i>
+                      <i className="fas fa-times text-lg" />
                     </button>
                   </div>
                 </div>
               ))}
               {values.serviceTimes.length === 0 && (
                 <div className="text-center py-8 text-gray-500 bg-white rounded-lg border-2 border-dashed border-gray-300">
-                  <i className="far fa-clock text-3xl mb-2"></i>
+                  <i className="far fa-clock text-3xl mb-2" />
                   <p>No service times added yet</p>
                 </div>
               )}
@@ -4509,27 +4881,54 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
           {/* Social Media Section */}
           <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
             <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 flex items-center">
-              <i className="fas fa-share-alt text-[#FF7E45] mr-3"></i>
+              <i className="fas fa-share-alt text-[#FF7E45] mr-3" />
               Social Media
             </h3>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {[
-                { platform: 'facebook', icon: 'fab fa-facebook', color: 'text-blue-600', label: 'Facebook URL' },
-                { platform: 'instagram', icon: 'fab fa-instagram', color: 'text-pink-600', label: 'Instagram URL' },
-                { platform: 'twitter', icon: 'fab fa-twitter', color: 'text-blue-400', label: 'Twitter URL' },
-                { platform: 'youtube', icon: 'fab fa-youtube', color: 'text-red-600', label: 'YouTube URL' }
+                {
+                  platform: "facebook",
+                  icon: "fab fa-facebook",
+                  color: "text-blue-600",
+                  label: "Facebook URL",
+                },
+                {
+                  platform: "instagram",
+                  icon: "fab fa-instagram",
+                  color: "text-pink-600",
+                  label: "Instagram URL",
+                },
+                {
+                  platform: "twitter",
+                  icon: "fab fa-twitter",
+                  color: "text-blue-400",
+                  label: "Twitter URL",
+                },
+                {
+                  platform: "youtube",
+                  icon: "fab fa-youtube",
+                  color: "text-red-600",
+                  label: "YouTube URL",
+                },
               ].map((social) => (
-                <div key={social.platform} className="flex items-center space-x-4 bg-white p-4 rounded-lg border border-gray-200">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${social.color} bg-gray-50`}>
-                    <i className={`${social.icon} text-lg`}></i>
+                <div
+                  key={social.platform}
+                  className="flex items-center space-x-4 bg-white p-4 rounded-lg border border-gray-200"
+                >
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center ${social.color} bg-gray-50`}
+                  >
+                    <i className={`${social.icon} text-lg`} />
                   </div>
                   <div className="flex-1">
                     <input
                       type="url"
                       placeholder={social.label}
-                      value={values.socialMedia[social.platform] || ''}
-                      onChange={(e) => updateSocialMedia(social.platform, e.target.value)}
+                      value={values.socialMedia[social.platform] || ""}
+                      onChange={(e) =>
+                        updateSocialMedia(social.platform, e.target.value)
+                      }
                       className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
                     />
                   </div>
@@ -4541,12 +4940,14 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
           {/* Live Stream Section */}
           <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
             <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 flex items-center">
-              <i className="fas fa-broadcast-tower text-[#FF7E45] mr-3"></i>
+              <i className="fas fa-broadcast-tower text-[#FF7E45] mr-3" />
               Live Stream
             </h3>
 
             <div className="bg-white p-6 rounded-lg border border-gray-200">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Live Stream URL</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Live Stream URL
+              </label>
               <input
                 type="url"
                 name="liveStreamUrl"
@@ -4556,7 +4957,8 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
                 placeholder="https://youtube.com/live/..."
               />
               <p className="text-sm text-gray-500 mt-2">
-                Enter the URL for your live stream service (YouTube, Facebook, etc.)
+                Enter the URL for your live stream service (YouTube, Facebook,
+                etc.)
               </p>
             </div>
           </div>
@@ -4564,7 +4966,7 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
           {/* Giving Options Section */}
           <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
             <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 flex items-center">
-              <i className="fas fa-donate text-[#FF7E45] mr-3"></i>
+              <i className="fas fa-donate text-[#FF7E45] mr-3" />
               Giving Options
             </h3>
 
@@ -4574,11 +4976,16 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
                   type="checkbox"
                   name="enableOnlineGiving"
                   checked={values.givingOptions.enableOnlineGiving || false}
-                  onChange={(e) => updateGivingOptions('enableOnlineGiving', e.target.checked)}
+                  onChange={(e) =>
+                    updateGivingOptions("enableOnlineGiving", e.target.checked)
+                  }
                   className="form-checkbox h-5 w-5 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
                   id="enableOnlineGiving"
                 />
-                <label htmlFor="enableOnlineGiving" className="ml-3 text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="enableOnlineGiving"
+                  className="ml-3 text-sm font-medium text-gray-700"
+                >
                   Enable Online Giving
                 </label>
               </div>
@@ -4586,21 +4993,32 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               {values.givingOptions.enableOnlineGiving && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-white p-6 rounded-lg border border-gray-200">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Stripe Publishable Key</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Stripe Publishable Key
+                    </label>
                     <input
                       type="text"
-                      value={values.givingOptions.stripePublishableKey || ''}
-                      onChange={(e) => updateGivingOptions('stripePublishableKey', e.target.value)}
+                      value={values.givingOptions.stripePublishableKey || ""}
+                      onChange={(e) =>
+                        updateGivingOptions(
+                          "stripePublishableKey",
+                          e.target.value,
+                        )
+                      }
                       className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
                       placeholder="pk_test_..."
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Stripe Secret Key</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Stripe Secret Key
+                    </label>
                     <input
                       type="password"
-                      value={values.givingOptions.stripeSecretKey || ''}
-                      onChange={(e) => updateGivingOptions('stripeSecretKey', e.target.value)}
+                      value={values.givingOptions.stripeSecretKey || ""}
+                      onChange={(e) =>
+                        updateGivingOptions("stripeSecretKey", e.target.value)
+                      }
                       className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
                       placeholder="sk_test_..."
                     />
@@ -4613,28 +5031,39 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
           {/* Email Settings Section */}
           <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
             <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 flex items-center">
-              <i className="fas fa-envelope text-[#FF7E45] mr-3"></i>
+              <i className="fas fa-envelope text-[#FF7E45] mr-3" />
               Email Settings
             </h3>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">SMTP Host</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    SMTP Host
+                  </label>
                   <input
                     type="text"
-                    value={values.emailSettings.host || ''}
-                    onChange={(e) => updateEmailSettings('host', e.target.value)}
+                    value={values.emailSettings.host || ""}
+                    onChange={(e) =>
+                      updateEmailSettings("host", e.target.value)
+                    }
                     className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
                     placeholder="smtp.gmail.com"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">SMTP Port</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    SMTP Port
+                  </label>
                   <input
                     type="number"
-                    value={values.emailSettings.port || ''}
-                    onChange={(e) => updateEmailSettings('port', parseInt(e.target.value) || '')}
+                    value={values.emailSettings.port || ""}
+                    onChange={(e) =>
+                      updateEmailSettings(
+                        "port",
+                        parseInt(e.target.value) || "",
+                      )
+                    }
                     className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
                     placeholder="587"
                   />
@@ -4643,21 +5072,35 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">SMTP Username</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    SMTP Username
+                  </label>
                   <input
                     type="text"
-                    value={values.emailSettings.auth?.user || ''}
-                    onChange={(e) => updateEmailSettings('auth', { ...values.emailSettings.auth, user: e.target.value })}
+                    value={values.emailSettings.auth?.user || ""}
+                    onChange={(e) =>
+                      updateEmailSettings("auth", {
+                        ...values.emailSettings.auth,
+                        user: e.target.value,
+                      })
+                    }
                     className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
                     placeholder="your-email@gmail.com"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">SMTP Password</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    SMTP Password
+                  </label>
                   <input
                     type="password"
-                    value={values.emailSettings.auth?.pass || ''}
-                    onChange={(e) => updateEmailSettings('auth', { ...values.emailSettings.auth, pass: e.target.value })}
+                    value={values.emailSettings.auth?.pass || ""}
+                    onChange={(e) =>
+                      updateEmailSettings("auth", {
+                        ...values.emailSettings.auth,
+                        pass: e.target.value,
+                      })
+                    }
                     className="w-full form-input border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#FF7E45] focus:ring-2 focus:ring-[#FF7E45]/20 transition-colors"
                     placeholder="••••••••"
                   />
@@ -4669,11 +5112,16 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               <input
                 type="checkbox"
                 checked={values.emailSettings.secure || false}
-                onChange={(e) => updateEmailSettings('secure', e.target.checked)}
+                onChange={(e) =>
+                  updateEmailSettings("secure", e.target.checked)
+                }
                 className="form-checkbox h-5 w-5 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
                 id="secureSMTP"
               />
-              <label htmlFor="secureSMTP" className="ml-3 text-sm font-medium text-gray-700">
+              <label
+                htmlFor="secureSMTP"
+                className="ml-3 text-sm font-medium text-gray-700"
+              >
                 Use SSL/TLS for secure connection
               </label>
             </div>
@@ -4682,16 +5130,15 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
           {/* Module Settings Section */}
           <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
             <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 flex items-center">
-              <i className="fas fa-cubes text-[#FF7E45] mr-3"></i>
+              <i className="fas fa-cubes text-[#FF7E45] mr-3" />
               Module Settings
             </h3>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-
               {/* Sermon Settings */}
               <div className="bg-white p-6 rounded-lg border border-gray-200">
                 <h4 className="font-semibold text-lg text-gray-800 mb-4 flex items-center">
-                  <i className="fas fa-microphone-alt text-[#FF7E45] mr-2"></i>
+                  <i className="fas fa-microphone-alt text-[#FF7E45] mr-2" />
                   Sermon Settings
                 </h4>
                 <div className="space-y-3">
@@ -4699,11 +5146,16 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
                     <input
                       type="checkbox"
                       checked={values.sermonSettings.autoPublish || false}
-                      onChange={(e) => updateSermonSettings('autoPublish', e.target.checked)}
+                      onChange={(e) =>
+                        updateSermonSettings("autoPublish", e.target.checked)
+                      }
                       className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
                       id="autoPublishSermons"
                     />
-                    <label htmlFor="autoPublishSermons" className="ml-2 text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="autoPublishSermons"
+                      className="ml-2 text-sm font-medium text-gray-700"
+                    >
                       Auto-publish new sermons
                     </label>
                   </div>
@@ -4713,7 +5165,7 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               {/* Blog Settings */}
               <div className="bg-white p-6 rounded-lg border border-gray-200">
                 <h4 className="font-semibold text-lg text-gray-800 mb-4 flex items-center">
-                  <i className="far fa-newspaper text-[#FF7E45] mr-2"></i>
+                  <i className="far fa-newspaper text-[#FF7E45] mr-2" />
                   Blog Settings
                 </h4>
                 <div className="space-y-3">
@@ -4721,11 +5173,16 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
                     <input
                       type="checkbox"
                       checked={values.blogSettings.enableComments || false}
-                      onChange={(e) => updateBlogSettings('enableComments', e.target.checked)}
+                      onChange={(e) =>
+                        updateBlogSettings("enableComments", e.target.checked)
+                      }
                       className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
                       id="enableBlogComments"
                     />
-                    <label htmlFor="enableBlogComments" className="ml-2 text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="enableBlogComments"
+                      className="ml-2 text-sm font-medium text-gray-700"
+                    >
                       Enable blog comments
                     </label>
                   </div>
@@ -4733,11 +5190,16 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
                     <input
                       type="checkbox"
                       checked={values.blogSettings.requireApproval || false}
-                      onChange={(e) => updateBlogSettings('requireApproval', e.target.checked)}
+                      onChange={(e) =>
+                        updateBlogSettings("requireApproval", e.target.checked)
+                      }
                       className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
                       id="requireBlogApproval"
                     />
-                    <label htmlFor="requireBlogApproval" className="ml-2 text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="requireBlogApproval"
+                      className="ml-2 text-sm font-medium text-gray-700"
+                    >
                       Require blog post approval
                     </label>
                   </div>
@@ -4747,19 +5209,29 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               {/* Ministry Settings */}
               <div className="bg-white p-6 rounded-lg border border-gray-200">
                 <h4 className="font-semibold text-lg text-gray-800 mb-4 flex items-center">
-                  <i className="fas fa-hands-helping text-[#FF7E45] mr-2"></i>
+                  <i className="fas fa-hands-helping text-[#FF7E45] mr-2" />
                   Ministry Settings
                 </h4>
                 <div className="space-y-3">
                   <div className="flex items-center">
                     <input
                       type="checkbox"
-                      checked={values.ministrySettings.enableVolunteerSignup || false}
-                      onChange={(e) => updateMinistrySettings('enableVolunteerSignup', e.target.checked)}
+                      checked={
+                        values.ministrySettings.enableVolunteerSignup || false
+                      }
+                      onChange={(e) =>
+                        updateMinistrySettings(
+                          "enableVolunteerSignup",
+                          e.target.checked,
+                        )
+                      }
                       className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
                       id="enableVolunteerSignup"
                     />
-                    <label htmlFor="enableVolunteerSignup" className="ml-2 text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="enableVolunteerSignup"
+                      className="ml-2 text-sm font-medium text-gray-700"
+                    >
                       Enable volunteer signup
                     </label>
                   </div>
@@ -4767,11 +5239,16 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
                     <input
                       type="checkbox"
                       checked={values.ministrySettings.showLeaders !== false}
-                      onChange={(e) => updateMinistrySettings('showLeaders', e.target.checked)}
+                      onChange={(e) =>
+                        updateMinistrySettings("showLeaders", e.target.checked)
+                      }
                       className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
                       id="showMinistryLeaders"
                     />
-                    <label htmlFor="showMinistryLeaders" className="ml-2 text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="showMinistryLeaders"
+                      className="ml-2 text-sm font-medium text-gray-700"
+                    >
                       Show ministry leaders publicly
                     </label>
                   </div>
@@ -4781,7 +5258,7 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               {/* Event Settings */}
               <div className="bg-white p-6 rounded-lg border border-gray-200">
                 <h4 className="font-semibold text-lg text-gray-800 mb-4 flex items-center">
-                  <i className="far fa-calendar-alt text-[#FF7E45] mr-2"></i>
+                  <i className="far fa-calendar-alt text-[#FF7E45] mr-2" />
                   Event Settings
                 </h4>
                 <div className="space-y-3">
@@ -4789,11 +5266,16 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
                     <input
                       type="checkbox"
                       checked={values.eventSettings.requireApproval || false}
-                      onChange={(e) => updateEventSettings('requireApproval', e.target.checked)}
+                      onChange={(e) =>
+                        updateEventSettings("requireApproval", e.target.checked)
+                      }
                       className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
                       id="requireEventApproval"
                     />
-                    <label htmlFor="requireEventApproval" className="ml-2 text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="requireEventApproval"
+                      className="ml-2 text-sm font-medium text-gray-700"
+                    >
                       Require event approval
                     </label>
                   </div>
@@ -4801,11 +5283,16 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
                     <input
                       type="checkbox"
                       checked={values.eventSettings.allowPublicRSVP !== false}
-                      onChange={(e) => updateEventSettings('allowPublicRSVP', e.target.checked)}
+                      onChange={(e) =>
+                        updateEventSettings("allowPublicRSVP", e.target.checked)
+                      }
                       className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
                       id="allowPublicRSVP"
                     />
-                    <label htmlFor="allowPublicRSVP" className="ml-2 text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="allowPublicRSVP"
+                      className="ml-2 text-sm font-medium text-gray-700"
+                    >
                       Allow public RSVP
                     </label>
                   </div>
@@ -4815,31 +5302,51 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               {/* Prayer Request Settings */}
               <div className="bg-white p-6 rounded-lg border border-gray-200">
                 <h4 className="font-semibold text-lg text-gray-800 mb-4 flex items-center">
-                  <i className="fas fa-praying-hands text-[#FF7E45] mr-2"></i>
+                  <i className="fas fa-praying-hands text-[#FF7E45] mr-2" />
                   Prayer Request Settings
                 </h4>
                 <div className="space-y-3">
                   <div className="flex items-center">
                     <input
                       type="checkbox"
-                      checked={values.prayerRequestSettings.requireApproval !== false}
-                      onChange={(e) => updatePrayerRequestSettings('requireApproval', e.target.checked)}
+                      checked={
+                        values.prayerRequestSettings.requireApproval !== false
+                      }
+                      onChange={(e) =>
+                        updatePrayerRequestSettings(
+                          "requireApproval",
+                          e.target.checked,
+                        )
+                      }
                       className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
                       id="requirePrayerApproval"
                     />
-                    <label htmlFor="requirePrayerApproval" className="ml-2 text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="requirePrayerApproval"
+                      className="ml-2 text-sm font-medium text-gray-700"
+                    >
                       Require prayer request approval
                     </label>
                   </div>
                   <div className="flex items-center">
                     <input
                       type="checkbox"
-                      checked={values.prayerRequestSettings.allowAnonymous !== false}
-                      onChange={(e) => updatePrayerRequestSettings('allowAnonymous', e.target.checked)}
+                      checked={
+                        values.prayerRequestSettings.allowAnonymous !== false
+                      }
+                      onChange={(e) =>
+                        updatePrayerRequestSettings(
+                          "allowAnonymous",
+                          e.target.checked,
+                        )
+                      }
                       className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
                       id="allowAnonymousPrayer"
                     />
-                    <label htmlFor="allowAnonymousPrayer" className="ml-2 text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="allowAnonymousPrayer"
+                      className="ml-2 text-sm font-medium text-gray-700"
+                    >
                       Allow anonymous prayer requests
                     </label>
                   </div>
@@ -4849,19 +5356,29 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               {/* Testimonial Settings */}
               <div className="bg-white p-6 rounded-lg border border-gray-200">
                 <h4 className="font-semibold text-lg text-gray-800 mb-4 flex items-center">
-                  <i className="far fa-comment-dots text-[#FF7E45] mr-2"></i>
+                  <i className="far fa-comment-dots text-[#FF7E45] mr-2" />
                   Testimonial Settings
                 </h4>
                 <div className="space-y-3">
                   <div className="flex items-center">
                     <input
                       type="checkbox"
-                      checked={values.testimonialSettings.requireApproval !== false}
-                      onChange={(e) => updateTestimonialSettings('requireApproval', e.target.checked)}
+                      checked={
+                        values.testimonialSettings.requireApproval !== false
+                      }
+                      onChange={(e) =>
+                        updateTestimonialSettings(
+                          "requireApproval",
+                          e.target.checked,
+                        )
+                      }
                       className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
                       id="requireTestimonialApproval"
                     />
-                    <label htmlFor="requireTestimonialApproval" className="ml-2 text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="requireTestimonialApproval"
+                      className="ml-2 text-sm font-medium text-gray-700"
+                    >
                       Require testimonial approval
                     </label>
                   </div>
@@ -4869,11 +5386,19 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
                     <input
                       type="checkbox"
                       checked={values.testimonialSettings.allowVideo !== false}
-                      onChange={(e) => updateTestimonialSettings('allowVideo', e.target.checked)}
+                      onChange={(e) =>
+                        updateTestimonialSettings(
+                          "allowVideo",
+                          e.target.checked,
+                        )
+                      }
                       className="form-checkbox h-4 w-4 text-[#FF7E45] rounded focus:ring-[#FF7E45]"
                       id="allowVideoTestimonials"
                     />
-                    <label htmlFor="allowVideoTestimonials" className="ml-2 text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="allowVideoTestimonials"
+                      className="ml-2 text-sm font-medium text-gray-700"
+                    >
                       Allow video testimonials
                     </label>
                   </div>
@@ -4889,14 +5414,14 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
               onClick={() => setValues(settings)}
               className="btn btn-outline px-8 py-3 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 font-medium rounded-lg"
             >
-              <i className="fas fa-undo mr-2"></i>
+              <i className="fas fa-undo mr-2" />
               Reset Changes
             </button>
             <button
               type="submit"
               className="btn btn-primary px-10 py-3 bg-[#FF7E45] hover:bg-[#F4B942] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all"
             >
-              <i className="fas fa-save mr-2"></i>
+              <i className="fas fa-save mr-2" />
               Save All Settings
             </button>
           </div>
@@ -4908,7 +5433,7 @@ const SettingsForm = ({ settings, onUpdateSettings }) => {
 
 // Main AdminPage Component
 const AdminPage = () => {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
   const [stats, setStats] = useState({});
   const [recentActivity, setRecentActivity] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -4928,7 +5453,7 @@ const AdminPage = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedSermon, setSelectedSermon] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [deleteType, setDeleteType] = useState('');
+  const [deleteType, setDeleteType] = useState("");
   const [deleteItem, setDeleteItem] = useState(null);
   const { liveStatus, refreshLiveStatus } = useLiveStatus();
 
@@ -4937,9 +5462,10 @@ const AdminPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "SMC: - Admin | St. Micheal`s & All Angels Church | Ifite-Awka";
+    document.title =
+      "SMC: - Admin | St. Micheal`s & All Angels Church | Ifite-Awka";
 
-    if (user && (user.role === 'admin')) {
+    if (user && user.role === "admin") {
       fetchDashboardData();
       fetchSettings();
     }
@@ -4977,7 +5503,7 @@ const AdminPage = () => {
         sermonService.getAll({ limit: 100 }),
         donationService.getAll({ limit: 100 }),
         prayerService.getAll({ limit: 100 }),
-        adminService.getSettings()
+        adminService.getSettings(),
       ];
 
       const responses = await Promise.allSettled(requests);
@@ -4988,11 +5514,11 @@ const AdminPage = () => {
           const result = response.value;
 
           // Extract data from different possible response structures
-          let data = result?.data || result;
+          const data = result?.data || result;
 
           switch (index) {
             case 0: // Stats
-              setStats(typeof data === 'object' ? data : {});
+              setStats(typeof data === "object" ? data : {});
               break;
 
             case 1: // Recent Activity
@@ -5084,24 +5610,48 @@ const AdminPage = () => {
           console.warn(`Request ${index} failed:`, response.reason);
           // Set empty defaults for failed requests
           switch (index) {
-            case 0: setStats({}); break;
-            case 1: setRecentActivity([]); break;
-            case 2: setUsers([]); break;
-            case 3: setMinistries([]); break;
-            case 4: setTestimonials([]); break;
-            case 5: setBlogPosts([]); break;
-            case 6: setUpcomingEvents([]); break;
-            case 7: setSermons([]); break;
-            case 8: setDonations([]); break;
-            case 9: setPrayerRequests([]); break;
-            case 10: setSettings({}); break;
+            case 0:
+              setStats({});
+              break;
+            case 1:
+              setRecentActivity([]);
+              break;
+            case 2:
+              setUsers([]);
+              break;
+            case 3:
+              setMinistries([]);
+              break;
+            case 4:
+              setTestimonials([]);
+              break;
+            case 5:
+              setBlogPosts([]);
+              break;
+            case 6:
+              setUpcomingEvents([]);
+              break;
+            case 7:
+              setSermons([]);
+              break;
+            case 8:
+              setDonations([]);
+              break;
+            case 9:
+              setPrayerRequests([]);
+              break;
+            case 10:
+              setSettings({});
+              break;
           }
         }
       });
-
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
-      const errorMessage = err.response?.data?.message || err.message || "Failed to load dashboard data";
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to load dashboard data";
       setError(errorMessage);
       alert.error(errorMessage);
 
@@ -5128,8 +5678,9 @@ const AdminPage = () => {
       const response = await adminService.getSettings();
       setSettings(response.settings || response);
     } catch (error) {
-      console.error('Error fetching settings:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to load settings';
+      console.error("Error fetching settings:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to load settings";
       alert.error(errorMessage);
     }
   };
@@ -5141,13 +5692,14 @@ const AdminPage = () => {
 
       if (updatedSettings) {
         setSettings(updatedSettings);
-        return { success: true, message: 'Settings updated successfully' };
+        return { success: true, message: "Settings updated successfully" };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error updating settings:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update settings';
+      console.error("Error updating settings:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update settings";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -5157,11 +5709,12 @@ const AdminPage = () => {
     try {
       const response = await adminService.resetSettings();
       setSettings(response.settings || response);
-      alert.success('Settings reset successfully');
-      return { success: true, message: 'Settings reset successfully' };
+      alert.success("Settings reset successfully");
+      return { success: true, message: "Settings reset successfully" };
     } catch (error) {
-      console.error('Error resetting settings:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to reset settings';
+      console.error("Error resetting settings:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to reset settings";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -5384,11 +5937,12 @@ const AdminPage = () => {
   const handleDeleteUser = async (userId) => {
     try {
       await userService.deleteUser(userId);
-      setUsers(prev => prev.filter(user => user._id !== userId));
-      return { success: true, message: 'User deleted successfully' };
+      setUsers((prev) => prev.filter((user) => user._id !== userId));
+      return { success: true, message: "User deleted successfully" };
     } catch (error) {
-      console.error('Error deleting user:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to delete user';
+      console.error("Error deleting user:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete user";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -5398,7 +5952,11 @@ const AdminPage = () => {
   const handleCreateMinistry = async (ministryData) => {
     try {
       const response = await ministryService.create(ministryData);
-      const newMinistry = response.data?.ministry || response.data?.data || response.data || response;
+      const newMinistry =
+        response.data?.ministry ||
+        response.data?.data ||
+        response.data ||
+        response;
 
       if (!newMinistry || !newMinistry._id) {
         throw new Error("Invalid response from server");
@@ -5408,16 +5966,23 @@ const AdminPage = () => {
         setStats((prev) => ({
           ...prev,
           totalMinistries: (prev.totalMinistries || 0) + 1,
-          activeMinistries: (prev.activeMinistries || 0) + (newMinistry.status === "active" ? 1 : 0),
+          activeMinistries:
+            (prev.activeMinistries || 0) +
+            (newMinistry.status === "active" ? 1 : 0),
         }));
 
         return {
-          success: true, message: "✅ Ministry created successfully!", data: newMinistry,
+          success: true,
+          message: "✅ Ministry created successfully!",
+          data: newMinistry,
         };
       }
     } catch (error) {
       console.error("❌ Error creating ministry:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Failed to create ministry";
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to create ministry";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -5426,20 +5991,35 @@ const AdminPage = () => {
   const handleUpdateMinistry = async (ministryId, ministryData) => {
     try {
       const response = await ministryService.update(ministryId, ministryData);
-      const updatedMinistry = response.data?.ministry || response.data?.data || response.data || response;
+      const updatedMinistry =
+        response.data?.ministry ||
+        response.data?.data ||
+        response.data ||
+        response;
 
       if (!updatedMinistry || !updatedMinistry._id) {
         throw new Error("Invalid response from server");
       }
 
       // ✅ Instantly reflect changes in UI table
-      setMinistries((prev) => prev.map((ministry) => ministry._id === ministryId ? updatedMinistry : ministry));
+      setMinistries((prev) =>
+        prev.map((ministry) =>
+          ministry._id === ministryId ? updatedMinistry : ministry,
+        ),
+      );
 
       alert.success("✅ Ministry updated successfully!");
-      return { success: true, message: "Ministry updated successfully", data: updatedMinistry };
+      return {
+        success: true,
+        message: "Ministry updated successfully",
+        data: updatedMinistry,
+      };
     } catch (error) {
       console.error("❌ Error updating ministry:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Failed to update ministry";
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to update ministry";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -5477,16 +6057,20 @@ const AdminPage = () => {
     }
   };
 
-
   // Testimonial Management Handlers
   const handleCreateTestimonial = async (testimonialData) => {
     try {
-      const response = await testimonialService.createTestimonial(testimonialData);
-      setTestimonials(prev => [...prev, response.data?.testimonial || response.testimonial]);
-      return { success: true, message: 'Testimonial created successfully' };
+      const response =
+        await testimonialService.createTestimonial(testimonialData);
+      setTestimonials((prev) => [
+        ...prev,
+        response.data?.testimonial || response.testimonial,
+      ]);
+      return { success: true, message: "Testimonial created successfully" };
     } catch (error) {
-      console.error('Error creating testimonial:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to create testimonial';
+      console.error("Error creating testimonial:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to create testimonial";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -5494,12 +6078,22 @@ const AdminPage = () => {
 
   const handleUpdateTestimonial = async (testimonialId, testimonialData) => {
     try {
-      const response = await testimonialService.updateTestimonial(testimonialId, testimonialData);
-      setTestimonials(prev => prev.map(testimonial => testimonial._id === testimonialId ? response.data?.testimonial || response.testimonial : testimonial));
-      return { success: true, message: 'Testimonial updated successfully' };
+      const response = await testimonialService.updateTestimonial(
+        testimonialId,
+        testimonialData,
+      );
+      setTestimonials((prev) =>
+        prev.map((testimonial) =>
+          testimonial._id === testimonialId
+            ? response.data?.testimonial || response.testimonial
+            : testimonial,
+        ),
+      );
+      return { success: true, message: "Testimonial updated successfully" };
     } catch (error) {
-      console.error('Error updating testimonial:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update testimonial';
+      console.error("Error updating testimonial:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update testimonial";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -5508,11 +6102,14 @@ const AdminPage = () => {
   const handleDeleteTestimonial = async (testimonialId) => {
     try {
       await testimonialService.deleteTestimonial(testimonialId);
-      setTestimonials(prev => prev.filter(testimonial => testimonial._id !== testimonialId));
-      return { success: true, message: 'Testimonial deleted successfully' };
+      setTestimonials((prev) =>
+        prev.filter((testimonial) => testimonial._id !== testimonialId),
+      );
+      return { success: true, message: "Testimonial deleted successfully" };
     } catch (error) {
-      console.error('Error deleting testimonial:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to delete testimonial';
+      console.error("Error deleting testimonial:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete testimonial";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -5522,12 +6119,17 @@ const AdminPage = () => {
   const handleCreateBlogPost = async (blogData) => {
     try {
       const response = await blogService.create(blogData);
-      setBlogPosts(prev => [...prev, response.data?.data || response.data || response]);
-      alert.success('Blog post created successfully!');
+      setBlogPosts((prev) => [
+        ...prev,
+        response.data?.data || response.data || response,
+      ]);
+      alert.success("Blog post created successfully!");
       return { success: true };
     } catch (error) {
-      console.error('Error creating blog post:', error);
-      alert.error(error.response?.data?.message || 'Failed to create blog post');
+      console.error("Error creating blog post:", error);
+      alert.error(
+        error.response?.data?.message || "Failed to create blog post",
+      );
       return { success: false };
     }
   };
@@ -5535,15 +6137,19 @@ const AdminPage = () => {
   const handleUpdateBlogPost = async (blogId, blogData) => {
     try {
       const response = await blogService.update(blogId, blogData);
-      setBlogPosts(prev =>
-        prev.map(post =>
-          post._id === blogId ? (response.data?.data || response.data || response) : post
-        )
+      setBlogPosts((prev) =>
+        prev.map((post) =>
+          post._id === blogId
+            ? response.data?.data || response.data || response
+            : post,
+        ),
       );
-      alert.success('Blog post updated successfully!');
+      alert.success("Blog post updated successfully!");
       return { success: true };
     } catch (error) {
-      alert.error(error.response?.data?.message || 'Failed to update blog post');
+      alert.error(
+        error.response?.data?.message || "Failed to update blog post",
+      );
       return { success: false };
     }
   };
@@ -5551,11 +6157,13 @@ const AdminPage = () => {
   const handleDeleteBlogPost = async (blogId) => {
     try {
       await blogService.delete(blogId);
-      setBlogPosts(prev => prev.filter(post => post._id !== blogId));
-      alert.success('Blog post deleted successfully!');
+      setBlogPosts((prev) => prev.filter((post) => post._id !== blogId));
+      alert.success("Blog post deleted successfully!");
       return { success: true };
     } catch (error) {
-      alert.error(error.response?.data?.message || 'Failed to delete blog post');
+      alert.error(
+        error.response?.data?.message || "Failed to delete blog post",
+      );
       return { success: false };
     }
   };
@@ -5567,14 +6175,15 @@ const AdminPage = () => {
       const newEvent = response.data?.event || response.event;
 
       if (newEvent) {
-        setUpcomingEvents(prev => [...prev, newEvent]);
-        return { success: true, message: 'Event created successfully' };
+        setUpcomingEvents((prev) => [...prev, newEvent]);
+        return { success: true, message: "Event created successfully" };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error creating event:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to create event';
+      console.error("Error creating event:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to create event";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -5582,18 +6191,21 @@ const AdminPage = () => {
 
   const handleUpdateEvent = async (eventId, eventData) => {
     try {
-      const response = await eventService.update(eventId, eventData);;
+      const response = await eventService.update(eventId, eventData);
       const updatedEvent = response.data?.event || response.event;
 
       if (updatedEvent) {
-        setUpcomingEvents(prev => prev.map(event => event._id === eventId ? updatedEvent : event));
-        return { success: true, message: 'Event updated successfully' };
+        setUpcomingEvents((prev) =>
+          prev.map((event) => (event._id === eventId ? updatedEvent : event)),
+        );
+        return { success: true, message: "Event updated successfully" };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error updating event:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update event';
+      console.error("Error updating event:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update event";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -5602,11 +6214,14 @@ const AdminPage = () => {
   const handleDeleteEvent = async (eventId) => {
     try {
       await eventService.delete(eventId);
-      setUpcomingEvents(prev => prev.filter(event => event._id !== eventId));
-      return { success: true, message: 'Event deleted successfully' };
+      setUpcomingEvents((prev) =>
+        prev.filter((event) => event._id !== eventId),
+      );
+      return { success: true, message: "Event deleted successfully" };
     } catch (error) {
-      console.error('Error deleting event:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to delete event';
+      console.error("Error deleting event:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete event";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -5619,14 +6234,15 @@ const AdminPage = () => {
       const newSermon = response.data?.sermon || response.sermon;
 
       if (newSermon) {
-        setSermons(prev => [...prev, newSermon]);
-        return { success: true, message: 'Sermon created successfully' };
+        setSermons((prev) => [...prev, newSermon]);
+        return { success: true, message: "Sermon created successfully" };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error creating sermon:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to create sermon';
+      console.error("Error creating sermon:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to create sermon";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -5638,14 +6254,19 @@ const AdminPage = () => {
       const updatedSermon = response.data?.sermon || response.sermon;
 
       if (updatedSermon) {
-        setSermons(prev => prev.map(sermon => sermon._id === sermonId ? updatedSermon : sermon));
-        return { success: true, message: 'Sermon updated successfully' };
+        setSermons((prev) =>
+          prev.map((sermon) =>
+            sermon._id === sermonId ? updatedSermon : sermon,
+          ),
+        );
+        return { success: true, message: "Sermon updated successfully" };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error updating sermon:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update sermon';
+      console.error("Error updating sermon:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update sermon";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -5654,11 +6275,12 @@ const AdminPage = () => {
   const handleDeleteSermon = async (sermonId) => {
     try {
       await sermonService.delete(sermonId);
-      setSermons(prev => prev.filter(sermon => sermon._id !== sermonId));
-      return { success: true, message: 'Sermon deleted successfully' };
+      setSermons((prev) => prev.filter((sermon) => sermon._id !== sermonId));
+      return { success: true, message: "Sermon deleted successfully" };
     } catch (error) {
-      console.error('Error deleting sermon:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to delete sermon';
+      console.error("Error deleting sermon:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete sermon";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -5667,18 +6289,26 @@ const AdminPage = () => {
   // Donation Management Handlers
   const handleUpdateDonation = async (donationId, donationData) => {
     try {
-      const response = await donationService.updateDonation(donationId, donationData);
+      const response = await donationService.updateDonation(
+        donationId,
+        donationData,
+      );
       const updatedDonation = response.data?.donation || response.donation;
 
       if (updatedDonation) {
-        setDonations(prev => prev.map(donation => donation._id === donationId ? updatedDonation : donation));
-        return { success: true, message: 'Donation updated successfully' };
+        setDonations((prev) =>
+          prev.map((donation) =>
+            donation._id === donationId ? updatedDonation : donation,
+          ),
+        );
+        return { success: true, message: "Donation updated successfully" };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error updating donations:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update donations';
+      console.error("Error updating donations:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update donations";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -5687,18 +6317,29 @@ const AdminPage = () => {
   // Prayer Request Management Handlers
   const handleUpdatePrayerRequest = async (prayerId, prayerData) => {
     try {
-      const response = await prayerService.updatePrayerRequest(prayerId, prayerData);
+      const response = await prayerService.updatePrayerRequest(
+        prayerId,
+        prayerData,
+      );
       const updatedPrayer = response.data?.prayer || response.prayer;
 
       if (updatedPrayer) {
-        setPrayerRequests(prev => prev.map(prayer => prayer._id === prayerId ? updatedPrayer : prayer));
-        return { success: true, message: 'Prayer request updated successfully' };
+        setPrayerRequests((prev) =>
+          prev.map((prayer) =>
+            prayer._id === prayerId ? updatedPrayer : prayer,
+          ),
+        );
+        return {
+          success: true,
+          message: "Prayer request updated successfully",
+        };
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error('Error updating prayer request:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update prayer request';
+      console.error("Error updating prayer request:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update prayer request";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -5707,11 +6348,14 @@ const AdminPage = () => {
   const handleDeletePrayerRequest = async (prayerId) => {
     try {
       await prayerService.deletePrayerRequest(prayerId);
-      setPrayerRequests(prev => prev.filter(prayer => prayer._id !== prayerId));
-      return { success: true, message: 'Prayer request deleted successfully' };
+      setPrayerRequests((prev) =>
+        prev.filter((prayer) => prayer._id !== prayerId),
+      );
+      return { success: true, message: "Prayer request deleted successfully" };
     } catch (error) {
-      console.error('Error deleting prayer request:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to delete prayer request';
+      console.error("Error deleting prayer request:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete prayer request";
       alert.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -5759,7 +6403,7 @@ const AdminPage = () => {
 
   const closeDeleteModal = () => {
     setDeleteItem(null);
-    setDeleteType('');
+    setDeleteType("");
     setIsDeleteModalOpen(false);
   };
 
@@ -5802,7 +6446,7 @@ const AdminPage = () => {
           result = await handleDeletePrayerRequest(itemId);
           break;
         default:
-          result = { success: false, message: 'Unknown item type' };
+          result = { success: false, message: "Unknown item type" };
       }
 
       if (result.success) {
@@ -5834,7 +6478,7 @@ const AdminPage = () => {
         alert.error(result.message);
       }
     } catch (error) {
-      alert.error('An error occurred while saving the event');
+      alert.error("An error occurred while saving the event");
     }
   };
 
@@ -5854,24 +6498,24 @@ const AdminPage = () => {
         alert.error(result.message);
       }
     } catch (error) {
-      alert.error('An error occurred while saving the sermon');
+      alert.error("An error occurred while saving the sermon");
     }
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   const formatTime = (timeString) => {
-    if (!timeString) return 'N/A';
-    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
+    if (!timeString) return "N/A";
+    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -5880,12 +6524,16 @@ const AdminPage = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i className="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+            <i className="fas fa-exclamation-triangle text-red-600 text-2xl" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Authentication Required</h2>
-          <p className="text-gray-600 mb-4">Please log in to access the admin panel.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Authentication Required
+          </h2>
+          <p className="text-gray-600 mb-4">
+            Please log in to access the admin panel.
+          </p>
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate("/login")}
             className="btn btn-primary"
           >
             Go to Login
@@ -5900,23 +6548,25 @@ const AdminPage = () => {
   }
 
   if (isLoading) {
-    return <Loader type="spinner" text="Loading admin dashboard..." fullScreen />;
+    return (
+      <Loader type="spinner" text="Loading admin dashboard..." fullScreen />
+    );
   }
 
-
-  if (user.role !== 'admin') {
+  if (user.role !== "admin") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i className="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+            <i className="fas fa-exclamation-triangle text-red-600 text-2xl" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600 mb-4">Admin privileges are required to access this page.</p>
-          <button
-            onClick={() => navigate('/')}
-            className="btn btn-primary"
-          >
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Access Denied
+          </h2>
+          <p className="text-gray-600 mb-4">
+            Admin privileges are required to access this page.
+          </p>
+          <button onClick={() => navigate("/")} className="btn btn-primary">
             Return to Homepage
           </button>
         </div>
@@ -5924,14 +6574,13 @@ const AdminPage = () => {
     );
   }
 
-
   if (error) {
     return (
       <div className="page">
         <div className="container mx-auto px-4 py-12">
           <div className="max-w-4xl mx-auto text-center">
             <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-              <i className="fas fa-exclamation-triangle text-red-500 text-2xl mb-3"></i>
+              <i className="fas fa-exclamation-triangle text-red-500 text-2xl mb-3" />
               <h2 className="text-xl font-semibold text-red-800 mb-2">Error</h2>
               <p className="text-red-600">{error}</p>
               <button
@@ -5948,50 +6597,82 @@ const AdminPage = () => {
   }
 
   const navItems = [
-    { label: 'Overview', icon: 'fas fa-tachometer-alt', tabName: 'overview' },
-    { label: 'Users', icon: 'fas fa-users', tabName: 'users' },
-    { label: 'Ministries', icon: 'fas fa-hands-helping', tabName: 'ministries' },
-    { label: 'Testimonials', icon: 'far fa-comment-dots', tabName: 'testimonials' },
-    { label: 'Blog', icon: 'far fa-newspaper', tabName: 'blog' },
-    { label: 'Events', icon: 'far fa-calendar-alt', tabName: 'events' },
-    { label: 'Sermons', icon: 'fas fa-microphone-alt', tabName: 'sermons' },
-    { label: 'Donations', icon: 'fas fa-hand-holding-usd', tabName: 'donations' },
-    { label: 'Prayer Requests', icon: 'fas fa-praying-hands', tabName: 'prayer' },
-    { label: 'Live Stream', icon: 'fas fa-broadcast-tower', tabName: 'live' },
-    { label: 'Settings', icon: 'fas fa-cog', tabName: 'settings' },
+    { label: "Overview", icon: "fas fa-tachometer-alt", tabName: "overview" },
+    { label: "Users", icon: "fas fa-users", tabName: "users" },
+    {
+      label: "Ministries",
+      icon: "fas fa-hands-helping",
+      tabName: "ministries",
+    },
+    {
+      label: "Testimonials",
+      icon: "far fa-comment-dots",
+      tabName: "testimonials",
+    },
+    { label: "Blog", icon: "far fa-newspaper", tabName: "blog" },
+    { label: "Events", icon: "far fa-calendar-alt", tabName: "events" },
+    { label: "Sermons", icon: "fas fa-microphone-alt", tabName: "sermons" },
+    {
+      label: "Donations",
+      icon: "fas fa-hand-holding-usd",
+      tabName: "donations",
+    },
+    {
+      label: "Prayer Requests",
+      icon: "fas fa-praying-hands",
+      tabName: "prayer",
+    },
+    { label: "Live Stream", icon: "fas fa-broadcast-tower", tabName: "live" },
+    { label: "Settings", icon: "fas fa-cog", tabName: "settings" },
   ];
 
   const eventColumns = [
-    { key: 'title', title: 'Event' },
-    { key: 'date', title: 'Date', render: (event) => formatDate(event.startTime) },
-    { key: 'time', title: 'Time', render: (event) => formatTime(event.startTime) },
-    { key: 'location', title: 'Location' },
-    { key: 'rsvps', title: 'RSVPs', render: (event) => event.rsvpCount || 0 },
+    { key: "title", title: "Event" },
     {
-      key: 'status',
-      title: 'Status',
+      key: "date",
+      title: "Date",
+      render: (event) => formatDate(event.startTime),
+    },
+    {
+      key: "time",
+      title: "Time",
+      render: (event) => formatTime(event.startTime),
+    },
+    { key: "location", title: "Location" },
+    { key: "rsvps", title: "RSVPs", render: (event) => event.rsvpCount || 0 },
+    {
+      key: "status",
+      title: "Status",
       render: (event) => (
-        <span className={`text-xs px-2 py-1 rounded ${event.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-          {event.status || 'Unknown'}
+        <span
+          className={`text-xs px-2 py-1 rounded ${event.status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}
+        >
+          {event.status || "Unknown"}
         </span>
-      )
-    }
+      ),
+    },
   ];
 
   const sermonColumns = [
-    { key: 'title', title: 'Title' },
-    { key: 'speaker', title: 'Speaker', render: (sermon) => sermon.speakerName || sermon.speaker },
-    { key: 'date', title: 'Date', render: (sermon) => formatDate(sermon.date) },
-    { key: 'scripture', title: 'Scripture' },
+    { key: "title", title: "Title" },
     {
-      key: 'type',
-      title: 'Type',
+      key: "speaker",
+      title: "Speaker",
+      render: (sermon) => sermon.speakerName || sermon.speaker,
+    },
+    { key: "date", title: "Date", render: (sermon) => formatDate(sermon.date) },
+    { key: "scripture", title: "Scripture" },
+    {
+      key: "type",
+      title: "Type",
       render: (sermon) => (
-        <span className={`text-xs px-2 py-1 rounded ${sermon.isLive ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
-          {sermon.isLive ? 'Live' : 'Recorded'}
+        <span
+          className={`text-xs px-2 py-1 rounded ${sermon.isLive ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"}`}
+        >
+          {sermon.isLive ? "Live" : "Recorded"}
         </span>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -6009,7 +6690,7 @@ const AdminPage = () => {
               <div className="bg-white rounded-lg shadow-md p-4">
                 <nav>
                   <ul className="space-y-1">
-                    {navItems.map(item => (
+                    {navItems.map((item) => (
                       <SidebarButton
                         key={item.tabName}
                         label={item.label}
@@ -6025,47 +6706,56 @@ const AdminPage = () => {
             </div>
 
             <div className="lg:w-4/5 lg:pl-8">
-              {activeTab === 'overview' && (
+              {activeTab === "overview" && (
                 <TabContentWrapper activeTab={activeTab} tabName="overview">
                   <div>
                     <div className="mb-6">
-                      <h2 className="text-2xl font-bold mb-4">Dashboard Overview</h2>
-                      <p className="text-gray-600 mb-4">Welcome to the admin dashboard. Here's a summary of your church's activity.</p>
+                      <h2 className="text-2xl font-bold mb-4">
+                        Dashboard Overview
+                      </h2>
+                      <p className="text-gray-600 mb-4">
+                        Welcome to the admin dashboard. Here's a summary of your
+                        church's activity.
+                      </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                       <StatCard
                         title="Total Members"
-                        value={stats.totalMembers || '0'}
-                        change={stats.membersChange || '0% from last month'}
-                        changeType={stats.membersChangeType || 'increase'}
+                        value={stats.totalMembers || "0"}
+                        change={stats.membersChange || "0% from last month"}
+                        changeType={stats.membersChangeType || "increase"}
                         icon="fa-users"
                         iconBgColor="bg-blue-100"
                         iconTextColor="text-blue-500"
                       />
                       <StatCard
                         title="Weekly Attendance"
-                        value={stats.weeklyAttendance || '0'}
-                        change={stats.attendanceChange || '0% from last week'}
-                        changeType={stats.attendanceChangeType || 'increase'}
+                        value={stats.weeklyAttendance || "0"}
+                        change={stats.attendanceChange || "0% from last week"}
+                        changeType={stats.attendanceChangeType || "increase"}
                         icon="fa-user-check"
                         iconBgColor="bg-green-100"
                         iconTextColor="text-green-500"
                       />
                       <StatCard
                         title="Online Viewers"
-                        value={stats.onlineViewers || '0'}
-                        change={stats.viewersChange || '0% from last week'}
-                        changeType={stats.viewersChangeType || 'increase'}
+                        value={stats.onlineViewers || "0"}
+                        change={stats.viewersChange || "0% from last week"}
+                        changeType={stats.viewersChangeType || "increase"}
                         icon="fa-video"
                         iconBgColor="bg-purple-100"
                         iconTextColor="text-purple-500"
                       />
                       <StatCard
                         title="Weekly Giving"
-                        value={stats.weeklyGiving ? `$${stats.weeklyGiving.toLocaleString()}` : '$0'}
-                        change={stats.givingChange || '0% from last week'}
-                        changeType={stats.givingChangeType || 'increase'}
+                        value={
+                          stats.weeklyGiving
+                            ? `$${stats.weeklyGiving.toLocaleString()}`
+                            : "$0"
+                        }
+                        change={stats.givingChange || "0% from last week"}
+                        changeType={stats.givingChangeType || "increase"}
                         icon="fa-hand-holding-usd"
                         iconBgColor="bg-yellow-100"
                         iconTextColor="text-yellow-500"
@@ -6075,29 +6765,34 @@ const AdminPage = () => {
                     {liveStatus?.isLive && (
                       <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
                         <div className="flex items-center">
-                          <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></div>
-                          <span className="font-medium text-red-700">Live Stream is Active</span>
+                          <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2" />
+                          <span className="font-medium text-red-700">
+                            Live Stream is Active
+                          </span>
                           <button
-                            onClick={() => setActiveTab('live')}
+                            onClick={() => setActiveTab("live")}
                             className="ml-auto text-red-600 hover:text-red-800 text-sm font-medium"
                           >
-                            Manage Live Stream <i className="fas fa-arrow-right ml-1"></i>
+                            Manage Live Stream{" "}
+                            <i className="fas fa-arrow-right ml-1" />
                           </button>
                         </div>
                       </div>
                     )}
 
                     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                      <h3 className="text-xl font-bold mb-4">Recent Activity</h3>
+                      <h3 className="text-xl font-bold mb-4">
+                        Recent Activity
+                      </h3>
                       <div className="space-y-4">
                         {recentActivity.length > 0 ? (
                           recentActivity.map((activity, index) => (
                             <ActivityItem
                               key={index}
-                              icon={activity.icon || 'fa-info-circle'}
-                              bgColor={activity.bgColor || 'bg-gray-100'}
-                              text={activity.text || 'Unknown activity'}
-                              time={activity.time || 'Unknown time'}
+                              icon={activity.icon || "fa-info-circle"}
+                              bgColor={activity.bgColor || "bg-gray-100"}
+                              text={activity.text || "Unknown activity"}
+                              time={activity.time || "Unknown time"}
                             />
                           ))
                         ) : (
@@ -6111,33 +6806,45 @@ const AdminPage = () => {
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="font-semibold">Prayer Requests</h4>
                           <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                            <i className="fas fa-praying-hands text-blue-500"></i>
+                            <i className="fas fa-praying-hands text-blue-500" />
                           </div>
                         </div>
-                        <p className="text-3xl font-bold">{stats.prayerRequests || 0}</p>
-                        <p className="text-sm text-gray-500">Pending: {stats.pendingPrayers || 0}</p>
+                        <p className="text-3xl font-bold">
+                          {stats.prayerRequests || 0}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Pending: {stats.pendingPrayers || 0}
+                        </p>
                       </div>
 
                       <div className="bg-white rounded-lg shadow-md p-6">
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="font-semibold">Events</h4>
                           <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                            <i className="far fa-calendar-alt text-green-500"></i>
+                            <i className="far fa-calendar-alt text-green-500" />
                           </div>
                         </div>
-                        <p className="text-3xl font-bold">{stats.upcomingEvents || 0}</p>
-                        <p className="text-sm text-gray-500">This week: {stats.thisWeekEvents || 0}</p>
+                        <p className="text-3xl font-bold">
+                          {stats.upcomingEvents || 0}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          This week: {stats.thisWeekEvents || 0}
+                        </p>
                       </div>
 
                       <div className="bg-white rounded-lg shadow-md p-6">
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="font-semibold">Sermons</h4>
                           <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                            <i className="fas fa-microphone-alt text-purple-500"></i>
+                            <i className="fas fa-microphone-alt text-purple-500" />
                           </div>
                         </div>
-                        <p className="text-3xl font-bold">{stats.totalSermons || 0}</p>
-                        <p className="text-sm text-gray-500">This month: {stats.monthSermons || 0}</p>
+                        <p className="text-3xl font-bold">
+                          {stats.totalSermons || 0}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          This month: {stats.monthSermons || 0}
+                        </p>
                       </div>
                     </div>
 
@@ -6149,14 +6856,14 @@ const AdminPage = () => {
                             className="text-[#FF7E45] hover:text-[#F4B942]"
                             onClick={() => openEventModal()}
                           >
-                            <i className="fas fa-plus mr-1"></i> Add Event
+                            <i className="fas fa-plus mr-1" /> Add Event
                           </button>
                         </div>
                         <DataTable
                           columns={eventColumns}
                           data={(upcomingEvents || []).slice(0, 5)}
                           onEdit={openEventModal}
-                          onDelete={(event) => openDeleteModal(event, 'event')}
+                          onDelete={(event) => openDeleteModal(event, "event")}
                           emptyMessage="No upcoming events"
                           pagination={null}
                         />
@@ -6169,14 +6876,16 @@ const AdminPage = () => {
                             className="text-[#FF7E45] hover:text-[#F4B942]"
                             onClick={() => openSermonModal()}
                           >
-                            <i className="fas fa-plus mr-1"></i> Add Sermon
+                            <i className="fas fa-plus mr-1" /> Add Sermon
                           </button>
                         </div>
                         <DataTable
                           columns={sermonColumns}
                           data={(sermons || []).slice(0, 5)}
                           onEdit={openSermonModal}
-                          onDelete={(sermon) => openDeleteModal(sermon, 'sermon')}
+                          onDelete={(sermon) =>
+                            openDeleteModal(sermon, "sermon")
+                          }
                           emptyMessage="No sermons available"
                           pagination={null}
                         />
@@ -6186,52 +6895,56 @@ const AdminPage = () => {
                 </TabContentWrapper>
               )}
 
-              {activeTab === 'users' && (
+              {activeTab === "users" && (
                 <TabContentWrapper activeTab={activeTab} tabName="users">
                   <UsersManagement
                     users={Array.isArray(users) ? users : []}
                     onUpdateUser={handleUpdateUser}
-                    onDeleteUser={(user) => openDeleteModal(user, 'user')}
+                    onDeleteUser={(user) => openDeleteModal(user, "user")}
                     onCreateUser={handleCreateUser}
                   />
                 </TabContentWrapper>
               )}
 
-              {activeTab === 'ministries' && (
+              {activeTab === "ministries" && (
                 <TabContentWrapper activeTab={activeTab} tabName="ministries">
                   <MinistriesManagement
                     ministries={ministries}
                     users={users}
                     onUpdateMinistry={handleUpdateMinistry}
-                    onDeleteMinistry={(ministry) => openDeleteModal(ministry, 'ministry')}
+                    onDeleteMinistry={(ministry) =>
+                      openDeleteModal(ministry, "ministry")
+                    }
                     onCreateMinistry={handleCreateMinistry}
                   />
                 </TabContentWrapper>
               )}
 
-              {activeTab === 'testimonials' && (
+              {activeTab === "testimonials" && (
                 <TabContentWrapper activeTab={activeTab} tabName="testimonials">
                   <TestimonialsManagement
                     testimonials={testimonials}
                     onUpdateTestimonial={handleUpdateTestimonial}
-                    onDeleteTestimonial={(testimonial) => openDeleteModal(testimonial, 'testimonial')}
+                    onDeleteTestimonial={(testimonial) =>
+                      openDeleteModal(testimonial, "testimonial")
+                    }
                     onCreateTestimonial={handleCreateTestimonial}
                   />
                 </TabContentWrapper>
               )}
 
-              {activeTab === 'blog' && (
+              {activeTab === "blog" && (
                 <TabContentWrapper activeTab={activeTab} tabName="blog">
                   <BlogManagement
                     posts={blogPosts}
                     onUpdatePost={handleUpdateBlogPost}
-                    onDeletePost={(post) => openDeleteModal(post, 'blog')}
+                    onDeletePost={(post) => openDeleteModal(post, "blog")}
                     onCreatePost={handleCreateBlogPost}
                   />
                 </TabContentWrapper>
               )}
 
-              {activeTab === 'events' && (
+              {activeTab === "events" && (
                 <TabContentWrapper activeTab={activeTab} tabName="events">
                   <div>
                     <div className="flex justify-between items-center mb-6">
@@ -6240,7 +6953,7 @@ const AdminPage = () => {
                         className="btn btn-primary"
                         onClick={() => openEventModal()}
                       >
-                        <i className="fas fa-plus mr-2"></i> Add New Event
+                        <i className="fas fa-plus mr-2" /> Add New Event
                       </button>
                     </div>
                     <div className="bg-white rounded-lg shadow-md p-6">
@@ -6248,7 +6961,7 @@ const AdminPage = () => {
                         columns={eventColumns}
                         data={upcomingEvents}
                         onEdit={openEventModal}
-                        onDelete={(event) => openDeleteModal(event, 'event')}
+                        onDelete={(event) => openDeleteModal(event, "event")}
                         emptyMessage="No events available. Add your first event to get started."
                         pagination={null}
                       />
@@ -6257,7 +6970,7 @@ const AdminPage = () => {
                 </TabContentWrapper>
               )}
 
-              {activeTab === 'sermons' && (
+              {activeTab === "sermons" && (
                 <TabContentWrapper activeTab={activeTab} tabName="sermons">
                   <div>
                     <div className="flex justify-between items-center mb-6">
@@ -6266,7 +6979,7 @@ const AdminPage = () => {
                         className="btn btn-primary"
                         onClick={() => openSermonModal()}
                       >
-                        <i className="fas fa-plus mr-2"></i> Add New Sermon
+                        <i className="fas fa-plus mr-2" /> Add New Sermon
                       </button>
                     </div>
                     <div className="bg-white rounded-lg shadow-md p-6">
@@ -6274,7 +6987,7 @@ const AdminPage = () => {
                         columns={sermonColumns}
                         data={sermons}
                         onEdit={openSermonModal}
-                        onDelete={(sermon) => openDeleteModal(sermon, 'sermon')}
+                        onDelete={(sermon) => openDeleteModal(sermon, "sermon")}
                         emptyMessage="No sermons available. Add your first sermon to get started."
                         pagination={null}
                       />
@@ -6283,7 +6996,7 @@ const AdminPage = () => {
                 </TabContentWrapper>
               )}
 
-              {activeTab === 'donations' && (
+              {activeTab === "donations" && (
                 <TabContentWrapper activeTab={activeTab} tabName="donations">
                   <DonationsManagement
                     donations={donations}
@@ -6292,22 +7005,28 @@ const AdminPage = () => {
                 </TabContentWrapper>
               )}
 
-              {activeTab === 'prayer' && (
+              {activeTab === "prayer" && (
                 <TabContentWrapper activeTab={activeTab} tabName="prayer">
                   <PrayerRequestsManagement
                     prayerRequests={prayerRequests}
                     onUpdatePrayerRequest={handleUpdatePrayerRequest}
-                    onDeletePrayerRequest={(prayer) => openDeleteModal(prayer, 'prayer')}
+                    onDeletePrayerRequest={(prayer) =>
+                      openDeleteModal(prayer, "prayer")
+                    }
                   />
                 </TabContentWrapper>
               )}
 
-              {activeTab === 'live' && (
+              {activeTab === "live" && (
                 <TabContentWrapper activeTab={activeTab} tabName="live">
                   <div>
                     <div className="mb-6">
-                      <h2 className="text-2xl font-bold mb-2">Live Stream Management</h2>
-                      <p className="text-gray-600">Manage your church's live streaming services.</p>
+                      <h2 className="text-2xl font-bold mb-2">
+                        Live Stream Management
+                      </h2>
+                      <p className="text-gray-600">
+                        Manage your church's live streaming services.
+                      </p>
                     </div>
 
                     <LiveStreamControl
@@ -6326,26 +7045,34 @@ const AdminPage = () => {
                     />
 
                     <div className="bg-white rounded-lg shadow-md p-6">
-                      <h3 className="text-xl font-bold mb-4">Quick Sermon Creation</h3>
+                      <h3 className="text-xl font-bold mb-4">
+                        Quick Sermon Creation
+                      </h3>
                       <p className="text-gray-600 mb-4">
-                        Create a sermon record for your live stream to make it available in the archive later.
+                        Create a sermon record for your live stream to make it
+                        available in the archive later.
                       </p>
                       <button
                         className="btn btn-primary"
-                        onClick={() => openSermonModal({
-                          isLive: true,
-                          date: new Date().toISOString().split('T')[0],
-                          title: 'Live Service - ' + new Date().toLocaleDateString()
-                        })}
+                        onClick={() =>
+                          openSermonModal({
+                            isLive: true,
+                            date: new Date().toISOString().split("T")[0],
+                            title:
+                              "Live Service - " +
+                              new Date().toLocaleDateString(),
+                          })
+                        }
                       >
-                        <i className="fas fa-plus mr-2"></i> Create Live Sermon Record
+                        <i className="fas fa-plus mr-2" /> Create Live Sermon
+                        Record
                       </button>
                     </div>
                   </div>
                 </TabContentWrapper>
               )}
 
-              {activeTab === 'settings' && (
+              {activeTab === "settings" && (
                 <TabContentWrapper activeTab={activeTab} tabName="settings">
                   <div>
                     {/* Quick Settings Overview */}
@@ -6353,19 +7080,33 @@ const AdminPage = () => {
                       <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold">System Settings</h2>
                       </div>
-                      <h4 className="text-xl font-semibold mb-4">Current Settings Overview</h4>
+                      <h4 className="text-xl font-semibold mb-4">
+                        Current Settings Overview
+                      </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div className="bg-gray-50 p-4 rounded-lg">
-                          <h4 className="font-semibold text-gray-700 mb-2">Church Info</h4>
-                          <p className="text-sm text-gray-600">{settings.churchName || 'Not set'}</p>
+                          <h4 className="font-semibold text-gray-700 mb-2">
+                            Church Info
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {settings.churchName || "Not set"}
+                          </p>
                         </div>
                         <div className="bg-gray-50 p-4 rounded-lg">
-                          <h4 className="font-semibold text-gray-700 mb-2">Contact</h4>
-                          <p className="text-sm text-gray-600">{settings.contactEmail || 'Not set'}</p>
+                          <h4 className="font-semibold text-gray-700 mb-2">
+                            Contact
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {settings.contactEmail || "Not set"}
+                          </p>
                         </div>
                         <div className="bg-gray-50 p-4 rounded-lg">
-                          <h4 className="font-semibold text-gray-700 mb-2">Live Stream</h4>
-                          <p className="text-sm text-gray-600">{settings.liveStreamUrl ? 'Configured' : 'Not set'}</p>
+                          <h4 className="font-semibold text-gray-700 mb-2">
+                            Live Stream
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {settings.liveStreamUrl ? "Configured" : "Not set"}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -6375,7 +7116,7 @@ const AdminPage = () => {
                         className="btn btn-primary"
                         onClick={openSettingsModal}
                       >
-                        <i className="fas fa-cog mr-2"></i> Manage Settings
+                        <i className="fas fa-cog mr-2" /> Manage Settings
                       </button>
                     </div>
                   </div>

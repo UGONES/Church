@@ -55,7 +55,8 @@ const eventSchema = new Schema({
   recurrencePattern: {
     frequency: {
       type: String,
-      enum: ['daily', 'weekly', 'monthly', 'yearly']
+      required: true,
+      trim: true,
     },
     interval: Number,
     endDate: Date
@@ -83,10 +84,8 @@ const eventSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'User'
   },
-  approvedBy: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    default: null
+  {
+    timestamps: true,
   },
 
   tags: {
@@ -103,4 +102,4 @@ eventSchema.index({ category: 1 });
 eventSchema.index({ status: 1 });
 eventSchema.index({ requiresRSVP: 1 });
 
-export default model('Event', eventSchema);
+export default model("Event", eventSchema);

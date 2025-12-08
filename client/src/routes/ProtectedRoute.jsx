@@ -7,17 +7,11 @@ const ProtectedRoute = ({
   roles = [],
   requireAuth = true,
   requireAdmin = false,
-  fallbackPath = "/login", 
+  fallbackPath = "/login",
   unauthorizedPath = "/unauthorized",
 }) => {
-  const {
-    user,
-    token,
-    isAuthenticated,
-    isAdmin,
-    isModerator,
-    authLoading,
-  } = useAuth();
+  const { user, token, isAuthenticated, isAdmin, isModerator, authLoading } =
+    useAuth();
   const location = useLocation();
 
   // 🕐 1. Wait for auth to load (prevents flashing login page)
@@ -31,13 +25,17 @@ const ProtectedRoute = ({
   }
 
   // 👮 3. Require admin/moderator privileges (admin area only)
- if (requireAdmin && !(isAdmin || isModerator)) {
-    return <Navigate to={unauthorizedPath} state={{ from: location }} replace />;
+  if (requireAdmin && !(isAdmin || isModerator)) {
+    return (
+      <Navigate to={unauthorizedPath} state={{ from: location }} replace />
+    );
   }
 
   // 🎭 4. Restrict to specific roles (if specified)
   if (roles.length > 0 && user && !roles.includes(user.role)) {
-    return <Navigate to={unauthorizedPath} state={{ from: location }} replace />;
+    return (
+      <Navigate to={unauthorizedPath} state={{ from: location }} replace />
+    );
   }
 
   // ✅ 5. Authorized — render children

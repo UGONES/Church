@@ -33,7 +33,6 @@ export const USER_ENDPOINTS = {
   },
 };
 
-
 // =============== ADMIN ENDPOINTS ===============
 export const ADMIN_ENDPOINTS = {
   DASHBOARD: {
@@ -185,7 +184,6 @@ export const AUTH_ENDPOINTS = {
   VALIDATE_RESET_TOKEN: "/auth/validate-reset-token",
   // SOCIAL_LOGIN: (provider) => `/auth/social/${provider}`,
 };
-
 
 // =============== PAYMENT ENDPOINTS ===============
 export const PAYMENT_ENDPOINTS = {

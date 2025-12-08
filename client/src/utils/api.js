@@ -10,7 +10,8 @@ import {
   isValidTokenFormat,
 } from "./auth";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // -------------------------------------------------------
 // 🔁 Pending requests registry (for deduplication)
@@ -19,7 +20,8 @@ const pendingRequests = new Map();
 const getRequestKey = (config) => {
   const { method, url, params, data } = config;
   const normalizedUrl = url?.split("?")[0] || "";
-  const safeParams = params && typeof params === "object" ? JSON.stringify(params) : "";
+  const safeParams =
+    params && typeof params === "object" ? JSON.stringify(params) : "";
   const safeData = data && typeof data === "object" ? JSON.stringify(data) : "";
   return `${method?.toUpperCase()}-${normalizedUrl}-${safeParams}-${safeData}`;
 };
@@ -69,16 +71,19 @@ axiosInstance.interceptors.request.use(
     }
 
     if (import.meta.env.DEV) {
-      console.debug(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`, {
-        params: config.params,
-        data: config.data,
-        userId,
-      });
+      console.debug(
+        `🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`,
+        {
+          params: config.params,
+          data: config.data,
+          userId,
+        },
+      );
     }
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // -------------------------------------------------------
@@ -92,17 +97,23 @@ const isAuthRoute = (url = "") =>
 axiosInstance.interceptors.response.use(
   (response) => {
     const { requestKey, startTime } = response.config.metadata || {};
-    if (requestKey && pendingRequests.has(requestKey)) pendingRequests.delete(requestKey);
+    if (requestKey && pendingRequests.has(requestKey)) {
+      pendingRequests.delete(requestKey);
+    }
     if (import.meta.env.DEV && startTime) {
       const duration = Date.now() - startTime;
-      console.debug(`✅ ${response.status} ${response.config.url} (${duration}ms)`);
+      console.debug(
+        `✅ ${response.status} ${response.config.url} (${duration}ms)`,
+      );
     }
     return response;
   },
   async (error) => {
     const config = error.config || {};
     const { requestKey } = config.metadata || {};
-    if (requestKey && pendingRequests.has(requestKey)) pendingRequests.delete(requestKey);
+    if (requestKey && pendingRequests.has(requestKey)) {
+      pendingRequests.delete(requestKey);
+    }
 
     // Request manually cancelled
     if (axios.isCancel(error)) {
@@ -135,15 +146,21 @@ axiosInstance.interceptors.response.use(
     // ⏳ Retry logic for temporary network/server issues
     // ---------------------------------------------------
     const transientErrors = [502, 503, 504, 429];
-    if ((!error.response || transientErrors.includes(status)) && !isAuthRoute(url)) {
+    if (
+      (!error.response || transientErrors.includes(status)) &&
+      !isAuthRoute(url)
+    ) {
       const retryCount = config.metadata?.retryCount || 0;
       if (retryCount < 2) {
         config.metadata.retryCount = retryCount + 1;
         const delay = Math.pow(2, retryCount) * 500;
-        if (import.meta.env.DEV)
-          console.warn(`⏳ Retrying ${url} (attempt ${retryCount + 1}) after ${delay}ms`);
+        if (import.meta.env.DEV) {
+          console.warn(
+            `⏳ Retrying ${url} (attempt ${retryCount + 1}) after ${delay}ms`,
+          );
+        }
         return new Promise((resolve) =>
-          setTimeout(() => resolve(axiosInstance(config)), delay)
+          setTimeout(() => resolve(axiosInstance(config)), delay),
         );
       }
     }
@@ -157,7 +174,7 @@ axiosInstance.interceptors.response.use(
     });
 
     return Promise.reject(error);
-  }
+  },
 );
 
 // -------------------------------------------------------
@@ -165,18 +182,27 @@ axiosInstance.interceptors.response.use(
 // -------------------------------------------------------
 export const isApiError = (error) => axios.isAxiosError(error);
 
-export const getErrorMessage = (error, fallback = "An unexpected error occurred") => {
+export const getErrorMessage = (
+  error,
+  fallback = "An unexpected error occurred",
+) => {
   if (!error) return fallback;
   if (axios.isAxiosError(error)) {
     const res = error.response;
     if (res?.data?.message) return res.data.message;
     switch (res?.status) {
-      case 400: return "Bad request. Please check your input.";
-      case 401: return "Unauthorized. Please log in again.";
-      case 403: return "Access denied.";
-      case 404: return "Resource not found.";
-      case 500: return "Internal server error.";
-      default: break;
+      case 400:
+        return "Bad request. Please check your input.";
+      case 401:
+        return "Unauthorized. Please log in again.";
+      case 403:
+        return "Access denied.";
+      case 404:
+        return "Resource not found.";
+      case 500:
+        return "Internal server error.";
+      default:
+        break;
     }
     if (!res) return "Network error. Please check your connection.";
   }
@@ -188,9 +214,12 @@ export const getErrorMessage = (error, fallback = "An unexpected error occurred"
 // -------------------------------------------------------
 export const apiClient = {
   get: (endpoint, config = {}) => axiosInstance.get(endpoint, config),
-  post: (endpoint, data, config = {}) => axiosInstance.post(endpoint, data, config),
-  put: (endpoint, data, config = {}) => axiosInstance.put(endpoint, data, config),
-  patch: (endpoint, data, config = {}) => axiosInstance.patch(endpoint, data, config),
+  post: (endpoint, data, config = {}) =>
+    axiosInstance.post(endpoint, data, config),
+  put: (endpoint, data, config = {}) =>
+    axiosInstance.put(endpoint, data, config),
+  patch: (endpoint, data, config = {}) =>
+    axiosInstance.patch(endpoint, data, config),
   delete: (endpoint, config = {}) => axiosInstance.delete(endpoint, config),
 };
 

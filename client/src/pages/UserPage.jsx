@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { authService, donationService, eventService, volunteerService } from "../services/apiService";
+import {
+  authService,
+  donationService,
+  eventService,
+  volunteerService,
+} from "../services/apiService";
 import Loader from "../components/Loader";
 import { useAlert } from "../utils/Alert";
 import useAuth from "../hooks/useAuth";
@@ -16,7 +21,8 @@ const UserPage = () => {
   const alert = useAlert();
 
   useEffect(() => {
-    document.title = "SMC - Dashboard | St. Michael's & All Angels Church | Ifite-Awka";
+    document.title =
+      "SMC - Dashboard | St. Michael's & All Angels Church | Ifite-Awka";
   }, []);
 
   const Fetch = useCallback(() => {
@@ -37,15 +43,12 @@ const UserPage = () => {
       const userResponse = await authService.getCurrentUser();
       if (cancelled) return;
 
-      const userObj = userResponse?.data?.user || userResponse?.user || userResponse;
+      const userObj =
+        userResponse?.data?.user || userResponse?.user || userResponse;
       setUserData(userObj);
 
       // ✅ Fetch dashboard data in parallel
-      const [
-        donationsResponse,
-        eventsResponse,
-        volunteersResponse
-      ] =
+      const [donationsResponse, eventsResponse, volunteersResponse] =
         await Promise.allSettled([
           donationService.getUserDonations({ limit: 3 }),
           eventService.getUpcoming({ limit: 3 }),
@@ -56,19 +59,31 @@ const UserPage = () => {
         // ✅ Donations
 
         if (donationsResponse.status === "fulfilled") {
-          const raw = donationsResponse.value?.data?.donations || donationsResponse.value?.data || donationsResponse.value || [];
+          const raw =
+            donationsResponse.value?.data?.donations ||
+            donationsResponse.value?.data ||
+            donationsResponse.value ||
+            [];
           setRecentDonations(Array.isArray(raw) ? raw.slice(0, 3) : []);
         }
 
         // ✅ Events
         if (eventsResponse.status === "fulfilled") {
-          const raw = eventsResponse.value?.data?.events || eventsResponse.value?.data || eventsResponse.value || [];
+          const raw =
+            eventsResponse.value?.data?.events ||
+            eventsResponse.value?.data ||
+            eventsResponse.value ||
+            [];
           setUpcomingEvents(Array.isArray(raw) ? raw : []);
         }
 
         // ✅ Volunteer Applications
         if (volunteersResponse.status === "fulfilled") {
-          const raw = volunteersResponse.value?.data?.applications || volunteersResponse.value?.data || volunteersResponse.value || [];
+          const raw =
+            volunteersResponse.value?.data?.applications ||
+            volunteersResponse.value?.data ||
+            volunteersResponse.value ||
+            [];
           setVolunteerApplications(Array.isArray(raw) ? raw : []);
         }
       }
@@ -81,7 +96,9 @@ const UserPage = () => {
     } finally {
       if (!cancelled) setLoading(false);
     }
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   };
 
   const formatCurrency = (amount) =>
@@ -93,10 +110,10 @@ const UserPage = () => {
   const formatDate = (dateString) =>
     dateString
       ? new Date(dateString).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })
       : "N/A";
 
   const getVolunteerStatusBadge = (status) => {
@@ -110,8 +127,9 @@ const UserPage = () => {
 
     return (
       <span
-        className={`px-2 py-1 rounded-full text-xs ${statusColors[status] || "bg-gray-100 text-gray-800"
-          }`}
+        className={`px-2 py-1 rounded-full text-xs ${
+          statusColors[status] || "bg-gray-100 text-gray-800"
+        }`}
       >
         {status?.charAt(0).toUpperCase() + status?.slice(1)}
       </span>
@@ -146,8 +164,6 @@ const UserPage = () => {
     );
   }
 
-
-
   return (
     <div className="page">
       <div className="container mx-auto px-4 py-8">
@@ -155,7 +171,7 @@ const UserPage = () => {
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center">
-              <i className="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+              <i className="fas fa-exclamation-triangle text-red-500 mr-2" />
               <p className="text-red-600">{error}</p>
             </div>
             <button
@@ -170,7 +186,8 @@ const UserPage = () => {
         {/* Welcome Section */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h1 className="text-2xl font-bold mb-2">
-            Welcome back, {currentUser?.firstName || currentUser?.name || "User"}!
+            Welcome back,{" "}
+            {currentUser?.firstName || currentUser?.name || "User"}!
           </h1>
           <p className="text-gray-600">
             {userRole === "admin"
@@ -196,12 +213,16 @@ const UserPage = () => {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Volunteer Applications</span>
-                <span className="font-bold">{volunteerApplications.length}</span>
+                <span className="font-bold">
+                  {volunteerApplications.length}
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Member Since</span>
                 <span className="font-bold">
-                  {currentUser?.memberSince ? new Date(currentUser.memberSince).getFullYear() : "N/A"}
+                  {currentUser?.memberSince
+                    ? new Date(currentUser.memberSince).getFullYear()
+                    : "N/A"}
                 </span>
               </div>
             </div>
@@ -215,33 +236,38 @@ const UserPage = () => {
                 href={`/profile/${currentUser.id}`}
                 className="block btn btn-outline w-full text-center"
               >
-                <i className="fas fa-user mr-2"></i>Edit Profile
+                <i className="fas fa-user mr-2" />
+                Edit Profile
               </a>
               <a
                 href="/events"
                 className="block btn btn-outline w-full text-center"
               >
-                <i className="fas fa-calendar mr-2"></i>View Events
+                <i className="fas fa-calendar mr-2" />
+                View Events
               </a>
               <a
                 href="/ministries"
                 className="block btn btn-outline w-full text-center"
               >
-                <i className="fas fa-hands-helping mr-2"></i>Volunteer
+                <i className="fas fa-hands-helping mr-2" />
+                Volunteer
               </a>
               <a
                 href="/donate"
                 className="block btn btn-primary w-full text-center"
               >
-                <i className="fas fa-donate mr-2"></i>Make a Donation
+                <i className="fas fa-donate mr-2" />
+                Make a Donation
               </a>
 
-              {(userRole === "moderator") && (
+              {userRole === "moderator" && (
                 <a
                   href="#"
                   className="block btn btn-outline w-full text-center bg-blue-50 border-blue-200"
                 >
-                  <i className="fas fa-cog mr-2"></i>Moderator Panel
+                  <i className="fas fa-cog mr-2" />
+                  Moderator Panel
                 </a>
               )}
             </div>
@@ -270,7 +296,9 @@ const UserPage = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-600 text-center py-4">No recent activity</p>
+              <p className="text-gray-600 text-center py-4">
+                No recent activity
+              </p>
             )}
           </div>
         </div>
@@ -345,7 +373,7 @@ const UserPage = () => {
             </div>
           ) : (
             <div className="text-center py-6">
-              <i className="fas fa-calendar-plus text-3xl text-gray-300 mb-3"></i>
+              <i className="fas fa-calendar-plus text-3xl text-gray-300 mb-3" />
               <p className="text-gray-600 mb-4">No upcoming events</p>
               <a href="/events" className="btn btn-outline">
                 Browse Events
