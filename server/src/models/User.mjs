@@ -164,6 +164,43 @@ const userSchema = new Schema(
       activeApplications: { type: Number, default: 0 },
     },
 
+    favorites: {
+      events: [{
+        type: Schema.Types.ObjectId,
+        ref: "Event"
+      }],
+      sermons: [{
+        type: Schema.Types.ObjectId,
+        ref: "Sermon"
+
+      }],
+      posts: [{
+        type: Schema.Types.ObjectId,
+        ref: "BlogPost"
+      }],
+      ministries: [{
+        type: Schema.Types.ObjectId,
+        ref: "Ministry"
+      }]
+    },
+
+    rsvps: [
+      {
+        event: {
+          type: Schema.Types.ObjectId,
+          ref: "Event"
+        },
+        rsvpDate: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
+
+    donations: [{ type: Schema.Types.ObjectId, ref: "Donation" }],
+
+    prayers: [{ type: Schema.Types.ObjectId, ref: "Prayer" }],
+
     lastLogin: { type: Date, default: null },
     loginCount: { type: Number, default: 0 },
   },

@@ -1,6 +1,6 @@
-import Event from "../models/Event.mjs"; // FIXED: Only import models
-import RSVP from "../models/RSVP.mjs";
-import Favorite from "../models/Favorite.mjs";
+import Event from '../models/Event.mjs';
+import RSVP from '../models/RSVP.mjs';
+import Favorite from '../models/Favorite.mjs';
 
 // ===================== GET ALL EVENTS =====================
 export async function getAllEvents(req, res) {
@@ -69,17 +69,20 @@ export async function getUserRsvps(req, res) {
 
 // Get user favorite events
 export async function getUserFavorites(req, res) {
-  try {
-    // FIXED: Use Favorite.find() instead of __find()
-    const favorites = await Favorite.find({
-      userId: req.user._id,
-      itemType: "event",
-    }).populate("itemId");
+    try {
+        // FIXED: Use Favorite.find() instead of __find()
+        const favorites = await Favorite.find({
+            userId: req.user._id,
+            itemType: 'event'
+        }).populate('itemId');
 
-    res.json(favorites.map((fav) => fav.itemId));
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
+        res.json({
+            success: true,
+            data: favorites.map(fav => fav.itemId)
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
 }
 
 // RSVP for event
@@ -172,18 +175,31 @@ export async function cancelRsvp(req, res) {
 
 // Add favorite event
 export async function addFavoriteEvent(req, res) {
-  try {
-    const { id } = req.params;
+    try {
+        const { id } = req.params;
+        const existingFavorite = await Favorite.findOne({
+            userId: req.user._id,
+            itemType: 'event',
+            itemId: id
+        });
 
-    // FIXED: Use Favorite.findOne() instead of _findOne()
-    const existingFavorite = await Favorite.findOne({
-      userId: req.user._id,
-      itemType: "event",
-      itemId: id,
-    });
+        if (existingFavorite) {
+            return res.status(400).json({ success: false, message: 'Event already in favorites' });
+        }
 
-    if (existingFavorite) {
-      return res.status(400).json({ message: "Event already in favorites" });
+        const favorite = new Favorite({
+            userId: req.user._id,
+            itemType: 'event',
+            itemId: id
+        });
+
+        await favorite.save();
+
+        // return the created favorite/populated item
+        const populated = await Favorite.findById(favorite._id).populate('itemId');
+        return res.status(201).json({ success: true, favorite: populated, message: 'Event added to favorites' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 
     const favorite = new Favorite({
@@ -201,29 +217,52 @@ export async function addFavoriteEvent(req, res) {
 
 // Remove favorite event
 export async function removeFavoriteEvent(req, res) {
-  try {
-    const { id } = req.params;
+    try {
+        const { id } = req.params;
+        const deleted = await Favorite.findOneAndDelete({
+            userId: req.user._id,
+            itemType: 'event',
+            itemId: id
+        });
 
-    // FIXED: Use Favorite.findOneAndDelete() instead of _findOneAndDelete()
-    await Favorite.findOneAndDelete({
-      userId: req.user._id,
-      itemType: "event",
-      itemId: id,
-    });
-
-    res.json({ message: "Event removed from favorites" });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
+        return res.json({ success: true, message: 'Event removed from favorites', favorite: deleted });
+    } catch (error) {
+        console.error('❌ removeFavoriteEvent error:', error);
+        return res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
 }
 
 // ===================== CREATE EVENT (ADMIN) =====================
 export async function createEvent(req, res) {
-  try {
-    const eventData = req.body;
+    try {
+        const eventData = req.body;
 
-    if (req.file) {
-      eventData.imageUrl = req.file.path;
+        if (req.files) {
+            if (req.files.image && req.files.image[0]) {
+                eventData.imageUrl = req.files.image[0].path || req.files.image[0].secure_url || req.files.image[0].url;
+            }
+            if (req.files.video && req.files.video[0]) {
+                eventData.videoUrl = req.files.video[0].path || req.files.video[0].secure_url || req.files.video[0].url;
+            }
+        }
+
+        if (eventData.leaders) {
+            eventData.leaders = JSON.parse(eventData.leaders);
+        }
+        if (eventData.tags) {
+            eventData.tags = JSON.parse(eventData.tags);
+        }
+
+        if (!eventData.status) eventData.status = 'scheduled';
+
+        const event = new Event(eventData);
+        await event.save();
+        console.log("✅ Event saved:", event._id, event.title);
+
+        return res.status(201).json({ success: true, message: 'Event created successfully', event, });
+    } catch (error) {
+        console.error('❌ Event creation error:', error);
+        return res.status(500).json({ success: false, message: 'Failed to create event', error: error.message, });
     }
 
     if (!eventData.status) eventData.status = "scheduled";
@@ -249,12 +288,37 @@ export async function createEvent(req, res) {
 
 // Update event (Admin)
 export async function updateEvent(req, res) {
-  try {
-    const { id } = req.params;
-    const eventData = req.body;
+    try {
+        const { id } = req.params;
+        const eventData = { ...req.body };
 
-    if (req.file) {
-      eventData.imageUrl = req.file.path;
+        if (req.files) {
+            if (req.files.image && req.files.image[0]) {
+                eventData.imageUrl = req.files.image[0].path || req.files.image[0].secure_url || req.files.image[0].url;
+            }
+            if (req.files.video && req.files.video[0]) {
+                eventData.videoUrl = req.files.video[0].path || req.files.video[0].secure_url || req.files.video[0].url;
+            }
+        }
+        if (eventData.leaders) {
+            eventData.leaders = JSON.parse(eventData.leaders);
+        }
+        if (eventData.tags) {
+            eventData.tags = JSON.parse(eventData.tags);
+        }
+
+
+        const event = await Event.findByIdAndUpdate(id, eventData, { runValidators: true });
+
+        if (!event) {
+            return res.status(404).json({ message: 'Event not found' });
+        }
+
+        res.json({ message: 'Event updated successfully', event });
+    } catch (error) {
+        console.error('❌ Event update error:', error);
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+
     }
 
     // FIXED: Use Event.findByIdAndUpdate() instead of findByIdAndUpdate()
@@ -278,24 +342,20 @@ export async function updateEvent(req, res) {
 
 // Delete event (Admin)
 export async function deleteEvent(req, res) {
-  try {
-    const { id } = req.params;
-
-    // FIXED: Use Event.findByIdAndDelete() instead of findByIdAndDelete()
-    const event = await Event.findByIdAndDelete(id);
+    try {
+        const { id } = req.params;
+        const event = await Event.findByIdAndDelete(id);
 
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Also delete related RSVPs and favorites
-    // FIXED: Use RSVP.deleteMany() instead of deleteMany()
-    await RSVP.deleteMany({ eventId: id });
-    // FIXED: Use Favorite.deleteMany() instead of _deleteMany()
-    await Favorite.deleteMany({ itemType: "event", itemId: id });
+        await RSVP.deleteMany({ eventId: id });
+        await Favorite.deleteMany({ itemType: 'event', itemId: id });
 
-    res.json({ message: "Event deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
+        res.json({ message: 'Event deleted successfully' });
+    } catch (error) {
+        console.error('❌ Event deletion error:', error);
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
 }

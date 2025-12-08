@@ -7,14 +7,16 @@ const favoriteSchema = new Schema({
     ref: 'User',
     required: true
   },
+  // PascalCase model names stored here (Event, Sermon, BlogPost, Ministry)
   itemType: {
     type: String,
-    enum: ['sermon', 'event', 'blog', 'ministry'],
+    enum: ['Sermon', 'Event', 'BlogPost', 'Ministry'],
     required: true
   },
   itemId: {
     type: Schema.Types.ObjectId,
     required: true,
+    // use refPath so Mongoose will look up the model named in `itemType`
     refPath: 'itemType'
   }
 }, {

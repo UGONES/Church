@@ -3,11 +3,12 @@
 // =============== USER ENDPOINTS ===============
 export const USER_ENDPOINTS = {
   ME: "/users/me", // renamed USERS -> ME for clarity
-  PROFILE: "/users/profile",
+  PROFILE: "/users/me/full-profile",
   UPDATE_PROFILE: "/users/profile/update",
   DASHBOARD: "/users/dashboard",
   AVATAR: "/users/upload-avatar",
   COVERPHOTO: "/users/upload-cover",
+  FAVORITES: "/users/favorites",
 
   FAMILY: {
     BASE: "/users/family",
@@ -15,9 +16,9 @@ export const USER_ENDPOINTS = {
   },
 
   // Only keep if backend supports them
-  COMMUNICATION: "/users/communication", // implement or remove
-  DONATIONS: "/users/donations", // implement or remove
-  VOLUNTEER_APPLICATIONS: "/users/volunteers/applications", // implement or remove
+  COMMUNICATION: "/users/communication",       
+  DONATIONS: "/users/donations",                
+  VOLUNTEER_APPLICATIONS: "/users/volunteers/applications", 
 
   // Admin user management
   ADMIN: {
@@ -25,8 +26,8 @@ export const USER_ENDPOINTS = {
     CREATE: "/users/admin/create",
     UPDATE: (id) => `/users/admin/update/${id}`,
     DELETE: (id) => `/users/admin/delete/${id}`,
-    ACTIVATE: (id) => `/users/admin/activate/${id}`, // needs backend route
-    DEACTIVATE: (id) => `/users/admin/deactivate/${id}`, // needs backend route
+    ACTIVATE: (id) => `/users/admin/activate/${id}`,   
+    DEACTIVATE: (id) => `/users/admin/deactivate/${id}`, 
     ROLES: "/users/admin/roles",
     MEMBERSHIP_STATUSES: "/users/admin/membership-statuses",
   },
@@ -72,8 +73,8 @@ export const ADMIN_ENDPOINTS = {
     DELETE: (id) => `/sermons/admin/${id}`,
     STATS: "/sermons/admin/stats",
     LIVE: "/sermons/live",
-    LIVE_START: "/sermons/admin/live/start",
-    LIVE_STOP: "/sermons/admin/live/stop",
+    LIVE_START: (id) => `/sermons/admin/live/start${id}`,
+    LIVE_STOP: (id)=> `/sermons/admin/live/stop${id}`,
   },
   BLOGS: {
     BASE: "/blogs/admin/all",
@@ -123,6 +124,7 @@ export const PUBLIC_ENDPOINTS = {
   MINISTRIES_VOLUNTEER_ACTION: (id) => `/ministries/${id}/volunteer`,
   MINISTRIES_CONTACT: (id) => `/ministries/${id}/contact`,
   MINISTRIES_CATEGORIES: "/ministries/categories",
+  MINISTRIES_JOIN: "/ministries/join",
 
   SERMONS: "/sermons",
   SERMONS_FEATURED: "/sermons/featured",
@@ -130,6 +132,7 @@ export const PUBLIC_ENDPOINTS = {
   SERMONS_CATEGORIES: "/sermons/categories",
   SERMONS_FAVORITES: "/sermons/favorites",
   SERMONS_FAVORITE_ACTION: (id) => `/sermons/favorites/${id}`,
+  // SERMONS_STREAM_CONFIG: 
 
   EVENTS: "/events",
   EVENTS_UPCOMING: "/events/upcoming",
@@ -199,7 +202,6 @@ export const SOCIAL_AUTH_ENDPOINTS = {
   GET_ACCOUNTS: "/auth/social/accounts",
   VALIDATE_GOOGLE: "/auth/social/validate/google",
   VALIDATE_FACEBOOK: "/auth/social/facebook",
-  SUCCESS_REDIRECT: (token, userId) =>
-    `${window.location.origin}/auth/success?token=${token}&userId=${userId}`,
+  SUCCESS_REDIRECT: (token, userId) => `${window.location.origin}/auth/success?token=${token}&userId=${userId}`,
   FAILURE_REDIRECT: (error) => `${window.location.origin}/login?error=${error}`,
 };

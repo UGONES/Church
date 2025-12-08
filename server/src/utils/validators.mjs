@@ -105,6 +105,7 @@ export const registerValidation = () => [
     .withMessage("Password must be at least 8 characters"),
 ];
 
+
 export const forgotPasswordValidation = () => {
   return [
     body("email")

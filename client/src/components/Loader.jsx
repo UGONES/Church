@@ -1,16 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const Loader = ({ 
-  type = "spinner", 
-  size = "medium", 
-  color = "#FF7E45", 
-  text = "Loading...",
-  fullScreen = false,
-  timeout = 5000,
-  onTimeout, // Callback function when timeout occurs
-  timeoutMessage = "Taking longer than expected...", // Message to show after timeout
-  showTimeoutMessage = true // Whether to show timeout message
-}) => {
+const Loader = ({ type = "spinner", size = "medium", color = "#FF7E45", text = "Loading...", fullScreen = false, timeout = 5000, onTimeout, timeoutMessage = "Taking longer than expected...", showTimeoutMessage = true }) => {
   const [hasTimedOut, setHasTimedOut] = useState(false);
   const sizeClasses = {
     small: "w-6 h-6",
@@ -23,7 +13,6 @@ const Loader = ({
     borderColor: `${color} transparent transparent transparent`
   };
 
-  // Handle timeout
   useEffect(() => {
     if (timeout > 0) {
       const timer = setTimeout(() => {
@@ -48,12 +37,12 @@ const Loader = ({
                 className="rounded-full animate-bounce"
                 style={{
                   backgroundColor: color,
-                  width: size === "small" ? "8px" : 
-                         size === "medium" ? "12px" : 
-                         size === "large" ? "16px" : "20px",
-                  height: size === "small" ? "8px" : 
-                          size === "medium" ? "12px" : 
-                          size === "large" ? "16px" : "20px",
+                  width: size === "small" ? "8px" :
+                    size === "medium" ? "12px" :
+                      size === "large" ? "16px" : "20px",
+                  height: size === "small" ? "8px" :
+                    size === "medium" ? "12px" :
+                      size === "large" ? "16px" : "20px",
                   animationDelay: `${i * 0.1}s`
                 }}
               />
@@ -68,16 +57,16 @@ const Loader = ({
 
       case "pulse":
         return (
-          <div 
+          <div
             className="rounded-full animate-pulse"
             style={{
               backgroundColor: color,
-              width: size === "small" ? "1.5rem" : 
-                     size === "medium" ? "2rem" : 
-                     size === "large" ? "3rem" : "4rem",
-              height: size === "small" ? "1.5rem" : 
-                      size === "medium" ? "2rem" : 
-                      size === "large" ? "3rem" : "4rem"
+              width: size === "small" ? "1.5rem" :
+                size === "medium" ? "2rem" :
+                  size === "large" ? "3rem" : "4rem",
+              height: size === "small" ? "1.5rem" :
+                size === "medium" ? "2rem" :
+                  size === "large" ? "3rem" : "4rem"
             }}
           ></div>
         );
@@ -85,7 +74,7 @@ const Loader = ({
       case "progress":
         return (
           <div className="w-32 bg-gray-200 rounded-full overflow-hidden">
-            <div 
+            <div
               className="h-2 rounded-full animate-progress"
               style={{
                 backgroundColor: color,
@@ -99,13 +88,13 @@ const Loader = ({
       case "church":
         return (
           <div className="animate-bounce">
-            <i 
+            <i
               className="fas fa-church"
               style={{
                 color: color,
-                fontSize: size === "small" ? "1.5rem" : 
-                         size === "medium" ? "2rem" : 
-                         size === "large" ? "3rem" : "4rem"
+                fontSize: size === "small" ? "1.5rem" :
+                  size === "medium" ? "2rem" :
+                    size === "large" ? "3rem" : "4rem"
               }}
             ></i>
           </div>
@@ -122,18 +111,18 @@ const Loader = ({
   const loaderContent = (
     <div className="flex flex-col items-center justify-center space-y-4">
       {renderSpinner()}
-      
+
       {/* Show timeout message if timed out, otherwise show normal text */}
       {hasTimedOut && showTimeoutMessage ? (
         <div className="text-center">
-          <p 
+          <p
             className="font-medium text-orange-600 mb-2"
             style={{ color: '#e67e22' }}
           >
             ⏰ {timeoutMessage}
           </p>
           {text && (
-            <p 
+            <p
               className="text-sm opacity-75"
               style={{ color: color }}
             >
@@ -143,7 +132,7 @@ const Loader = ({
         </div>
       ) : (
         text && (
-          <p 
+          <p
             className="text-center font-medium"
             style={{ color: color }}
           >
@@ -166,11 +155,7 @@ const Loader = ({
 };
 
 // Page Loader Component with Timeout
-export const PageLoader = ({ 
-  timeout = 3000, // 10 seconds default timeout
-  onTimeout,
-  customMessage 
-}) => {
+export const PageLoader = ({ timeout = 3000,  onTimeout, customMessage }) => {
   const [hasTimedOut, setHasTimedOut] = useState(false);
 
   useEffect(() => {
@@ -188,40 +173,35 @@ export const PageLoader = ({
 
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-[#FF7E45] to-[#F4B942] flex items-center justify-center z-50">
-      <div className="text-center">
+      <div className="absolute top-0 left-0 right-0 bottom-0 flex items-center justify-center bg-[#333333e9] bg-opacity-20 cursor-pointer z-10">
         <div className="w-20 h-20 border-4 border-white border-t-transparent rounded-full animate-spin mb-4"></div>
-        
-        {hasTimedOut ? (
-          <>
-            <h2 className="text-xl font-semibold text-white mb-2">Still Working...</h2>
-            <p className="text-white/80">
-              {customMessage || "This is taking longer than expected. Please check your connection."}
-            </p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-white text-[#FF7E45] rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              Refresh Page
-            </button>
-          </>
-        ) : (
-          <>
-            <h2 className="text-xl font-semibold text-white">St Michael's Church</h2>
-            <p className="text-white/80 mt-2">Loading your spiritual journey...</p>
-          </>
-        )}
-      </div>
+
+      {hasTimedOut ? (
+        <>
+          <h2 className="text-xl font-semibold text-white mb-2">Still Working...</h2>
+          <p className="text-white/80">
+            {customMessage || "This is taking longer than expected. Please check your connection."}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-white text-[#FF7E45] rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            Refresh Page
+          </button>
+        </>
+      ) : (
+        <>
+          <h2 className="text-xl font-semibold text-white">St Michael's Church</h2>
+          <p className="text-white/80 mt-2">Loading your spiritual journey...</p>
+        </>
+      )}
     </div>
+    </div >
   );
 };
 
 // Content Loader Component (Skeleton) with Timeout
-export const ContentLoader = ({ 
-  type = "card", 
-  count = 1,
-  timeout = 2000,
-  onTimeout 
-}) => {
+export const ContentLoader = ({ type = "card", count = 1, timeout = 2000, onTimeout }) => {
   const [hasTimedOut, setHasTimedOut] = useState(false);
 
   useEffect(() => {
@@ -259,7 +239,7 @@ export const ContentLoader = ({
             <div className="h-10 bg-gray-200 rounded"></div>
           </div>
         );
-      
+
       case "text":
         return (
           <div className="space-y-3 animate-pulse">
@@ -268,7 +248,15 @@ export const ContentLoader = ({
             <div className="h-4 bg-gray-200 rounded w-4/6"></div>
           </div>
         );
-      
+      case "video":
+        return (
+          <div className="space-y-3 animate-pulse">
+            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded"></div>
+          </div>
+
+        )
+
       case "list":
         return (
           <div className="space-y-4 animate-pulse">
@@ -283,7 +271,7 @@ export const ContentLoader = ({
             ))}
           </div>
         );
-      
+
       default:
         return null;
     }

@@ -3,8 +3,9 @@
 :root {
   --primary: #ff7e45;
   --danger: #e74c3c;
-  --primary-light: #ffa76a;
-  --secondary: #f4b942;
+  --danger-light: #fb7061;
+  --primary-light: #FFA76A;
+  --secondary: #F4B942;
   --dark: #333333;
   --light: #f9f7f4;
   --gray: #e5e5e5;
@@ -27,24 +28,31 @@ h6 {
 }
 
 .btn {
-  border-radius: 0.375rem; /* rounded-md */
-  padding-left: 1.5rem; /* px-6 */
-  padding-right: 1.5rem; /* px-6 */
-  padding-top: 0.5rem; /* py-2 */
-  padding-bottom: 0.5rem; /* py-2 */
-  font-weight: 500; /* font-medium */
+  border-radius: 0.375rem;
+  /* rounded-md */
+  padding-left: 1.5rem;
+  /* px-6 */
+  padding-right: 1.5rem;
+  /* px-6 */
+  padding-top: 0.5rem;
+  /* py-2 */
+  padding-bottom: 0.5rem;
+  /* py-2 */
+  font-weight: 500;
+  /* font-medium */
   transition-property: background-color, color, box-shadow, transform;
   transition-duration: 300ms;
   transition-timing-function: ease-in-out;
 }
 
 .btn-primary {
-  background-color: #ff7e45;
+  background-color: var(--primary);
   color: #fff;
   transition: background-color 0.3s;
 }
+
 .btn-primary:hover {
-  background-color: #ffa76a;
+  background-color: var(--primary-light);
 }
 
 .btn-outline {
@@ -56,9 +64,21 @@ h6 {
     background-color 0.3s,
     color 0.3s;
 }
+
 .btn-outline:hover {
-  background-color: #ff7e45;
+  background-color: var(--primary-light);
   color: #fff;
+}
+
+.btn-danger {
+  background-color: var(--danger);
+  color: #fff;
+  transition: background-color 0.3s;
+}
+
+.btn-danger:hover {
+    background-color: var(--danger-light);
+   color: #fff;
 }
 
 .nav-link {
@@ -68,10 +88,12 @@ h6 {
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
   font-weight: 500;
-  color: #374151; /* text-gray-800 */
+  color: #303846;
+  /* text-gray-800 */
   transition-property: color;
   transition-duration: 200ms;
 }
+
 .nav-link:hover {
   color: #ff7e45;
 }
@@ -95,9 +117,7 @@ h6 {
 }
 
 .hero {
-  background-image:
-    linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
-    url("https://cdn.pixabay.com/photo/2019/08/09/19/35/church-4395760_1280.jpg");
+  background-image: linear-gradient(#00000080, #00000080), url('https://cdn.pixabay.com/photo/2019/08/09/19/35/church-4395760_1280.jpg');
   background-size: cover;
   background-position: center;
   height: 80vh;
@@ -106,72 +126,74 @@ h6 {
 
 .event-card {
   background-color: #fff;
-  border-radius: 0.5rem; /* rounded-lg */
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -2px rgba(0, 0, 0, 0.1); /* shadow-md */
+  border-radius: 0.5rem;
+  /* rounded-lg */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  /* shadow-md */
   overflow: hidden;
   transition:
     box-shadow 0.3s,
     transform 0.3s;
 }
+
 .event-card:hover {
-  box-shadow:
-    0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -4px rgba(0, 0, 0, 0.1); /* shadow-lg */
-  transform: translateY(-0.25rem); /* -translate-y-1 */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  /* shadow-lg */
+  transform: translateY(-0.25rem);
+  /* -translate-y-1 */
 }
 
 .sermon-card {
   background-color: #fff;
-  border-radius: 0.5rem; /* rounded-lg */
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -2px rgba(0, 0, 0, 0.1); /* shadow-md */
+  border-radius: 0.5rem;
+  /* rounded-lg */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  /* shadow-md */
   overflow: hidden;
   transition:
     box-shadow 0.3s,
     transform 0.3s;
 }
+
 .sermon-card:hover {
-  box-shadow:
-    0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -4px rgba(0, 0, 0, 0.1); /* shadow-xl */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  /* shadow-xl */
 }
 
 .testimonial-card {
   background-color: #fff;
-  border-radius: 0.5rem; /* rounded-lg */
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -2px rgba(0, 0, 0, 0.1); /* shadow-md */
-  padding: 1.5rem; /* p-6 */
+  border-radius: 0.5rem;
+  /* rounded-lg */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  /* shadow-md */
+  padding: 1.5rem;
+  /* p-6 */
 }
 
 .ministry-card {
   background-color: #fff;
-  border-radius: 0.5rem; /* rounded-lg */
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -2px rgba(0, 0, 0, 0.1); /* shadow-md */
+  border-radius: 0.5rem;
+  /* rounded-lg */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  /* shadow-md */
   overflow: hidden;
   transition:
     box-shadow 0.3s,
     transform 0.3s;
 }
+
 .ministry-card:hover {
-  box-shadow:
-    0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -4px rgba(0, 0, 0, 0.1); /* shadow-xl */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  /* shadow-xl */
   transform: scale(1.05);
 }
 
 .blog-card {
   background-color: #fff;
-  border-radius: 0.5rem; /* rounded-lg */
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -2px rgba(0, 0, 0, 0.1); /* shadow-md */
+  border-radius: 0.5rem;
+  /* rounded-lg */
+  box-shadow: 0 4px 6px -1px #0000001a, 0 2px 4px -2px #0000001a;
+  /* shadow-md */
   overflow: hidden;
 }
 
@@ -189,11 +211,13 @@ h6 {
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
   border-width: 1px;
-  border-color: #d1d5db; /* gray-300 */
+  border-color: #d1d5db;
+  /* gray-300 */
   border-radius: 0.375rem;
   outline: none;
   transition: box-shadow 0.2s;
 }
+
 .form-input:focus {
   outline: none;
   box-shadow: 0 0 0 2px #ff7e45;
@@ -225,6 +249,16 @@ h6 {
   background-color: var(--primary) !important;
   border-color: var(--primary) !important;
   cursor: pointer;
+}
+
+.video-js {
+  width: 100% !important;
+  height: 100% !important;
+  background-color: transparent !important;
+  border-radius: 0 !important;
+}
+.vjs-tech {
+  object-fit: cover !important;
 }
 
 /* Animate page transitions */

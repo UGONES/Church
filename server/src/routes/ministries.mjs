@@ -11,7 +11,7 @@ import {
   deleteMinistry,
   getMinistryStats,
   getMinistryVolunteers,
-  createMinistryCategory,
+  addMinistryCategory,
 } from "../controllers/ministryController.mjs";
 import { auth, optionalAuth } from "../middleware/auth.mjs";
 import { moderatorCheck } from "../middleware/adminCheck.mjs";
@@ -44,7 +44,7 @@ router.put(
   updateMinistry,
 );
 router.delete("/admin/delete/:id", auth, moderatorCheck, deleteMinistry);
-router.post("/admin/categories", auth, moderatorCheck, createMinistryCategory);
+router.post("/admin/categories", auth, moderatorCheck, addMinistryCategory);
 router.get("/admin/stats", auth, moderatorCheck, getMinistryStats);
 router.get(
   "/admin/:id/volunteers",

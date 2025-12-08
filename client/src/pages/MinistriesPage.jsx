@@ -460,12 +460,25 @@ const MinistriesPage = () => {
   };
 
   /** ==============UI HANDLERS ============== */
-  const handleGetInvolved = (ministry) => {
+  const handleGetInvolved = async (ministry) => {
     if (!isAuthenticated) {
       alert.info("Please log in to get involved in ministries");
-    } else {
-      setSelectedMinistry(ministry);
-      setShowVolunteerModal(true);
+      return;
+    }
+
+    try {
+      const response = await ministryService.joinMinistry({
+        ministryId: ministry._id || ministry.id
+      });
+
+      if (response?.success) {
+        alert.success(`You are now a member of ${ministry.name}`);
+        fetchUserMinistries();
+      } else {
+        throw new Error(response?.message || "Failed to join ministry");
+      }
+    } catch (error) {
+      alert.error(error.response?.data?.message || "Error joining ministry");
     }
   };
 
@@ -575,8 +588,10 @@ const MinistriesPage = () => {
           opportunities={volunteerOpportunities}
           onSubmit={handleVolunteer}
           onClose={() => setShowVolunteerOpportunities(false)}
-          onVolunteer={handleGetInvolved}
-        />
+          onVolunteer={(opportunity) => {
+            setSelectedMinistry(opportunity);
+            setShowVolunteerModal(true);
+          }} />
       )}
 
       {/* Ministries Overview */}
@@ -1057,8 +1072,8 @@ const MinistriesPage = () => {
         <VolunteerModal
           ministry={selectedMinistry}
           onClose={() => setShowVolunteerModal(false)}
-          // onSubmit={handleVolunteer}
-          // user={user}
+        // onSubmit={handleVolunteer}
+        // user={user}
         />
       )}
     </div>

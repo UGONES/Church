@@ -30,20 +30,8 @@ router.post("/:id/favorite", auth, addFavoriteEvent);
 router.delete("/:id/favorite", auth, removeFavoriteEvent);
 
 // Admin routes - ADDED /admin PREFIX
-router.post(
-  "/admin/create",
-  auth,
-  moderatorCheck,
-  uploadImage.single("image"),
-  createEvent,
-);
-router.put(
-  "/admin/update/:id",
-  auth,
-  moderatorCheck,
-  uploadImage.single("image"),
-  updateEvent,
-);
-router.delete("/admin/delete/:id", auth, adminCheck, deleteEvent);
+router.post('/admin/create', auth, moderatorCheck, handleMediaUpload, createEvent);
+router.put('/admin/update/:id', auth, moderatorCheck, handleMediaUpload, updateEvent);
+router.delete('/admin/delete/:id', auth, adminCheck, deleteEvent);
 
 export default router;
