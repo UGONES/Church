@@ -28,8 +28,7 @@ const seed = async () => {
         firstName: "System",
         lastName: "Seeder",
         email: "system@church.com",
-        password: "SeederPass123!", // hashed by pre-save
-        role: "admin",
+        password: "SeederPass123!", 
         authMethod: "local",
         emailVerified: true,
       });

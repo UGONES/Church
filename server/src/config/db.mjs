@@ -24,7 +24,7 @@ const MONGODB_CONFIG = {
   zlibCompressionLevel: 6,
 
   // Security enhancements
-  autoIndex: process.env.NODE_ENV === "development",
+  autoIndex: process.env.NODE_ENV === 'development',
 
   // FIXED: Use either ssl OR tls, not both
   ssl: process.env.NODE_ENV === "production",
@@ -46,6 +46,18 @@ let connectionRetries = 0;
 const MAX_RETRIES = 10;
 const RETRY_DELAY = 5000;
 const connectionHandlers = new Set();
+
+// Synchronize isConnected with actual mongoose connection state
+const updateConnectionStatus = () => {
+  const previousState = isConnected;
+  isConnected = mongoose.connection.readyState === 1;
+
+  // Only log if state actually changed
+  if (previousState !== isConnected) {
+    console.log(`🔄 Connection state changed: ${previousState ? 'Connected' : 'Disconnected'} → ${isConnected ? 'Connected' : 'Disconnected'}`);
+  }
+  return isConnected;
+};
 
 // Event handlers for connection monitoring
 const setupConnectionEvents = () => {
@@ -114,13 +126,16 @@ const validateMongoDBURI = (uri) => {
 
 // Secure connection function with exponential backoff
 const connectDB = async (retries = MAX_RETRIES, delay = RETRY_DELAY) => {
+  if (updateConnectionStatus()) {
+    console.log('✅ Using existing MongoDB connection');
+    return mongoose.connection;
+  }
+
   try {
     // Prevent multiple connection attempts
-    if (
-      mongoose.connection.readyState === 1 ||
-      mongoose.connection.readyState === 2
-    ) {
-      console.log("📡 MongoDB connection already established or connecting");
+    if (mongoose.connection.readyState === 1 || mongoose.connection.readyState === 2) {
+      console.log('📡 MongoDB connection already established or connecting');
+      updateConnectionStatus();
       return mongoose.connection;
     }
 
@@ -159,11 +174,15 @@ const connectDB = async (retries = MAX_RETRIES, delay = RETRY_DELAY) => {
     connectionRetries = 0;
 
     return conn;
+
+    return conn;
   } catch (error) {
     console.error(
       `❌ Database connection error (attempt ${connectionRetries + 1}):`,
       error.message,
     );
+
+    isConnected = false;
 
     // Enhanced error handling with specific recommendations
     if (error.message.includes("EAI_AGAIN")) {
@@ -183,18 +202,15 @@ const connectDB = async (retries = MAX_RETRIES, delay = RETRY_DELAY) => {
     connectionRetries++;
 
     if (connectionRetries <= retries) {
-      const nextDelay = Math.min(
-        delay * Math.pow(1.5, connectionRetries - 1),
-        30000,
-      );
-      console.log(
-        `🔁 Retrying in ${nextDelay / 1000}s... (${retries - connectionRetries + 1} attempts left)`,
-      );
+      const nextDelay = Math.min(delay * Math.pow(1.5, connectionRetries - 1), 30000);
+      console.log(`🔁 Retrying in ${nextDelay / 1000}s... (${retries - connectionRetries + 1} attempts left)`);
 
-      await new Promise((resolve) => setTimeout(resolve, nextDelay));
+      await new Promise(resolve => setTimeout(resolve, nextDelay));
       return connectDB(retries, delay);
     } else {
       console.error("💥 All MongoDB connection attempts failed.");
+
+      isConnected = false;
 
       // Try one more time with minimal configuration
       console.log("🔄 Attempting connection with minimal configuration...");
@@ -205,17 +221,14 @@ const connectDB = async (retries = MAX_RETRIES, delay = RETRY_DELAY) => {
           serverSelectionTimeoutMS: 10000,
         };
 
-        const conn = await mongoose.connect(
-          process.env.MONGODB_URI,
-          minimalConfig,
-        );
-        console.log("✅ Connected with minimal configuration");
+        const conn = await mongoose.connect(process.env.MONGODB_URI, minimalConfig);
+        console.log('✅ Connected with minimal configuration');
+        isConnected = true;
         return conn;
       } catch (finalError) {
-        console.error(
-          "💥 Final connection attempt failed:",
-          finalError.message,
-        );
+        console.error('💥 Final connection attempt failed:', finalError.message);
+
+        isConnected = false;
 
         // Notify handlers of final failure
         notifyConnectionHandlers(false, finalError);
@@ -245,36 +258,41 @@ const gracefulShutdown = async (signal) => {
       console.log("✅ MongoDB connection closed gracefully");
     }
 
-    console.log("👋 Graceful shutdown completed");
+    isConnected = false;
+
+    console.log('👋 Graceful shutdown completed');
     process.exit(0);
   } catch (error) {
-    console.error("❌ Error during graceful shutdown:", error);
+    console.error('❌ Error during graceful shutdown:', error);
+    isConnected = false;
     process.exit(1);
   }
 };
 
 // Setup graceful shutdown handlers
 const setupGracefulShutdown = () => {
-  process.on("SIGINT", () => gracefulShutdown("SIGINT"));
-  process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-  process.on("SIGUSR2", () => gracefulShutdown("SIGUSR2"));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2'));
 
   // Handle uncaught exceptions
-  process.on("uncaughtException", (error) => {
-    console.error("💥 Uncaught Exception:", error);
-    gracefulShutdown("uncaughtException");
+  process.on('uncaughtException', (error) => {
+    console.error('💥 Uncaught Exception:', error);
+    isConnected = false;
+    gracefulShutdown('uncaughtException');
   });
 
   // Handle unhandled promise rejections
-  process.on("unhandledRejection", (reason, promise) => {
-    console.error("💥 Unhandled Rejection at:", promise, "reason:", reason);
-    gracefulShutdown("unhandledRejection");
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
+    isConnected = false;
+    gracefulShutdown('unhandledRejection');
   });
 };
 
 // Connection status utility functions
 export const getConnectionStatus = () => ({
-  isConnected: mongoose.connection.readyState === 1,
+  isConnected: isConnected && mongoose.connection.readyState === 1,
   readyState: mongoose.connection.readyState,
   host: mongoose.connection.host,
   name: mongoose.connection.name,
@@ -283,7 +301,7 @@ export const getConnectionStatus = () => ({
 
 export const waitForConnection = (timeout = 30000) => {
   return new Promise((resolve, reject) => {
-    if (mongoose.connection.readyState === 1) {
+    if (updateConnectionStatus()) {
       resolve(getConnectionStatus());
       return;
     }

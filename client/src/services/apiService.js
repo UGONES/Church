@@ -17,6 +17,7 @@ export const ministryService = {
   volunteer: (id, formData) => apiClient.post(PUBLIC_ENDPOINTS.MINISTRIES_VOLUNTEER_ACTION(id), formData),
   contactLeaders: (id, message) => apiClient.post(PUBLIC_ENDPOINTS.MINISTRIES_CONTACT(id), { message }),
   getCategories: () => apiClient.get(PUBLIC_ENDPOINTS.MINISTRIES_CATEGORIES),
+  joinMinistry: () => apiClient.post(PUBLIC_ENDPOINTS.MINISTRIES_JOIN),
 
   // Admin
   create: (data) => apiClient.post(ADMIN_ENDPOINTS.MINISTRIES.CREATE, data),
@@ -30,25 +31,29 @@ export const ministryService = {
 // ================= SERMONS =================
 export const sermonService = {
   getAll: (params = {}) => apiClient.get(PUBLIC_ENDPOINTS.SERMONS, { params }),
-  getFeatured: (limit = 3) =>
-    apiClient.get(PUBLIC_ENDPOINTS.SERMONS_FEATURED, { params: { limit } }),
+  getFeatured: (limit = 3) => apiClient.get(PUBLIC_ENDPOINTS.SERMONS_FEATURED, { params: { limit } }),
   getLiveStatus: () => apiClient.get(PUBLIC_ENDPOINTS.SERMONS_LIVE),
   getCategories: () => apiClient.get(PUBLIC_ENDPOINTS.SERMONS_CATEGORIES),
   getFavorites: () => apiClient.get(PUBLIC_ENDPOINTS.SERMONS_FAVORITES),
-  addFavorite: (id) =>
-    apiClient.post(PUBLIC_ENDPOINTS.SERMONS_FAVORITE_ACTION(id)),
-  removeFavorite: (id) =>
-    apiClient.delete(PUBLIC_ENDPOINTS.SERMONS_FAVORITE_ACTION(id)),
+  addFavorite: (id) => apiClient.post(PUBLIC_ENDPOINTS.SERMONS_FAVORITE_ACTION(id)),
+  removeFavorite: (id) => apiClient.delete(PUBLIC_ENDPOINTS.SERMONS_FAVORITE_ACTION(id)),
 
-  // Admin
+  // Admin - Fixed to match your backend
   create: (data) => apiClient.post(ADMIN_ENDPOINTS.SERMONS.CREATE, data),
   update: (id, data) => apiClient.put(ADMIN_ENDPOINTS.SERMONS.UPDATE(id), data),
   delete: (id) => apiClient.delete(ADMIN_ENDPOINTS.SERMONS.DELETE(id)),
   getStats: () => apiClient.get(ADMIN_ENDPOINTS.SERMONS.STATS),
-  startLiveStream: () => apiClient.post(ADMIN_ENDPOINTS.SERMONS.LIVE_START),
-  stopLiveStream: () => apiClient.post(ADMIN_ENDPOINTS.SERMONS.LIVE_STOP),
 
+  startLiveStream: (sermonData) => apiClient.post('/sermons/admin/live/start', sermonData).then(res => res.data),
+ stopLiveStream: (sermonId) => apiClient.post(`/sermons/admin/live/stop/${sermonId}`), 
+  
+  getLiveStreamStatus: () => apiClient.get('/sermons/live/status'),
+
+  // Additional methods for RTMP streaming
+  getStreamConfig: (sermonId) => apiClient.get(`/sermons/stream/config/${sermonId}`),
+  testStreamConnection: (sermonId) => apiClient.post(`/sermons/stream/test/${sermonId}`),
 };
+
 // ================= EVENTS =================
 export const eventService = {
   getAll: (params = {}) => apiClient.get(PUBLIC_ENDPOINTS.EVENTS, { params }),
@@ -59,14 +64,14 @@ export const eventService = {
   cancelRsvp: (id) => apiClient.delete(PUBLIC_ENDPOINTS.EVENT_RSVP(id)),
   addFavorite: (id) => apiClient.post(PUBLIC_ENDPOINTS.EVENT_FAVORITE(id)),
   removeFavorite: (id) => apiClient.delete(PUBLIC_ENDPOINTS.EVENT_FAVORITE(id)),
-  getUserPastRsvps: () => apiClient.get(PUBLIC_ENDPOINTS.USER_PAST_RSVPS),
+  getUserPastRsvps: () => apiClient.get(PUBLIC_ENDPOINTS.USER_RSVPS),
   addToCalendar: (eventId) => apiClient.post(PUBLIC_ENDPOINTS.CALENDAR_ADD_EVENT.replace(':eventId', eventId)),
   getEventRecording: (eventId) => apiClient.get(PUBLIC_ENDPOINTS.EVENT_RECORDING.replace(':eventId', eventId)),
   getEventMaterials: (eventId) => apiClient.get(PUBLIC_ENDPOINTS.EVENT_MATERIALS.replace(':eventId', eventId)),
 
-  // Admin
-  create: (data) => apiClient.post(ADMIN_ENDPOINTS.EVENTS.CREATE, data),
-  update: (id, data) => apiClient.put(ADMIN_ENDPOINTS.EVENTS.UPDATE(id), data),
+  // Admin - use multipart/form-data for uploads
+  create: (data) => apiClient.post(ADMIN_ENDPOINTS.EVENTS.CREATE, data, { headers: { "Content-Type": "multipart/form-data" } }),
+  update: (id, data) => apiClient.put(ADMIN_ENDPOINTS.EVENTS.UPDATE(id), data, { headers: { "Content-Type": "multipart/form-data" } }),
   delete: (id) => apiClient.delete(ADMIN_ENDPOINTS.EVENTS.DELETE(id)),
 };
 
@@ -77,16 +82,56 @@ export const testimonialService = {
   getApproved: (limit = 6) => apiClient.get(PUBLIC_ENDPOINTS.TESTIMONIALS_APPROVED, { params: { limit } }),
   getVideos: () => apiClient.get(PUBLIC_ENDPOINTS.TESTIMONIALS_VIDEOS),
   getCategories: () => apiClient.get(PUBLIC_ENDPOINTS.TESTIMONIALS_CATEGORIES),
-  submit: (data) => apiClient.post(PUBLIC_ENDPOINTS.TESTIMONIALS, data, { headers: { "Content-Type": "multipart/form-data" },}),
+  submit: (data) => apiClient.post(PUBLIC_ENDPOINTS.TESTIMONIALS, data, { headers: { "Content-Type": "multipart/form-data" }, }),
 
-  // Admin
-  getAllAdmin: (params = {}) => apiClient.get(ADMIN_ENDPOINTS.TESTIMONIALS.ALL, { params }),
-  create: (data) => apiClient.post(ADMIN_ENDPOINTS.TESTIMONIALS.CREATE, data, { headers: { "Content-Type": "multipart/form-data" },}),
-  update: (id, data) =>apiClient.put(ADMIN_ENDPOINTS.TESTIMONIALS.UPDATE(id), data, { headers: { "Content-Type": "multipart/form-data" }, }),
-  delete: (id) => apiClient.delete(ADMIN_ENDPOINTS.TESTIMONIALS.DELETE(id)),
-  getStats: () => apiClient.get(ADMIN_ENDPOINTS.TESTIMONIALS.STATS),
+  // Admin - WITH COMPREHENSIVE DEBUGGING
+  getAllAdmin: (params = {}) => {
+    console.log('🔍 GET ALL ADMIN - Service:', { params, endpoint: ADMIN_ENDPOINTS.TESTIMONIALS.ALL });
+    return apiClient.get(ADMIN_ENDPOINTS.TESTIMONIALS.ALL, { params });
+  },
+
+  create: (data) => {
+    console.log('🔍 CREATE TESTIMONIAL - Service:', { dataType: typeof data, isFormData: data instanceof FormData, endpoint: ADMIN_ENDPOINTS.TESTIMONIALS.CREATE });
+    return apiClient.post(ADMIN_ENDPOINTS.TESTIMONIALS.CREATE, data, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  update: (id, data) => {
+    console.log('🔍 UPDATE TESTIMONIAL - Service:', {
+      id, idType: typeof id, idLength: id?.length, dataType: typeof data, isFormData: data instanceof FormData, endpoint: ADMIN_ENDPOINTS.TESTIMONIALS.UPDATE(id), constructedEndpoint: ADMIN_ENDPOINTS.TESTIMONIALS.UPDATE(id)
+    });
+
+    // Validate ID
+    if (!id || id === 'undefined' || id === 'null') {
+      console.error('❌ INVALID ID in Service update:', id);
+      return Promise.reject(new Error('Invalid testimonial ID'));
+    }
+
+    return apiClient.put(ADMIN_ENDPOINTS.TESTIMONIALS.UPDATE(id), data, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  delete: (id) => {
+    console.log('🔍 DELETE TESTIMONIAL - Service:', {
+      id, idType: typeof id, idLength: id?.length, endpoint: ADMIN_ENDPOINTS.TESTIMONIALS.DELETE(id), constructedEndpoint: ADMIN_ENDPOINTS.TESTIMONIALS.DELETE(id)
+    });
+
+    // Validate ID
+    if (!id || id === 'undefined' || id === 'null') {
+      console.error('❌ INVALID ID in Service delete:', id);
+      return Promise.reject(new Error('Invalid testimonial ID'));
+    }
+
+    return apiClient.delete(ADMIN_ENDPOINTS.TESTIMONIALS.DELETE(id));
+  },
+
+  getStats: () => {
+    console.log('🔍 GET STATS - Service:', { endpoint: ADMIN_ENDPOINTS.TESTIMONIALS.STATS });
+    return apiClient.get(ADMIN_ENDPOINTS.TESTIMONIALS.STATS);
+  },
 };
-
 
 // ================= PRAYERS =================
 export const prayerService = {
@@ -150,15 +195,13 @@ export const userService = {
   getProfile: () => apiClient.get(USER_ENDPOINTS.PROFILE),
   updateProfile: (data) => apiClient.put(USER_ENDPOINTS.UPDATE_PROFILE, data),
   getDashboard: () => apiClient.get(USER_ENDPOINTS.DASHBOARD),
-  addAvatar: (data) => apiClient.post(USER_ENDPOINTS.AVATAR, data,
-    { headers: { "Content-Type": "multipart/form-data" }, }),
-  addCoverPhoto: (data) => apiClient.post(USER_ENDPOINTS.COVERPHOTO, data,
-    { headers: { "Content-Type": "multipart/form-data" },}),
+  addAvatar: (data) => apiClient.post(USER_ENDPOINTS.AVATAR, data, { headers: { "Content-Type": "multipart/form-data" }, }),
+  addCoverPhoto: (data) => apiClient.post(USER_ENDPOINTS.COVERPHOTO, data, { headers: { "Content-Type": "multipart/form-data" }, }),
   getFamily: () => apiClient.get(USER_ENDPOINTS.FAMILY.BASE),
   addFamilyMember: (data) => apiClient.post(USER_ENDPOINTS.FAMILY.BASE, data),
   removeFamilyMember: (id) => apiClient.delete(USER_ENDPOINTS.FAMILY.MEMBER(id)),
   updateCommunication: (prefs) => apiClient.put(USER_ENDPOINTS.COMMUNICATION, prefs),
-  trackLogin: () => apiClient.post(USER_ENDPOINTS.TRACK_LOGIN), // ✅ ADDED
+  trackLogin: () => apiClient.post(USER_ENDPOINTS.TRACK_LOGIN),
 
 
   // Admin user management

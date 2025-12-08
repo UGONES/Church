@@ -1,5 +1,5 @@
 
-const Footer = ({ setActivePage }) => {
+const Footer = () => {
   return (
     <footer className="bg-gray-900 text-white mt-12">
       <div className="container mx-auto px-4 py-12">
@@ -50,36 +50,36 @@ const Footer = ({ setActivePage }) => {
             <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2">
               <li>
-                <button
-                  onClick={() => setActivePage("events")}
+                <a
+                  href="/events"
                   className="hover:text-[#FF7E45]"
                 >
                   Upcoming Events
-                </button>
+                </a>
               </li>
               <li>
-                <button
-                  onClick={() => setActivePage("sermons")}
+                <a
+                  href="/sermons"
                   className="hover:text-[#FF7E45]"
                 >
                   Latest Sermons
-                </button>
+                </a>
               </li>
               <li>
-                <button
-                  onClick={() => setActivePage("blog")}
+                <a
+                  href="/blog"
                   className="hover:text-[#FF7E45]"
                 >
                   News & Announcements
-                </button>
+                </a>
               </li>
               <li>
-                <button
-                  onClick={() => setActivePage("donate")}
+                <a
+                  href="/donate"
                   className="hover:text-[#FF7E45]"
                 >
                   Support Our Church
-                </button>
+                </a>
               </li>
             </ul>
           </div>

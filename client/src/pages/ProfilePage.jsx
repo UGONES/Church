@@ -4,6 +4,7 @@ import { authService, userService, donationService, eventService } from "../serv
 import Loader from "../components/Loader";
 import { useAuth } from "../hooks/useAuth";
 import { useAlert } from "../utils/Alert";
+import User from "../models/User";
 
 
 const ProfilePage = () => {
@@ -25,23 +26,8 @@ const ProfilePage = () => {
   // --- Normalizer ---
   const normalizeUser = (raw) => {
     if (!raw) return null;
-    const address = typeof raw.address === "object" ? raw.address : {};
-    return {
-      id: raw.id || raw._id || raw.userId,
-      name:
-        raw.name ||
-        `${raw.firstName || ""} ${raw.lastName || ""}`.trim() ||
-        "User",
-      email: raw.email || "",
-      phone: raw.phone || "",
-      role: raw.role || "user",
-      avatar: raw.avatar || raw.photoUrl || "",
-      coverPhoto: raw.coverPhoto || "",
-      address,
-      membershipStatus: raw.membershipStatus || "active",
-      smallGroup: raw.smallGroup || "",
-      memberSince: raw.memberSince || raw.createdAt || null,
-    };
+    const id = raw.id || raw._id || raw.userId;
+    return new User({ ...raw, id });
   };
 
   useEffect(() => {
@@ -57,50 +43,46 @@ const ProfilePage = () => {
   }, [fetchData]);
 
   const fetchUserProfileData = async () => {
-    let isMounted = true;
-    let cancelled = false;
+
     try {
       setLoading(true);
       setError(null);
 
       const userResponse = await userService.getProfile();
-      if (!userResponse || !userResponse.data) throw new Error("Invalid user response");
 
-      if (cancelled) return;
+      const data = userResponse?.data?.data || userResponse?.data || {};
 
-      const profileData = normalizeUser(userResponse.data?.user || userResponse.data || userResponse);
-      if (isMounted) setUserData(profileData);
-      setUserData(profileData);
+      const userObj = data.user ?? data.data?.user ?? data.data ?? data;
 
-      // Load parallel extras
-      const [donationsRes, rsvpsRes, favsRes, famRes] = await Promise.allSettled([
-        donationService.getUserDonations(),
-        eventService.getUserRsvps(),
-        eventService.getUserFavorites(),
-        userService.getFamily(),
-      ]);
-      if (!isMounted) return;
+      // if (!userObj?._id && !userObj?.id) {
+      //   throw new Error("Invalid user response structure");
+      // }
 
-      if (!cancelled) {
-        setDonations(donationsRes.status === "fulfilled" ? (donationsRes.value.donations || donationsRes.value.data || []) : []);
-        setRsvps(rsvpsRes.status === "fulfilled" ? (rsvpsRes.value.rsvps || rsvpsRes.value.data || []) : []);
-        setFavorites(favsRes.status === "fulfilled" ? (favsRes.value.favorites || favsRes.value.data || { events: [], sermons: [], posts: [] }) : { events: [], sermons: [], posts: [] });
-        setFamilyMembers(famRes.status === "fulfilled" ? famRes.value.familyMembers || famRes.value.data?.familyMembers || [] : []);
-      }
+      // Safely extract other fields
+      setUserData(userObj);
+      setFavorites(data.favorites || { events: [], sermons: [], posts: [] });
+      setDonations(data.donations || []);
+      setRsvps(
+        Array.isArray(data.rsvps)
+          ? data.rsvps.map(r => ({
+            id: r._id || r.id,
+            eventTitle: r.eventId?.title,
+            eventDate: r.eventId?.startTime,
+            eventTime: r.eventId?.startTime
+          }))
+          : []
+      );
+      setFamilyMembers(data.familyMembers || []);
     } catch (err) {
       console.error("❌ Error fetching profile data:", err);
       if (err.response?.status !== 401) {
         const errorMsg = err.response?.data?.message || "Failed to load profile data";
-        if (isMounted) {
-          setError(errorMsg);
-          alert.error(errorMsg);
-        }
+        setError(errorMsg);
+        alert.error(errorMsg);
       }
     } finally {
-      if (!cancelled) setLoading(false);
-      if (isMounted) setLoading(false);
+      setLoading(false);
     }
-    return () => { cancelled = true, isMounted = false; };
   };
 
   /**  ---------- Handlers ---------- */
@@ -221,7 +203,7 @@ const ProfilePage = () => {
     formData.append("avatar", file);
 
     try {
-      const response = await userService.uploadAvatar(formData);
+      const response = await userService.addAvatar(formData);
       const updatedUser = response.data?.user || response.data || response;
       setUserData(updatedUser);
       alert.success("Profile photo updated successfully!");
@@ -239,7 +221,7 @@ const ProfilePage = () => {
     formData.append("coverPhoto", file);
 
     try {
-      const response = await userService.uploadCoverPhoto(formData);
+      const response = await userService.addCoverPhoto(formData);
       const updatedUser = response.data?.user || response.data || response;
       setUserData(updatedUser);
       alert.success("Cover photo updated successfully!");
@@ -333,7 +315,7 @@ const ProfilePage = () => {
                 ) : (
                   <div className="bg-gradient-to-r from-[#FF7E45] to-[#F4B942] w-full h-full"></div>
                 )}
-                <div className="absolute inset-0 bg-black/10"></div>
+                <div className="absolute inset-0 bg-[#0000005b]"></div>
 
                 {/* Cover upload button */}
                 <label
@@ -354,9 +336,9 @@ const ProfilePage = () => {
               {/* Avatar */}
               <div className="absolute -bottom-16 left-8 z-10">
                 <div className="relative w-32 h-32 bg-gray-300 rounded-full border-4 border-white shadow-md flex items-center justify-center text-4xl text-white overflow-hidden">
-                  {currentUser?.photoUrl ? (
+                  {currentUser?.avatar ? (
                     <img
-                      src={currentUser.photoUrl}
+                      src={currentUser.avatar}
                       alt={currentUser.name || "User avatar"}
                       className="w-full h-full object-cover"
                     />
@@ -401,7 +383,6 @@ const ProfilePage = () => {
                 </div>
               </div>
 
-
               {/* Tabs */}
               <div className="border-b border-gray-200 mb-8">
                 <ul className="flex flex-wrap -mb-px">
@@ -428,7 +409,8 @@ const ProfilePage = () => {
               {/* Tab Content */}
               {activeTab === 'personal' && (
                 <PersonalInfoTab
-                  userData={currentUser}
+                  userData={ userData || currentUser}
+                  setUserData={currentUser}
                   familyMembers={familyMembers}
                   isAddingFamilyMember={isAddingFamilyMember}
                   newFamilyMember={newFamilyMember}
@@ -483,64 +465,128 @@ const PersonalInfoTab = ({
   onRemoveFamilyMember,
   setIsAddingFamilyMember,
   setNewFamilyMember,
-  formatDate
+  formatDate,
+  // setUserData,
 }) => {
+  const { user: authUser } = useAuth();
+  const alert = useAlert();
+
   const [isEditing, setIsEditing] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("");
   const [formData, setFormData] = useState({
-    firstName: userData?.firstName || '',
-    lastName: userData?.lastName || '',
-    email: userData?.email || '',
-    phone: userData?.phone || '',
-    address: userData?.address || ''
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    address: {
+      street: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      country: "",
+    },
   });
 
-  const [saveStatus, setSaveStatus] = useState('');
-
+  // Initialize form data
   useEffect(() => {
-    setFormData({
-      firstName: userData?.firstName || '',
-      lastName: userData?.lastName || '',
-      email: userData?.email || '',
-      phone: userData?.phone || '',
-      address: userData?.address || ''
-    });
+    if (userData) {
+      setFormData({
+        firstName: userData.firstName || "",
+        lastName: userData.lastName || "",
+        email: userData.email || "",
+        phone: userData.phone || "",
+        address: {
+          street: userData.address?.street || "",
+          city: userData.address?.city || "",
+          state: userData.address?.state || "",
+          zipCode: userData.address?.zipCode || "",
+          country: userData.address?.country || "",
+        },
+      });
+    }
   }, [userData]);
 
+  /* =========================================================
+     Update Profile
+  ========================================================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await onUpdateProfile(formData);
-    setSaveStatus(result.success ? 'success' : 'error');
-
+    setSaveStatus(result.success ? "success" : "error");
     if (result.success) {
       setIsEditing(false);
-      setTimeout(() => setSaveStatus(''), 3000);
+      alert.success("Profile updated successfully");
+      setTimeout(() => setSaveStatus(""), 3000);
     }
   };
 
+  /* =========================================================
+     Add Family Member
+  ========================================================= */
   const handleAddFamilyMemberSubmit = async (e) => {
     e.preventDefault();
     if (!newFamilyMember.name || !newFamilyMember.relationship) return;
 
     const result = await onAddFamilyMember(newFamilyMember);
-    setSaveStatus(result.success ? 'success' : 'error');
-    setTimeout(() => setSaveStatus(''), 3000);
+    setSaveStatus(result.success ? "success" : "error");
+    if (result.success) {
+      alert.success("Family member added successfully");
+      setNewFamilyMember({ name: "", relationship: "", age: "" });
+      setIsAddingFamilyMember(false);
+    } else {
+      alert.error(result.message || "Failed to add member");
+    }
   };
 
+  /* =========================================================
+     Toggle Active Status (Admin Only)
+  ========================================================= */
+  const handleToggleActive = async (targetUserId, newState) => {
+    try {
+      // call admin update endpoint
+      const payload = { isActive: newState };
+      const response = await userService.updateUser(targetUserId, payload);
+      const updatedUser = response?.data?.user ?? response?.data ?? null;
+
+      if (updatedUser) {
+        // update the local userData reference if it's same user
+        if (setUserData && (userData?.id === updatedUser.id || userData?._id === updatedUser._id)) {
+          setUserData(updatedUser);
+        }
+        alert.success?.(`User ${newState ? "activated" : "deactivated"} successfully`);
+        return { success: true };
+      }
+
+      throw new Error("Failed to update user active status");
+    } catch (err) {
+      console.error("❌ Error toggling active:", err);
+      const errorMsg = err?.response?.data?.message || err.message || "Failed to update user";
+      alert.error?.(errorMsg);
+      return { success: false, message: errorMsg };
+    }
+  };
+
+
+  /* =========================================================
+     UI
+  ========================================================= */
   return (
     <div>
       {/* Status Messages */}
-      {saveStatus === 'success' && (
+      {saveStatus === "success" && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
           <p className="text-green-600">Operation completed successfully!</p>
         </div>
       )}
-
-      {saveStatus === 'error' && (
+      {saveStatus === "error" && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
           <p className="text-red-600">Operation failed. Please try again.</p>
         </div>
       )}
 
+      {/* =========================================================
+          Contact Information
+      ========================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Contact Info */}
         <div>
@@ -550,7 +596,7 @@ const PersonalInfoTab = ({
               onClick={() => setIsEditing(!isEditing)}
               className="text-[#FF7E45] hover:text-[#F4B942] text-sm"
             >
-              {isEditing ? 'Cancel' : 'Edit'}
+              {isEditing ? "Cancel" : "Edit"}
             </button>
           </div>
 
@@ -558,108 +604,78 @@ const PersonalInfoTab = ({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">First Name</label>
+                  <label className="block text-sm text-gray-600 mb-1">
+                    First Name
+                  </label>
                   <input
                     type="text"
                     value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, firstName: e.target.value })
+                    }
                     className="form-input"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Last Name</label>
+                  <label className="block text-sm text-gray-600 mb-1">
+                    Last Name
+                  </label>
                   <input
                     type="text"
                     value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lastName: e.target.value })
+                    }
                     className="form-input"
                     required
                   />
                 </div>
               </div>
+
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Email</label>
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   className="form-input"
                   required
                 />
               </div>
+
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Phone</label>
                 <input
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
                   className="form-input"
                 />
               </div>
+
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Address</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    placeholder="Street"
-                    value={formData.address.street || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        address: { ...formData.address, street: e.target.value },
-                      })
-                    }
-                    className="form-input"
-                  />
-                  <input
-                    type="text"
-                    placeholder="City"
-                    value={formData.address.city || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        address: { ...formData.address, city: e.target.value },
-                      })
-                    }
-                    className="form-input"
-                  />
-                  <input
-                    type="text"
-                    placeholder="State"
-                    value={formData.address.state || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        address: { ...formData.address, state: e.target.value },
-                      })
-                    }
-                    className="form-input"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Zip Code"
-                    value={formData.address.zipCode || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        address: { ...formData.address, zipCode: e.target.value },
-                      })
-                    }
-                    className="form-input"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Country"
-                    value={formData.address.country || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        address: { ...formData.address, country: e.target.value },
-                      })
-                    }
-                    className="form-input"
-                  />
+                  {Object.keys(formData.address).map((key) => (
+                    <input
+                      key={key}
+                      type="text"
+                      placeholder={key.charAt(0).toUpperCase() + key.slice(1)}
+                      value={formData.address[key]}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          address: { ...formData.address, [key]: e.target.value },
+                        })
+                      }
+                      className="form-input"
+                    />
+                  ))}
                 </div>
               </div>
 
@@ -670,28 +686,30 @@ const PersonalInfoTab = ({
           ) : (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Name</label>
+                <label className="block text-sm text-gray-600 mb-1">Full Name</label>
                 <p className="font-medium">
-                  {userData?.name || 'Not provided'}
+                  {userData?.firstName && userData?.lastName
+                    ? `${userData.firstName} ${userData.lastName}`
+                    : userData?.name || "Not provided"}
                 </p>
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Email Address</label>
-                <p className="font-medium">{userData?.email || 'Not provided'}</p>
+                <p className="font-medium">{userData?.email || "Not provided"}</p>
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Phone Number</label>
-                <p className="font-medium">{userData?.phone || 'Not provided'}</p>
+                <p className="font-medium">{userData?.phone || "Not provided"}</p>
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Address</label>
                 {userData?.address ? (
                   <div className="font-medium space-y-1">
-                    {userData.address.street && <p>{userData.address.street}</p>}
-                    {userData.address.city && <p>{userData.address.city}</p>}
-                    {userData.address.state && <p>{userData.address.state}</p>}
-                    {userData.address.zipCode && <p>{userData.address.zipCode}</p>}
-                    {userData.address.country && <p>{userData.address.country}</p>}
+                    {Object.values(userData.address)
+                      .filter(Boolean)
+                      .map((line, i) => (
+                        <p key={i}>{line}</p>
+                      ))}
                   </div>
                 ) : (
                   <p className="font-medium">Not provided</p>
@@ -701,27 +719,52 @@ const PersonalInfoTab = ({
           )}
         </div>
 
-        {/* Church Info */}
+        {/* =========================================================
+            Church Membership
+        ========================================================= */}
         <div>
           <h2 className="text-xl font-bold mb-4">Church Membership</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm text-gray-600 mb-1">Member Since</label>
-              <p className="font-medium">{userData?.memberSince ? formatDate(userData.memberSince) : 'Not specified'}</p>
+              <p className="font-medium">
+                {userData?.memberSince
+                  ? formatDate(userData.memberSince)
+                  : "Not specified"}
+              </p>
             </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Membership Status</label>
-              <p className="font-medium capitalize">{userData?.membershipStatus || 'Active'}</p>
-            </div>
+
+            {authUser?.role && userData?.id && (
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Account Status</label>
+                <div className="flex items-center gap-3">
+                  <span className={`px-2 py-1 rounded-full text-sm ${userData?.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                    {userData?.isActive ? "Active" : "Inactive"}
+                  </span>
+                  <button
+                    className="btn btn-outline text-sm"
+                    onClick={() => handleToggleActive(userData.id || userData._id, !userData.isActive)}
+                  >
+                    {userData?.isActive ? "Deactivate" : "Activate"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+
             <div>
               <label className="block text-sm text-gray-600 mb-1">Small Group</label>
-              <p className="font-medium">{userData?.smallGroup || 'Not currently in a small group'}</p>
+              <p className="font-medium">
+                {userData?.smallGroup || "Not currently in a small group"}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Family Members */}
+      {/* =========================================================
+          Family Members
+      ========================================================= */}
       <div className="mt-10">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Family Members</h2>
@@ -734,43 +777,61 @@ const PersonalInfoTab = ({
         </div>
 
         {isAddingFamilyMember && (
-          <form onSubmit={handleAddFamilyMemberSubmit} className="mb-4 p-4 bg-gray-50 rounded-lg">
+          <form
+            onSubmit={handleAddFamilyMemberSubmit}
+            className="mb-4 p-4 bg-gray-50 rounded-lg"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Name</label>
                 <input
                   type="text"
                   value={newFamilyMember.name}
-                  onChange={(e) => setNewFamilyMember({ ...newFamilyMember, name: e.target.value })}
+                  onChange={(e) =>
+                    setNewFamilyMember({ ...newFamilyMember, name: e.target.value })
+                  }
                   className="form-input"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Relationship</label>
+                <label className="block text-sm text-gray-600 mb-1">
+                  Relationship
+                </label>
                 <select
                   value={newFamilyMember.relationship}
-                  onChange={(e) => setNewFamilyMember({ ...newFamilyMember, relationship: e.target.value })}
+                  onChange={(e) =>
+                    setNewFamilyMember({
+                      ...newFamilyMember,
+                      relationship: e.target.value,
+                    })
+                  }
                   className="form-input"
                   required
                 >
                   <option value="">Select Relationship</option>
-                  <option value="spouse">Spouse</option>
-                  <option value="child">Child</option>
-                  <option value="father">Father</option>
-                  <option value="mother">Mother</option>
-                  <option value="parent">Parent</option>
-                  <option value="guardian">Guardian</option>
-                  <option value="grandparent">Grandparent</option>
-                  <option value="grandchild">Grandchild</option>
-                  <option value="aunt">Aunt</option>
-                  <option value="uncle">Uncle</option>
-                  <option value="cousin">Cousin</option>
-                  <option value="friend">Friend</option>
-                  <option value="brother">Brother</option>
-                  <option value="sister">Sister</option>
-                  <option value="sibling">Sibling</option>
-                  <option value="other">Other</option>
+                  {[
+                    "spouse",
+                    "child",
+                    "father",
+                    "mother",
+                    "parent",
+                    "guardian",
+                    "grandparent",
+                    "grandchild",
+                    "aunt",
+                    "uncle",
+                    "cousin",
+                    "friend",
+                    "brother",
+                    "sister",
+                    "sibling",
+                    "other",
+                  ].map((rel) => (
+                    <option key={rel} value={rel}>
+                      {rel.charAt(0).toUpperCase() + rel.slice(1)}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -789,16 +850,23 @@ const PersonalInfoTab = ({
           </form>
         )}
 
-        {familyMembers.length > 0 ? (
+        {familyMembers?.length > 0 ? (
           <div className="space-y-3">
             {familyMembers.map((member) => (
-              <div key={member.id || member._id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <div
+                key={member._id || member.id}
+                className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+              >
                 <div>
                   <p className="font-medium">{member.name}</p>
-                  <p className="text-sm text-gray-600 capitalize">{member.relationship}</p>
+                  <p className="text-sm text-gray-600 capitalize">
+                    {member.relationship}
+                  </p>
                 </div>
                 <button
-                  onClick={() => onRemoveFamilyMember(member.id || member._id)}
+                  onClick={() =>
+                    onRemoveFamilyMember(member._id || member.id)
+                  }
                   className="text-red-500 hover:text-red-700"
                   title="Remove family member"
                 >
@@ -808,7 +876,9 @@ const PersonalInfoTab = ({
             ))}
           </div>
         ) : (
-          <p className="text-gray-600 mb-4">No family members linked to your account.</p>
+          <p className="text-gray-600 mb-4">
+            No family members linked to your account.
+          </p>
         )}
       </div>
     </div>

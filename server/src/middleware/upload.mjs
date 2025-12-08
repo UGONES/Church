@@ -1,6 +1,6 @@
 import multer from 'multer';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
-import cloudinary from '../config/cloudinary.mjs'; // ✅ centralized config
+import cloudinary from '../config/cloudinary.mjs';
 
 // ==================== IMAGE STORAGE ====================
 const imageStorage = new CloudinaryStorage({
@@ -56,19 +56,19 @@ const audioFilter = (req, file, cb) => {
 // ==================== MULTER INSTANCES ====================
 export const uploadImage = multer({
   storage: imageStorage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 100 * 1024 * 1024 }, // 5MB
   fileFilter: imageFilter,
 });
 
 export const uploadVideo = multer({
   storage: videoStorage,
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+  limits: { fileSize: 1000 * 1024 * 1024 }, // 100MB
   fileFilter: videoFilter,
 });
 
 export const uploadAudio = multer({
   storage: audioStorage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  limits: { fileSize: 500 * 1024 * 1024 }, // 50MB
   fileFilter: audioFilter,
 });
 
@@ -83,56 +83,62 @@ export const handleMediaUpload = (req, res, next) => {
     storage: new CloudinaryStorage({
       cloudinary,
       params: (req, file) => {
-        let folder = 'church-app/files';
-        let resource_type = 'auto';
+        let folder = "church-app/files";
+        let resource_type = "auto";
 
-        if (file.mimetype.startsWith('image/')) {
-          folder = 'church-app/images';
-        } else if (file.mimetype.startsWith('video/')) {
-          folder = 'church-app/videos';
-          resource_type = 'video';
-        } else if (file.mimetype.startsWith('audio/')) {
-          folder = 'church-app/audio';
-          resource_type = 'video';
+        if (file.mimetype.startsWith("image/")) {
+          folder = "church-app/images";
+        } else if (file.mimetype.startsWith("video/")) {
+          folder = "church-app/videos";
+          resource_type = "video";
+        } else if (file.mimetype.startsWith("audio/")) {
+          folder = "church-app/audio";
+          resource_type = "video";
         }
 
         return {
           folder,
           resource_type,
           allowed_formats: [
-            'jpg',
-            'jpeg',
-            'png',
-            'gif',
-            'mp4',
-            'mov',
-            'avi',
-            'mp3',
-            'wav',
-            'webp',
+            "jpg",
+            "jpeg",
+            "png",
+            "gif",
+            "mp4",
+            "mov",
+            "avi",
+            "mp3",
+            "wav",
+            "webp",
           ],
-          transformation: file.mimetype.startsWith('image/')
-            ? [{ width: 1000, height: 1000, crop: 'limit' }]
+          transformation: file.mimetype.startsWith("image/")
+            ? [{ width: 1000, height: 1000, crop: "limit" }]
             : [],
         };
       },
     }),
-    limits: { fileSize: 500 * 1024 * 1024 }, // 500MB
+    limits: { fileSize: 500 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
       if (
-        file.mimetype.startsWith('image/') ||
-        file.mimetype.startsWith('video/') ||
-        file.mimetype.startsWith('audio/')
+        file.mimetype.startsWith("image/") ||
+        file.mimetype.startsWith("video/") ||
+        file.mimetype.startsWith("audio/")
       ) {
         cb(null, true);
       } else {
-        cb(new Error('Only image, video, and audio files are allowed'), false);
+        cb(new Error("Only image, video, and audio files are allowed"), false);
       }
     },
-  }).single('file');
+  }).fields([
+    { name: "image", maxCount: 1 },
+    { name: "video", maxCount: 1 },
+    { name: "file", maxCount: 1 },
+  ]);
 
+  // execute upload for the actual request
   upload(req, res, (err) => {
     if (err) {
+      console.error("❌ Multer Upload Error:", err.message);
       return res.status(400).json({
         success: false,
         message: err.message,

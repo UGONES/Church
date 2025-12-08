@@ -4,12 +4,16 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import listPlugin from "@fullcalendar/list";
 import interactionPlugin from "@fullcalendar/interaction";
-import { eventService } from '../services/apiService'; // Fixed import path
+import { eventService } from '../services/apiService';
 import PageLoader from '../components/Loader';
 import { useAlert } from '../utils/Alert';
-import { Event } from '../models/Events'; // Fixed import name
+import { Event } from '../models/Events';
+import { useAuth } from '../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
-const EventsPage = ({ user }) => {
+const EventsPage = () => {
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const alert = useAlert();
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showEventModal, setShowEventModal] = useState(false);
@@ -30,16 +34,22 @@ const EventsPage = ({ user }) => {
     imageUrl: ''
   });
 
-  const isAdmin = user?.role === "admin";
-  const isAuthenticated = user?.isLoggedIn;
+  const isAdmin = user?.role === "admin" || user?.role === "moderator";
 
   // Fetch events and user data
   useEffect(() => {
     document.title = "SMC: - Events | St. Micheal`s & All Angels Church | Ifite-Awka";
     fetchEvents();
+  }, []);
+
+  useEffect(() => {
+    // When auth state changes, refresh user-specific data
     if (isAuthenticated) {
       fetchUserRsvps();
       fetchUserFavorites();
+    } else {
+      setUserRsvps(new Set());
+      setUserFavorites(new Set());
     }
   }, [isAuthenticated]);
 
@@ -60,7 +70,8 @@ const EventsPage = ({ user }) => {
         end: event.endTime || event.end,
         extendedProps: {
           ...event,
-          canRSVP: isAuthenticated && !isAdmin,
+          canRSVP: isAuthenticated,
+          isPastEvent: new Date(event.endTime || event.end) < new Date(), // Check if event has passed
         },
         backgroundColor: getEventColor(event.category),
         borderColor: getEventColor(event.category),
@@ -82,7 +93,8 @@ const EventsPage = ({ user }) => {
     try {
       const response = await eventService.getUserRsvps();
       if (response.success) {
-        setUserRsvps(new Set(response.data.map(rsvp => rsvp.eventId || rsvp.event?._id)));
+        const rsvps = response?.data?.rsvps || [];
+        setUserRsvps(new Set((Array.isArray(rsvps) ? rsvps : []).map(r => r.eventId || r.event?._id)));
       }
     } catch (error) {
       console.error('Error fetching user RSVPs:', error);
@@ -93,12 +105,18 @@ const EventsPage = ({ user }) => {
   const fetchUserFavorites = async () => {
     try {
       const response = await eventService.getUserFavorites();
-      if (response.success) {
-        setUserFavorites(new Set(response.data.map(fav => fav.eventId || fav.event?._id)));
+      if (response.data?.success) {
+        const favs = response?.data?.favorites?.events || [];
+        setUserFavorites(new Set((Array.isArray(favs) ? favs : []).map(f => f._id || f.eventId || f._id)));
       }
+      return;
     } catch (error) {
-      console.error('Error fetching user favorites:', error);
-      alert.error('Failed to load your favorites.');
+      console.error('Favorite error:', error);
+      if (error.response?.status === 409) {
+        alert.error(error.response?.data?.message || "there is an error in loading your favorites.");
+      } else {
+        alert.error("Failed to load favorites. Please try again.");
+      }
     }
   };
 
@@ -126,39 +144,41 @@ const EventsPage = ({ user }) => {
       imageUrl: event.extendedProps?.imageUrl,
       capacity: event.extendedProps?.capacity,
       registered: event.extendedProps?.registered,
-      status: event.extendedProps?.status
+      status: event.extendedProps?.status,
+      isPastEvent: event.extendedProps?.isPastEvent
     });
     setShowEventModal(true);
   };
 
   const handleRSVP = async (eventId) => {
+    // Check if user is authenticated
     if (!isAuthenticated) {
-      alert.info("Please log in to RSVP");
+      alert.info("Please log in to RSVP for events");
+      navigate('/login');
       return;
     }
 
     try {
       if (userRsvps.has(eventId)) {
+        // Cancel RSVP
         const response = await eventService.cancelRsvp(eventId);
-        if (response.success) {
-          setUserRsvps(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(eventId);
-            return newSet;
-          });
+        if (response.data?.message || response.message) {
+          await fetchEvents();
+          await fetchUserRsvps();
           alert.success("RSVP cancelled successfully.");
         }
       } else {
         const response = await eventService.rsvp(eventId);
-        if (response.success) {
-          setUserRsvps(prev => new Set(prev).add(eventId));
+        if (response.data?.message || response.message) {
+          await fetchEvents();
+          await fetchUserRsvps();
           alert.success("Thank you for your RSVP! You're all set for this event.");
         }
       }
     } catch (error) {
       console.error('RSVP error:', error);
       if (error.response?.status === 409) {
-        alert.error("This event is already at capacity.");
+        alert.error(error.response?.data?.message || "This event is already at capacity.");
       } else {
         alert.error("Failed to process RSVP. Please try again.");
       }
@@ -167,31 +187,41 @@ const EventsPage = ({ user }) => {
 
   const handleAddToFavorites = async (eventId) => {
     if (!isAuthenticated) {
-      alert.info("Please log in to add to favorites");
+      alert.info("Please log in to add events to favorites");
+      navigate('/login');
       return;
     }
 
+    const already = userFavorites.has(eventId)
+
+    setUserFavorites(prev => {
+      const copy = new Set(prev);
+      if (already) copy.delete(eventId);
+      else copy.add(eventId);
+      return copy;
+    });
+
     try {
-      if (userFavorites.has(eventId)) {
-        const response = await eventService.removeFavorite(eventId);
-        if (response.success) {
-          setUserFavorites(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(eventId);
-            return newSet;
-          });
-          alert.success("Removed from favorites!");
-        }
-      } else {
-        const response = await eventService.addFavorite(eventId);
-        if (response.success) {
-          setUserFavorites(prev => new Set(prev).add(eventId));
-          alert.success("Added to your favorites!");
-        }
+      const response = already ? await eventService.removeFavorite(eventId) : await eventService.addFavorite(eventId);
+      if (!response.data?.success && !response.success) {
+        throw new Error(response.data?.message || 'Failed to update favorites');
       }
+      alert.success(already ? 'Removed from favorites!' : 'Added to your favorites!');
+
+      await fetchUserFavorites();
     } catch (error) {
+      setUserFavorites(prev => {
+        const copy = new Set(prev);
+        if (already) copy.add(eventId);
+        else copy.delete(eventId);
+        return copy;
+      });
       console.error('Favorite error:', error);
-      alert.error("Failed to update favorites. Please try again.");
+      if (error.response?.status === 409) {
+        alert.error("This event is already at capacity.");
+      } else {
+        alert.error(err.response?.data?.message || err.message || "Failed to process favorites. Please try again.");
+      }
     }
   };
 
@@ -213,10 +243,13 @@ const EventsPage = ({ user }) => {
           imageUrl: ''
         });
         fetchEvents();
+
       }
     } catch (error) {
       console.error('Error creating event:', error);
-      alert.error('Failed to create event');
+      const message = error?.response?.data?.message || 'Failed to create event';
+      alert.error(message);
+      return { success: false, message };
     }
   };
 
@@ -228,9 +261,11 @@ const EventsPage = ({ user }) => {
         setShowEventModal(false);
         fetchEvents();
       }
-    } catch (error) {
-      console.error('Error updating event:', error);
-      alert.error('Failed to update event');
+    } catch (err) {
+      console.error('Error updating event:', err);
+      const message = err?.response?.data?.message || 'Failed to update event';
+      alert.error(message);
+      return { success: false, message };
     }
   };
 
@@ -242,9 +277,11 @@ const EventsPage = ({ user }) => {
         setShowEventModal(false);
         fetchEvents();
       }
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      alert.error('Failed to delete event');
+    } catch (err) {
+      console.error('Error deleting event:', err);
+      const message = err?.response?.data?.message || 'Failed to delete event';
+      alert.error(message);
+      return { success: false, message };
     }
   };
 
@@ -264,12 +301,15 @@ const EventsPage = ({ user }) => {
     });
   };
 
+  const isEventInPast = (endTime) => {
+    return new Date(endTime) < new Date();
+  };
+
   // Function to handle creating a new event (for admin)
   const handleCreateNewEvent = () => {
     setShowCreateModal(true);
   };
 
-  // Handle form input changes for creating events
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewEvent(prev => ({
@@ -355,6 +395,15 @@ const EventsPage = ({ user }) => {
                 </button>
               </div>
 
+              {/* Event status badge */}
+              {isEventInPast(selectedEvent.end) && (
+                <div className="mb-4">
+                  <span className="inline-block bg-gray-500 text-white text-sm px-3 py-1 rounded-full">
+                    <i className="fas fa-history mr-1"></i> Past Event
+                  </span>
+                </div>
+              )}
+
               {/* Event Image */}
               {selectedEvent.imageUrl && (
                 <div className="mb-4">
@@ -402,42 +451,70 @@ const EventsPage = ({ user }) => {
               <p className="text-gray-700 mb-6">{selectedEvent.description}</p>
 
               <div className="flex justify-between items-center space-x-4">
-                {isAuthenticated && !isAdmin ? (
+                {/* RSVP and Favorite buttons - FIXED LOGIC */}
+                {isAuthenticated && (
                   <>
+                    {/* RSVP Button */}
                     <button
                       onClick={() => handleRSVP(selectedEvent.id)}
-                      className={`flex-1 py-2 px-4 rounded-md transition-colors ${userRsvps.has(selectedEvent.id)
+                      className={`flex-1 py-2 px-4 rounded-md transition-colors ${selectedEvent.isPastEvent
+                        ? "bg-gray-400 cursor-not-allowed text-white"
+                        : userRsvps.has(selectedEvent.id)
                           ? "bg-gray-500 hover:bg-gray-600 text-white"
                           : selectedEvent.registered >= selectedEvent.capacity
                             ? "bg-gray-400 cursor-not-allowed text-white"
                             : "bg-[#FF7E45] hover:bg-[#E56A36] text-white"
                         }`}
-                      disabled={selectedEvent.registered >= selectedEvent.capacity && !userRsvps.has(selectedEvent.id)}
+                      disabled={
+                        selectedEvent.isPastEvent ||
+                        (selectedEvent.registered >= selectedEvent.capacity && !userRsvps.has(selectedEvent.id))
+                      }
                     >
                       <span className="mr-2">
-                        <i className={`fas ${userRsvps.has(selectedEvent.id) ? 'fa-times' : 'fa-check'}`}></i>
+                        <i className={`fas ${selectedEvent.isPastEvent
+                          ? 'fa-clock'
+                          : userRsvps.has(selectedEvent.id)
+                            ? 'fa-times'
+                            : 'fa-check'
+                          }`}></i>
                       </span>
-                      {userRsvps.has(selectedEvent.id) ? 'Cancel RSVP' : 'RSVP'}
+                      {selectedEvent.isPastEvent
+                        ? 'Event Ended'
+                        : userRsvps.has(selectedEvent.id)
+                          ? 'Cancel RSVP'
+                          : 'RSVP Now'
+                      }
                     </button>
 
+                    {/* Favorite Button */}
                     <button
                       onClick={() => handleAddToFavorites(selectedEvent.id)}
                       className={`p-2 rounded-md transition-colors ${userFavorites.has(selectedEvent.id)
-                          ? "text-[#FF7E45] bg-orange-100"
-                          : "text-gray-400 hover:text-[#FF7E45] hover:bg-gray-100"
+                        ? "text-[#FF7E45] bg-orange-100"
+                        : "text-gray-400 hover:text-[#FF7E45] hover:bg-gray-100"
                         }`}
                     >
-                      <i className={`fas ${userFavorites.has(selectedEvent.id) ? 'fa-heart text-red-500' : 'fa-heart'}`}></i>
+                      <i className={`fas ${userFavorites.has(selectedEvent.id)
+                        ? 'fa-heart text-red-500'
+                        : 'fa-heart'
+                        }`}></i>
                     </button>
                   </>
-                ) : !isAuthenticated ? (
+                )}
+
+                {/* Show login prompt for unauthenticated users */}
+                {!isAuthenticated && !isAdmin && (
                   <button
-                    onClick={() => alert.info("Please log in to RSVP")}
+                    onClick={() => {
+                      setShowEventModal(false);
+                      navigate('/login');
+                    }}
                     className="flex-1 bg-[#FF7E45] hover:bg-[#E56A36] text-white py-2 px-4 rounded-md transition-colors"
                   >
-                    <span className="mr-2"><i className="fas fa-lock"></i></span> Login to RSVP
+                    <span className="mr-2"><i className="fas fa-sign-in-alt"></i></span>
+                    Login to RSVP
                   </button>
-                ) : null}
+                )}
               </div>
 
               {/* Admin actions */}
@@ -465,7 +542,7 @@ const EventsPage = ({ user }) => {
         </div>
       )}
 
-      {/* Create Event Modal */}
+      {/* Create Event Modal (same as before) */}
       {showCreateModal && isAdmin && (
         <div className="fixed inset-0 bg-[#333333e9] bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">

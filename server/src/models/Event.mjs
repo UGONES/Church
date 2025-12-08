@@ -1,4 +1,3 @@
-// models/Event.js
 import { Schema, model } from 'mongoose';
 
 const eventSchema = new Schema({
@@ -24,6 +23,7 @@ const eventSchema = new Schema({
     required: true
   },
   address: {
+    line: String,
     street: String,
     city: String,
     state: String,
@@ -70,7 +70,14 @@ const eventSchema = new Schema({
   },
   leaders: [{
     name: String,
-    role: String
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    role: {
+      type: String,
+      default: ''
+    },
   }],
   createdBy: {
     type: Schema.Types.ObjectId,
@@ -82,7 +89,10 @@ const eventSchema = new Schema({
     default: null
   },
 
-  tags: [String]
+  tags: {
+    type: [String],
+    default: []
+  },
 }, {
   timestamps: true
 });

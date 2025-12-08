@@ -46,14 +46,14 @@ export async function getApprovedTestimonials(req, res) {
 // Get video testimonials
 export async function getVideoTestimonials(req, res) {
   try {
-    const testimonials = await Testimonial.find({
-      isVideo: true,
-      status: { $in: ['approved', 'featured'] }
+    const videos = await Testimonial.find({
+      videoUrl: { $exists: true, $ne: null },
+      status: "approved",
     }).sort({ createdAt: -1 });
 
-    res.json(testimonials);
+    res.json(videos);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Failed to fetch video testimonials", error });
   }
 }
 
@@ -71,24 +71,39 @@ export async function getTestimonialCategories(req, res) {
 export async function submitTestimonial(req, res) {
   try {
     const testimonialData = req.body;
-
-    if (req.file) {
-      testimonialData.imageUrl = req.file.path;
-    }
+    
+    console.log('📤 Submitting testimonial with files:', {
+      body: testimonialData,
+      files: req.files ? Object.keys(req.files) : 'No files'
+    });
 
     const testimonial = new Testimonial({
       ...testimonialData,
       status: 'pending'
     });
 
+    if (req.files) {
+      // Image file
+      if (req.files.image) {
+        testimonial.imageUrl = req.files.image[0].path; 
+        console.log('✅ Image uploaded to Cloudinary:', testimonial.imageUrl);
+      }
+      
+      // Video file
+      if (req.files.video) {
+        testimonial.videoUrl = req.files.video[0].path;
+        console.log('✅ Video uploaded to Cloudinary:', testimonial.videoUrl);
+      }
+    }
+
     await testimonial.save();
 
     res.status(201).json({
-      message:
-        'Testimonial submitted successfully. It will be reviewed before publishing.',
+      message: 'Testimonial submitted successfully. It will be reviewed before publishing.',
       testimonial
     });
   } catch (error) {
+    console.error('Error submitting testimonial:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 }
@@ -122,21 +137,37 @@ export async function getAllTestimonialsAdmin(req, res) {
 // Create testimonial (Admin)
 export async function createTestimonial(req, res) {
   try {
-    const testimonialData = req.body;
+    const data = req.body;
+    
+    console.log('👑 Admin creating testimonial:', {
+      body: data,
+      files: req.files ? Object.keys(req.files) : 'No files'
+    });
 
-    if (req.file) {
-      testimonialData.imageUrl = req.file.path;
+    const testimonial = new Testimonial(data);
+
+    if (req.files) {
+      // Image file
+      if (req.files.image) {
+        testimonial.imageUrl = req.files.image[0].path;
+        console.log('✅ Image uploaded to Cloudinary:', testimonial.imageUrl);
+      }
+      
+      // Video file
+      if (req.files.video) {
+        testimonial.videoUrl = req.files.video[0].path;
+        console.log('✅ Video uploaded to Cloudinary:', testimonial.videoUrl);
+      }
     }
 
-    const testimonial = new Testimonial(testimonialData);
     await testimonial.save();
-
-    res.status(201).json({
-      message: 'Testimonial created successfully',
-      testimonial
+    res.status(201).json({ 
+      message: "Testimonial created successfully", 
+      testimonial 
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('Error creating testimonial:', error);
+    res.status(500).json({ message: "Failed to create testimonial", error: error.message });
   }
 }
 
@@ -144,13 +175,29 @@ export async function createTestimonial(req, res) {
 export async function updateTestimonial(req, res) {
   try {
     const { id } = req.params;
-    const testimonialData = req.body;
+    const updates = req.body;
 
-    if (req.file) {
-      testimonialData.imageUrl = req.file.path;
+    console.log('👑 Updating testimonial:', {
+      id,
+      body: updates,
+      files: req.files ? Object.keys(req.files) : 'No files'
+    });
+
+    if (req.files) {
+      // Image file
+      if (req.files.image) {
+        updates.imageUrl = req.files.image[0].path;
+        console.log('✅ Image updated in Cloudinary:', updates.imageUrl);
+      }
+      
+      // Video file
+      if (req.files.video) {
+        updates.videoUrl = req.files.video[0].path;
+        console.log('✅ Video updated in Cloudinary:', updates.videoUrl);
+      }
     }
 
-    const testimonial = await Testimonial.findByIdAndUpdate(id, testimonialData, {
+    const testimonial = await Testimonial.findByIdAndUpdate(id, updates, {
       new: true,
       runValidators: true
     });
@@ -164,6 +211,7 @@ export async function updateTestimonial(req, res) {
       testimonial
     });
   } catch (error) {
+    console.error('Error updating testimonial:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 }
@@ -178,9 +226,11 @@ export async function deleteTestimonial(req, res) {
     if (!testimonial) {
       return res.status(404).json({ message: 'Testimonial not found' });
     }
+    console.log('🗑️ Testimonial deleted:', id);
 
     res.json({ message: 'Testimonial deleted successfully' });
   } catch (error) {
+    console.error('Error deleting testimonial:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 }
@@ -197,6 +247,15 @@ export async function getTestimonialStats(req, res) {
     });
     const pendingTestimonials = await Testimonial.countDocuments({
       status: 'pending'
+    });
+
+    // Media statistics
+    const testimonialsWithImages = await Testimonial.countDocuments({
+      imageUrl: { $exists: true, $ne: null }
+    });
+    
+    const testimonialsWithVideos = await Testimonial.countDocuments({
+      videoUrl: { $exists: true, $ne: null }
     });
 
     const categoryStats = await Testimonial.aggregate([
@@ -222,6 +281,8 @@ export async function getTestimonialStats(req, res) {
       approvedTestimonials,
       featuredTestimonials,
       pendingTestimonials,
+      testimonialsWithImages,
+      testimonialsWithVideos,
       categoryStats,
       statusStats
     });

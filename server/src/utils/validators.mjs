@@ -25,7 +25,6 @@ export const userValidation = () => {
   ];
 };
 
-
 // Donation validation rules
 export const donationValidation = () => {
   return [
@@ -112,7 +111,6 @@ export const registerValidation = () => [
     .isLength({ min: 8 })
     .withMessage("Password must be at least 8 characters"),
 ];
-
 
 
 export const forgotPasswordValidation = () => {

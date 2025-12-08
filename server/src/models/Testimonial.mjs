@@ -38,7 +38,7 @@ const testimonialSchema = new Schema({
   },
   category: {
     type: String,
-    enum: ['salvation', 'healing', 'provision', 'relationship', 'other'],
+    enum: ['salvation', 'healing', 'provision', 'relationship', 'answered-prayer', 'favour', 'other'],
     default: 'other'
   },
   rating: {

@@ -193,6 +193,7 @@ export async function getUserMinistries(req, res) {
   }
 }
 
+
 // Volunteer for ministry
 export async function volunteerForMinistry(req, res) {
   try {

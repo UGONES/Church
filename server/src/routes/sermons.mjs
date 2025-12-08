@@ -1,6 +1,5 @@
 import { Router } from 'express';
 const router = Router();
-import multer from 'multer';
 import { 
   getAllSermons, 
   getLiveSermons, 
@@ -14,57 +13,43 @@ import {
   deleteSermon, 
   getSermonStats, 
   startLiveStream, 
-  stopLiveStream 
+  stopLiveStream,
+  getStreamConfig,
+  testStreamConnection,
+  getStreamHealth,
+  getLiveStatus, // ADD THIS
+  handleStreamWebhook // ADD THIS
 } from '../controllers/sermonController.mjs';
 import { auth, optionalAuth } from '../middleware/auth.mjs';
 import { moderatorCheck } from '../middleware/adminCheck.mjs';
-
-// Configure multer for file uploads (using memory storage)
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    if (
-      file.mimetype.startsWith('image/') ||
-      file.mimetype.startsWith('video/') ||
-      file.mimetype.startsWith('audio/')
-    ) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image, video, and audio files are allowed'), false);
-    }
-  }
-});
+import { handleMediaUpload } from '../middleware/upload.mjs';
 
 // Public routes
 router.get('/', getAllSermons);
 router.get('/live', getLiveSermons);
+router.get('/live/status', getLiveStatus); 
 router.get('/categories', getSermonCategories);
 router.get('/featured', getFeaturedSermons);
+
+// Webhook route (no auth required for RTMP server)
+router.post('/webhooks/stream', handleStreamWebhook); 
 
 // Authenticated routes
 router.get('/favorites', optionalAuth, getFavoriteSermons);
 router.post('/favorites/:id', auth, addFavoriteSermon);
 router.delete('/favorites/:id', auth, removeFavoriteSermon);
 
-// Admin routes - ADDED /admin PREFIX
-router.post('/admin', auth, moderatorCheck, upload.fields([
-  { name: 'audio', maxCount: 1 },
-  { name: 'video', maxCount: 1 },
-  { name: 'image', maxCount: 1 }
-]), createSermon);
+// Stream configuration routes
+router.get('/stream/config/:sermonId', auth, getStreamConfig);
+router.post('/stream/test/:sermonId', auth, moderatorCheck, testStreamConnection);
+router.get('/stream/health/:sermonId', auth, getStreamHealth);
 
-router.put('/admin/:id', auth, moderatorCheck, upload.fields([
-  { name: 'audio', maxCount: 1 },
-  { name: 'video', maxCount: 1 },
-  { name: 'image', maxCount: 1 }
-]), updateSermon);
-
+// Admin routes
+router.post('/admin', auth, moderatorCheck, handleMediaUpload, createSermon);
+router.put('/admin/:id', auth, moderatorCheck, handleMediaUpload, updateSermon);
 router.delete('/admin/:id', auth, moderatorCheck, deleteSermon);
 router.get('/admin/stats', auth, moderatorCheck, getSermonStats);
 router.post('/admin/live/start', auth, moderatorCheck, startLiveStream);
-router.post('/admin/live/stop', auth, moderatorCheck, stopLiveStream);
+router.post('/admin/live/stop/:sermonId', auth, moderatorCheck, stopLiveStream); 
 
 export default router;

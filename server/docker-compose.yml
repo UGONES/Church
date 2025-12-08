@@ -1,0 +1,36 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  nginx-rtmp:
+    image: tiangolo/nginx-rtmp
+    ports:
+      - "1935:1935"  # RTMP port
+      - "8080:80"    # HTTP port for HLS/DASH playback
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./recordings:/tmp/recordings
+      - ./hls:/tmp/hls
+      - ./dash:/tmp/dash
+    restart: unless-stopped
+    networks:
+      - church-network
+
+  node-app:
+    build: .
+    ports:
+      - "5000:5000"  # Your main app port
+    depends_on:
+      - nginx-rtmp
+    environment:
+      - RTMP_SERVER_URL=rtmp://nginx-rtmp:1935/live
+      - HLS_BASE_URL=http://localhost:8080
+    volumes:
+      - ./recordings:/app/recordings
+    networks:
+      - church-network
+    restart: unless-stopped
+
+networks:
+  church-network:
+    driver: bridge
