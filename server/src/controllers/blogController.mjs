@@ -13,7 +13,9 @@ const sendSuccess = (res, data, message = "Success", status = 200) => {
  */
 const sendError = (res, error, message = "Server error", status = 500) => {
   console.error("❌ Blog Controller Error:", error);
-  return res.status(status).json({ success: false, message, error: error?.message || message, });
+  return res
+    .status(status)
+    .json({ success: false, message, error: error?.message || message });
 };
 
 /* ============================================================================
@@ -139,13 +141,18 @@ export async function removeFavoriteBlogPost(req, res) {
 export async function subscribeToNewsletter(req, res) {
   try {
     const { email } = req.body;
-    if (!email)
+    if (!email) {
       return sendError(res, null, "Email is required", 400);
+    }
 
     // Placeholder — integrate Mailchimp or SendGrid here
     console.log("📬 Newsletter subscriber:", email);
 
-    return sendSuccess(res, { email }, "Successfully subscribed to newsletter!");
+    return sendSuccess(
+      res,
+      { email },
+      "Successfully subscribed to newsletter!",
+    );
   } catch (error) {
     return sendError(res, error);
   }

@@ -24,19 +24,22 @@ const EventsPage = () => {
   const [userFavorites, setUserFavorites] = useState(new Set());
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newEvent, setNewEvent] = useState({
-    title: '',
-    description: '',
-    location: '',
-    category: 'service',
+    title: "",
+    description: "",
+    location: "",
+    category: "service",
     startTime: new Date().toISOString().slice(0, 16),
-    endTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16),
+    endTime: new Date(Date.now() + 2 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 16),
     capacity: 50,
-    imageUrl: ''
+    imageUrl: "",
   });
 
   // Fetch events and user data
   useEffect(() => {
-    document.title = "SMC: - Events | St. Micheal`s & All Angels Church | Ifite-Awka";
+    document.title =
+      "SMC: - Events | St. Micheal`s & All Angels Church | Ifite-Awka";
     fetchEvents();
   }, []);
 
@@ -58,10 +61,12 @@ const EventsPage = () => {
       const response = await eventService.getAll();
       console.log("🎯 Events response:", response);
 
-      const rawEvents = Array.isArray(response.data) ? response.data : response.data?.events || [];
-      const eventsData = rawEvents.map(event => new Event(event));
+      const rawEvents = Array.isArray(response.data)
+        ? response.data
+        : response.data?.events || [];
+      const eventsData = rawEvents.map((event) => new Event(event));
 
-      const formattedEvents = eventsData.map(event => ({
+      const formattedEvents = eventsData.map((event) => ({
         id: event._id || event.id,
         title: event.title,
         start: event.startTime || event.start,
@@ -73,15 +78,14 @@ const EventsPage = () => {
         },
         backgroundColor: getEventColor(event.category),
         borderColor: getEventColor(event.category),
-        textColor: '#2a1a1aff'
+        textColor: "#2a1a1aff",
       }));
 
       setEvents(formattedEvents);
-
     } catch (error) {
-      console.error('Error fetching events:', error);
-      setError('Failed to load events. Please try again later.');
-      alert.error('Failed to load events. Please try again later.');
+      console.error("Error fetching events:", error);
+      setError("Failed to load events. Please try again later.");
+      alert.error("Failed to load events. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -95,8 +99,8 @@ const EventsPage = () => {
         setUserRsvps(new Set((Array.isArray(rsvps) ? rsvps : []).map(r => r.eventId || r.event?._id)));
       }
     } catch (error) {
-      console.error('Error fetching user RSVPs:', error);
-      alert.error('Failed to load your RSVPs.');
+      console.error("Error fetching user RSVPs:", error);
+      alert.error("Failed to load your RSVPs.");
     }
   };
 
@@ -120,11 +124,11 @@ const EventsPage = () => {
 
   const getEventColor = (category) => {
     const colors = {
-      service: '#fffc45ff',
-      meeting: '#4299E1',
-      social: '#48BB78',
-      conference: '#9F7AEA',
-      default: '#718096'
+      service: "#fffc45ff",
+      meeting: "#4299E1",
+      social: "#48BB78",
+      conference: "#9F7AEA",
+      default: "#718096",
     };
     return colors[category] || colors.default;
   };
@@ -174,7 +178,7 @@ const EventsPage = () => {
         }
       }
     } catch (error) {
-      console.error('RSVP error:', error);
+      console.error("RSVP error:", error);
       if (error.response?.status === 409) {
         alert.error(error.response?.data?.message || "This event is already at capacity.");
       } else {
@@ -228,17 +232,19 @@ const EventsPage = () => {
     try {
       const response = await eventService.create(eventData);
       if (response.success) {
-        alert.success('Event created successfully');
+        alert.success("Event created successfully");
         setShowCreateModal(false);
         setNewEvent({
-          title: '',
-          description: '',
-          location: '',
-          category: 'service',
+          title: "",
+          description: "",
+          location: "",
+          category: "service",
           startTime: new Date().toISOString().slice(0, 16),
-          endTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16),
+          endTime: new Date(Date.now() + 2 * 60 * 60 * 1000)
+            .toISOString()
+            .slice(0, 16),
           capacity: 50,
-          imageUrl: ''
+          imageUrl: "",
         });
         fetchEvents();
 
@@ -255,7 +261,7 @@ const EventsPage = () => {
     try {
       const response = await eventService.update(eventId, eventData);
       if (response.success) {
-        alert.success('Event updated successfully');
+        alert.success("Event updated successfully");
         setShowEventModal(false);
         fetchEvents();
       }
@@ -271,7 +277,7 @@ const EventsPage = () => {
     try {
       const response = await eventService.delete(eventId);
       if (response.success) {
-        alert.success('Event deleted successfully');
+        alert.success("Event deleted successfully");
         setShowEventModal(false);
         fetchEvents();
       }
@@ -310,14 +316,14 @@ const EventsPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNewEvent(prev => ({
+    setNewEvent((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   if (isLoading) {
-    return <PageLoader type="spinner" text="Loading events..." fullScreen={true} />;
+    return <PageLoader type="spinner" text="Loading events..." fullScreen />;
   }
 
   return (
@@ -337,7 +343,8 @@ const EventsPage = () => {
                 onClick={handleCreateNewEvent}
                 className="bg-white text-[#FF7E45] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
               >
-                <i className="fas fa-plus mr-2"></i>Create New Event
+                <i className="fas fa-plus mr-2" />
+                Create New Event
               </button>
             </div>
           )}
@@ -357,7 +364,12 @@ const EventsPage = () => {
         <div className="container mx-auto px-4">
           <div className="bg-white rounded-lg shadow-md p-4 md:p-8">
             <FullCalendar
-              plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
+              plugins={[
+                dayGridPlugin,
+                timeGridPlugin,
+                listPlugin,
+                interactionPlugin,
+              ]}
               initialView="dayGridMonth"
               headerToolbar={{
                 left: "prev,next today",
@@ -369,9 +381,9 @@ const EventsPage = () => {
               height="auto"
               eventDisplay="block"
               eventTimeFormat={{
-                hour: 'numeric',
-                minute: '2-digit',
-                meridiem: 'short'
+                hour: "numeric",
+                minute: "2-digit",
+                meridiem: "short",
               }}
             />
           </div>
@@ -410,7 +422,7 @@ const EventsPage = () => {
                     alt={selectedEvent.title}
                     className="w-full h-48 object-cover rounded-lg"
                     onError={(e) => {
-                      e.target.style.display = 'none';
+                      e.target.style.display = "none";
                     }}
                   />
                 </div>
@@ -418,26 +430,36 @@ const EventsPage = () => {
 
               <div className="mb-4 space-y-2">
                 <div className="flex items-center text-gray-600">
-                  <span className="mr-2 w-6"><i className="fas fa-calendar-alt"></i></span>
+                  <span className="mr-2 w-6">
+                    <i className="fas fa-calendar-alt" />
+                  </span>
                   <span>{formatDate(new Date(selectedEvent.start))}</span>
                 </div>
                 <div className="flex items-center text-gray-600">
-                  <span className="mr-2 w-6"><i className="fas fa-clock"></i></span>
+                  <span className="mr-2 w-6">
+                    <i className="fas fa-clock" />
+                  </span>
                   <span>
-                    {formatTime(new Date(selectedEvent.start))} - {formatTime(new Date(selectedEvent.end))}
+                    {formatTime(new Date(selectedEvent.start))} -{" "}
+                    {formatTime(new Date(selectedEvent.end))}
                   </span>
                 </div>
                 {selectedEvent.location && (
                   <div className="flex items-center text-gray-600">
-                    <span className="mr-2 w-6"><i className="fas fa-map-marker-alt"></i></span>
+                    <span className="mr-2 w-6">
+                      <i className="fas fa-map-marker-alt" />
+                    </span>
                     <span>{selectedEvent.location}</span>
                   </div>
                 )}
                 {selectedEvent.capacity && (
                   <div className="flex items-center text-gray-600">
-                    <span className="mr-2 w-6"><i className="fas fa-users"></i></span>
+                    <span className="mr-2 w-6">
+                      <i className="fas fa-users" />
+                    </span>
                     <span>
-                      {selectedEvent.registered || 0} / {selectedEvent.capacity} registered
+                      {selectedEvent.registered || 0} / {selectedEvent.capacity}{" "}
+                      registered
                       {selectedEvent.registered >= selectedEvent.capacity && (
                         <span className="ml-2 text-red-500">(Full)</span>
                       )}
@@ -521,16 +543,20 @@ const EventsPage = () => {
                   <h4 className="font-semibold mb-2">Admin Actions</h4>
                   <div className="flex space-x-2">
                     <button
-                      onClick={() => handleUpdateEvent(selectedEvent.id, selectedEvent)}
+                      onClick={() =>
+                        handleUpdateEvent(selectedEvent.id, selectedEvent)
+                      }
                       className="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
                     >
-                      <i className="fas fa-edit mr-1"></i>Edit
+                      <i className="fas fa-edit mr-1" />
+                      Edit
                     </button>
                     <button
                       onClick={() => handleDeleteEvent(selectedEvent.id)}
                       className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
                     >
-                      <i className="fas fa-trash mr-1"></i>Delete
+                      <i className="fas fa-trash mr-1" />
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -557,7 +583,9 @@ const EventsPage = () => {
 
               <div className="space-y-4 mb-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Event Title</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Event Title
+                  </label>
                   <input
                     type="text"
                     name="title"
@@ -569,7 +597,9 @@ const EventsPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Description
+                  </label>
                   <textarea
                     name="description"
                     value={newEvent.description}
@@ -581,7 +611,9 @@ const EventsPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Location</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Location
+                  </label>
                   <input
                     type="text"
                     name="location"
@@ -594,7 +626,9 @@ const EventsPage = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Start Time</label>
+                    <label className="block text-sm font-medium mb-1">
+                      Start Time
+                    </label>
                     <input
                       type="datetime-local"
                       name="startTime"
@@ -605,7 +639,9 @@ const EventsPage = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">End Time</label>
+                    <label className="block text-sm font-medium mb-1">
+                      End Time
+                    </label>
                     <input
                       type="datetime-local"
                       name="endTime"
@@ -617,7 +653,9 @@ const EventsPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Capacity</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Capacity
+                  </label>
                   <input
                     type="number"
                     name="capacity"

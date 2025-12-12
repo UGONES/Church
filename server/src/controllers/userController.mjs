@@ -227,9 +227,6 @@ export async function updateProfile(req, res) {
   }
 }
 
-/* ================================
-   Upload Avatar
-================================ */
 export async function uploadAvatar(req, res) {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: "No file uploaded" });
@@ -267,9 +264,6 @@ export async function uploadAvatar(req, res) {
   }
 }
 
-/* ================================
-   Upload Cover Photo
-================================ */
 export async function uploadCoverPhoto(req, res) {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: "No file uploaded" });
@@ -304,9 +298,6 @@ export async function uploadCoverPhoto(req, res) {
   }
 }
 
-/*===============================
-  Get family member
-=================================*/
 export const getFamily = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select("familyMembers");
@@ -317,7 +308,7 @@ export const getFamily = async (req, res) => {
     console.error("❌ Family fetch error:", err);
     return res.status(500).json({ success: false, message: "Server error", error: err.message });
   }
-}
+};
 
 /* ================================
    Add family member
@@ -334,7 +325,7 @@ export async function addFamilyMember(req, res) {
     const user = await User.findByIdAndUpdate(
       userId,
       { $push: { familyMembers: { name, relationship, age } } },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).select("familyMembers");
 
     return res.json({ success: true, message: "Family member added", familyMembers: user.familyMembers });
@@ -357,7 +348,7 @@ export async function removeFamilyMember(req, res) {
     const user = await User.findByIdAndUpdate(
       userId,
       { $pull: { familyMembers: { _id: memberId } } },
-      { new: true }
+      { new: true },
     ).select("familyMembers");
 
     return res.json({ success: true, message: "Family member removed", familyMembers: user.familyMembers });
@@ -372,12 +363,15 @@ export async function removeFamilyMember(req, res) {
 ================================= */
 export async function getUserDashboard(req, res) {
   try {
-    const user = await User.findById(req.user._id)
-      .select("name firstName lastName email role avatar memberSince membershipStatus smallGroup familyMembers volunteerStats");
+    const user = await User.findById(req.user._id).select(
+      "name firstName lastName email role avatar memberSince membershipStatus smallGroup familyMembers volunteerStats",
+    );
 
     const donationCount = await Donation.countDocuments({ user: req.user._id });
     const rsvpCount = await RSVP.countDocuments({ user: req.user._id });
-    const volunteerCount = await Volunteer.countDocuments({ user: req.user._id });
+    const volunteerCount = await Volunteer.countDocuments({
+      user: req.user._id,
+    });
 
     return res.json({
       success: true,
@@ -385,8 +379,8 @@ export async function getUserDashboard(req, res) {
       stats: {
         donationCount,
         eventCount: rsvpCount,
-        volunteerApplications: volunteerCount
-      }
+        volunteerApplications: volunteerCount,
+      },
     });
   } catch (error) {
     console.error("❌ getUserDashboard error:", error);
@@ -403,10 +397,10 @@ export async function trackLoginActivity(userId) {
       userId,
       {
         $set: { lastLogin: new Date() },
-        $inc: { loginCount: 1 }
+        $inc: { loginCount: 1 },
       },
-      { new: true }
-    ).select('-password -verificationToken -resetPasswordToken -adminCode');
+      { new: true },
+    ).select("-password -verificationToken -resetPasswordToken -adminCode");
 
     return updatedUser;
   } catch (error) {
@@ -558,15 +552,15 @@ export async function getAllUsers(req, res) {
     if (membershipStatus) query.membershipStatus = membershipStatus;
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { firstName: { $regex: search, $options: 'i' } },
-        { lastName: { $regex: search, $options: 'i' } }
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { firstName: { $regex: search, $options: "i" } },
+        { lastName: { $regex: search, $options: "i" } },
       ];
     }
 
     const users = await User.find(query)
-      .select('-password -verificationToken -resetPasswordToken -adminCode')
+      .select("-password -verificationToken -resetPasswordToken -adminCode")
       .sort({ createdAt: -1 })
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit));
@@ -588,7 +582,8 @@ export async function getAllUsers(req, res) {
 
 export async function createUser(req, res) {
   try {
-    const { name, email, password, role, phone, address, firstName, lastName } = req.body;
+    const { name, email, password, role, phone, address, firstName, lastName } =
+      req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -601,10 +596,10 @@ export async function createUser(req, res) {
       lastName,
       email,
       password,
-      role: role || 'user',
+      role: role || "user",
       phone,
       address,
-      emailVerified: true // Admin-created users are automatically verified
+      emailVerified: true, // Admin-created users are automatically verified
     });
 
     await user.save();
@@ -620,8 +615,8 @@ export async function createUser(req, res) {
         email: user.email,
         role: user.role,
         phone: user.phone,
-        address: user.address
-      }
+        address: user.address,
+      },
     });
   } catch (error) {
     console.error("❌ createUser error:", error);
@@ -632,13 +627,33 @@ export async function createUser(req, res) {
 export async function updateUser(req, res) {
   try {
     const { id } = req.params;
-    const { name, email, role, phone, address, isActive, firstName, lastName, membershipStatus } = req.body;
+    const {
+      name,
+      email,
+      role,
+      phone,
+      address,
+      isActive,
+      firstName,
+      lastName,
+      membershipStatus,
+    } = req.body;
 
     const user = await User.findByIdAndUpdate(
       id,
-      { name, firstName, lastName, email, role, phone, address, isActive, membershipStatus },
-      { new: true, runValidators: true }
-    ).select('-password -verificationToken -resetPasswordToken');
+      {
+        name,
+        firstName,
+        lastName,
+        email,
+        role,
+        phone,
+        address,
+        isActive,
+        membershipStatus,
+      },
+      { new: true, runValidators: true },
+    ).select("-password -verificationToken -resetPasswordToken");
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -684,6 +699,55 @@ export async function getUserRoles(req, res) {
 
 export async function getMembershipStatuses(req, res) {
   try {
+export async function uploadAvatar(req, res) {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+    const upload = await cloudinary.uploader.upload(req.file.path, {
+      folder: "church/avatars",
+      width: 400,
+      height: 400,
+      crop: "fill",
+      gravity: "face",
+    });
+
+    // Update user
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { photoUrl: upload.secure_url },
+      { new: true },
+    ).select("-password -verificationToken -resetPasswordToken");
+
+    fs.unlinkSync(req.file.path); // clean temp file
+
+    res.json({ message: "Avatar updated successfully", user });
+  } catch (error) {
+    console.error("Avatar upload error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
+/* ================================
+   Upload Cover Photo
+export async function uploadCoverPhoto(req, res) {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+    const upload = await cloudinary.uploader.upload(req.file.path, {
+      folder: "church/covers",
+      width: 1200,
+      height: 400,
+      crop: "fill",
+    });
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { coverPhoto: upload.secure_url },
+      { new: true },
+    ).select("-password -verificationToken -resetPasswordToken");
+
+    fs.unlinkSync(req.file.path);
+    res.json({ message: "Cover photo updated successfully", user });
     const statuses = await User.distinct('membershipStatus');
     return res.json({ success: true, statuses });
   } catch (error) {

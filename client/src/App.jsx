@@ -25,10 +25,18 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const UnauthorizedPage = lazy(() => import("./pages/UnauthorizedPage"));
 const UserPage = lazy(() => import("./pages/UserPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
-const ContactModal = lazy(() => import("./pages/MinistriesPage"));  
+const ContactModal = lazy(() => import("./pages/MinistriesPage"));
 
 const App = () => {
-  const { user, token, isAuthenticated, refreshUser, authLoading, login, logout, } = useAuth();
+  const {
+    user,
+    token,
+    isAuthenticated,
+    refreshUser,
+    authLoading,
+    login,
+    logout,
+  } = useAuth();
   const [showLoader, setShowLoader] = useState(true);
   const [loadingText, setLoadingText] = useState("Loading your page...");
   const alert = useAlert();
@@ -67,12 +75,26 @@ const App = () => {
   useEffect(() => {
     if (!showLoader) return;
 
-    const pathsToWatch = ["/login", "/user", "/admin", "/moderator", "/profile", "/my-rsvps", "/verify-email", "/reset-password", "/change-password"];
-    const isSensitivePath = pathsToWatch.some(p => location.pathname.includes(p));
+    const pathsToWatch = [
+      "/login",
+      "/user",
+      "/admin",
+      "/moderator",
+      "/profile",
+      "/my-rsvps",
+      "/verify-email",
+      "/reset-password",
+      "/change-password",
+    ];
+    const isSensitivePath = pathsToWatch.some((p) =>
+      location.pathname.includes(p),
+    );
 
     if (isSensitivePath) {
       const timer = setTimeout(() => {
-        setLoadingText("This is taking longer than expected... please refresh if it continues.");
+        setLoadingText(
+          "This is taking longer than expected... please refresh if it continues.",
+        );
       }, 3000);
 
       return () => clearTimeout(timer);
@@ -118,7 +140,9 @@ const App = () => {
       <Header user={user} onLogout={handleLogout} />
 
       <main className="main-content">
-        <Suspense fallback={<PageLoader type="spinner" text="Loading page..." />}>
+        <Suspense
+          fallback={<PageLoader type="spinner" text="Loading page..." />}
+        >
           <Routes>
             {/* ===== PUBLIC ROUTES ===== */}
             <Route path="/" element={<HomePage />} />
@@ -136,7 +160,10 @@ const App = () => {
             <Route path="/forgot-password" element={<PasswordPage />} />
             <Route path="/reset-password" element={<PasswordPage />} />
             <Route path="/change-password" element={<PasswordPage />} />
-            <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+            <Route
+              path="/login"
+              element={<LoginPage onLogin={handleLogin} />}
+            />
 
             {/* ===== ERROR / INFO ===== */}
             <Route path="/unauthorized" element={<UnauthorizedPage />} />

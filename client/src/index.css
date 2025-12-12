@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-
-
 :root {
   --primary: #ff7e45;
   --danger: #e74c3c;
@@ -9,12 +7,12 @@
   --primary-light: #FFA76A;
   --secondary: #F4B942;
   --dark: #333333;
-  --light: #F9F7F4;
-  --gray: #E5E5E5;
+  --light: #f9f7f4;
+  --gray: #e5e5e5;
 }
 
 body {
-  font-family: 'Open Sans', sans-serif;
+  font-family: "Open Sans", sans-serif;
   color: var(--dark);
   background-color: var(--light);
 }
@@ -25,7 +23,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: 'Montserrat', sans-serif;
+  font-family: "Montserrat", sans-serif;
   font-weight: 600;
 }
 
@@ -59,10 +57,12 @@ h6 {
 
 .btn-outline {
   border-width: 2px;
-  border-color: #FF7E45;
-  color: #FF7E45;
+  border-color: #ff7e45;
+  color: #ff7e45;
   background-color: transparent;
-  transition: background-color 0.3s, color 0.3s;
+  transition:
+    background-color 0.3s,
+    color 0.3s;
 }
 
 .btn-outline:hover {
@@ -95,18 +95,18 @@ h6 {
 }
 
 .nav-link:hover {
-  color: #FF7E45;
+  color: #ff7e45;
 }
 
 /* Remove @apply and use Tailwind class in your HTML:
    <a class="nav-link text-[#FF7E45] active">...</a>
 */
 .nav-link.active {
-  color: #FF7E45;
+  color: #ff7e45;
 }
 
 .nav-link.active::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 50%;
@@ -131,7 +131,9 @@ h6 {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
   /* shadow-md */
   overflow: hidden;
-  transition: box-shadow 0.3s, transform 0.3s;
+  transition:
+    box-shadow 0.3s,
+    transform 0.3s;
 }
 
 .event-card:hover {
@@ -148,7 +150,9 @@ h6 {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
   /* shadow-md */
   overflow: hidden;
-  transition: box-shadow 0.3s, transform 0.3s;
+  transition:
+    box-shadow 0.3s,
+    transform 0.3s;
 }
 
 .sermon-card:hover {
@@ -173,7 +177,9 @@ h6 {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
   /* shadow-md */
   overflow: hidden;
-  transition: box-shadow 0.3s, transform 0.3s;
+  transition:
+    box-shadow 0.3s,
+    transform 0.3s;
 }
 
 .ministry-card:hover {
@@ -214,7 +220,7 @@ h6 {
 
 .form-input:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #FF7E45;
+  box-shadow: 0 0 0 2px #ff7e45;
   border-color: transparent;
 }
 

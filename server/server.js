@@ -10,9 +10,9 @@ import { initChat } from './src/socket/chatSocket.mjs';
 
 import cloudinary from './src/config/cloudinary.mjs';
 
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
 import connectDB from './src/config/db.mjs';
 import { verifyEmailConnection } from './src/utils/emailService.mjs';
@@ -40,22 +40,24 @@ import socialAuthRoutes from './src/routes/socialAuth.mjs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: path.resolve(__dirname, './src/.env') });
+dotenv.config({ path: path.resolve(__dirname, "./src/.env") });
 
 const app = express();
 
 // Security middleware
 app.use(helmet());
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true,
+  }),
+);
 
 // Rate limiting
 app.use(rateLimiters.generalLimiter);
 
 // Middleware
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 
@@ -120,7 +122,11 @@ app.use('/auth/social', socialAuthRoutes);
 // Catch-all for missing routes
 app.use((req, res, _next) => {
   console.warn(`🚫 Route not found: ${req.method} ${req.originalUrl}`);
-  res.status(404).json({ error: "Route not found", path: req.originalUrl, method: req.method });
+  res.status(404).json({
+    error: "Route not found",
+    path: req.originalUrl,
+    method: req.method,
+  });
 });
 
 // Error handling middleware
@@ -146,7 +152,9 @@ const startServer = async () => {
     // Verify email connection
     const emailConnected = await verifyEmailConnection();
     if (!emailConnected) {
-      console.warn('⚠️  Email service not configured. Verification emails will not be sent.');
+      console.warn(
+        "⚠️  Email service not configured. Verification emails will not be sent.",
+      );
     }
 
     server.listen(PORT, () => {
@@ -154,11 +162,11 @@ const startServer = async () => {
       console.log(`📡 Socket.IO server running on ws://localhost:${PORT}`);
       console.log(`📋 API Documentation: http://localhost:${PORT}/api-docs`);
       if (emailConnected) {
-        console.log('✅ Email service: Ready to send verification emails');
+        console.log("✅ Email service: Ready to send verification emails");
       }
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error("Failed to start server:", error);
     process.exit(1);
   }
 };
