@@ -51,6 +51,7 @@
     "socket.io": "^4.8.1",
     "stripe": "^12.18.0",
     "ua-parser-js": "^1.0.35",
+    "updates": "^17.0.7",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
