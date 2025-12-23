@@ -8,8 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "vite",
-    "vercel-build": "npm run build"
+    "start": "vite"
   },
   "dependencies": {
     "@dr.pogodin/react-helmet": "^3.0.5",
