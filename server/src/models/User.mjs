@@ -17,11 +17,9 @@ const userSchema = new Schema(
     email: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
       match: [emailRegex, "Please enter a valid email"],
-      index: true,
     },
 
     password: {
@@ -60,7 +58,6 @@ const userSchema = new Schema(
       enum: VALID_ROLES,
       default: "user",
       set: (v) => (typeof v === "string" ? v.trim().toLowerCase() : v),
-      index: true,
     },
 
     // store adminCode only when assigned internally; never returned
