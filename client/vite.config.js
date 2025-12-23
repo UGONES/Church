@@ -7,12 +7,22 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
-   css: {
+  css: {
     preprocessorOptions: {
       scss: {
         additionalData: `@import "swiper/css";`
       }
     }
+  },
+  optimizeDeps: {
+    include: [
+      '@fullcalendar/core',
+      '@fullcalendar/react',
+      '@fullcalendar/daygrid',
+      '@fullcalendar/timegrid',
+      '@fullcalendar/list',
+      '@fullcalendar/interaction'
+    ]
   },
   server: {
     headers: {
@@ -24,7 +34,7 @@ export default defineConfig({
       "/api": "http://localhost:5000"
     },
   },
-    esbuild: {
+  esbuild: {
     jsx: 'automatic',
   },
 });

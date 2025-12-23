@@ -8,19 +8,22 @@ import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import { AlertProvider } from './utils/Alert';
 import { AuthProvider } from './hooks/useAuth';
+import { HelmetProvider } from '@dr.pogodin/react-helmet';
 import { SocialAuthProvider } from "./contexts/SocialAuthContext";
 
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AlertProvider>
-        <AuthProvider>
-          <SocialAuthProvider>
-          <App />
-          </SocialAuthProvider>
-        </AuthProvider>
-      </AlertProvider>
+      <HelmetProvider>
+        <AlertProvider>
+          <AuthProvider>
+            <SocialAuthProvider>
+              <App />
+            </SocialAuthProvider>
+          </AuthProvider>
+        </AlertProvider>
+      </HelmetProvider>
     </BrowserRouter>
   </React.StrictMode>
 );
