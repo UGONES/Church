@@ -22,19 +22,22 @@ const MONGODB_CONFIG = {
   authSource: 'admin',
   compressors: ['zlib'],
   zlibCompressionLevel: 6,
-
+  bufferCommands: false, // ADDED
+  
   // Security enhancements
   autoIndex: process.env.NODE_ENV === 'development',
-
-  // FIXED: Use either ssl OR tls, not both
+  
+  // Simplified SSL configuration
   ssl: process.env.NODE_ENV === 'production',
-  // Remove conflicting tls settings when using ssl
+  sslValidate: process.env.NODE_ENV === 'production',
+  
+  // Environment-specific optimizations
   ...(process.env.NODE_ENV === 'production' && {
-    sslValidate: true,
-    tlsAllowInvalidCertificates: false,
-    tlsAllowInvalidHostnames: false,
+    maxPoolSize: 100,
+    minPoolSize: 20,
+    socketTimeoutMS: 60000,
   }),
-
+  
   // Replica set options
   replicaSet: process.env.MONGODB_REPLICA_SET || null,
   readPreference: 'primary',
@@ -49,14 +52,22 @@ const connectionHandlers = new Set();
 
 // Synchronize isConnected with actual mongoose connection state
 const updateConnectionStatus = () => {
-  const previousState = isConnected;
-  isConnected = mongoose.connection.readyState === 1;
-
-  // Only log if state actually changed
-  if (previousState !== isConnected) {
-    console.log(`🔄 Connection state changed: ${previousState ? 'Connected' : 'Disconnected'} → ${isConnected ? 'Connected' : 'Disconnected'}`);
+  const previousState = mongoose.connection.readyState;
+  const currentState = mongoose.connection.readyState;
+  const connected = currentState === 1;
+  
+  if (previousState !== currentState) {
+    console.log(`🔄 Connection state changed: ${getStateName(previousState)} → ${getStateName(currentState)}`);
   }
-  return isConnected;
+  
+  isConnected = connected;
+  return connected;
+};
+
+// Helper function
+const getStateName = (state) => {
+  const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+  return states[state] || 'unknown';
 };
 
 // Event handlers for connection monitoring
@@ -125,7 +136,7 @@ const validateMongoDBURI = (uri) => {
 };
 
 // Secure connection function with exponential backoff
-const connectDB = async (retries = MAX_RETRIES, delay = RETRY_DELAY) => {
+const connectDB = async (maxRetries = MAX_RETRIES, initialDelay = RETRY_DELAY) => {
   if (updateConnectionStatus()) {
     console.log('✅ Using existing MongoDB connection');
     return mongoose.connection;
@@ -155,7 +166,7 @@ const connectDB = async (retries = MAX_RETRIES, delay = RETRY_DELAY) => {
     // Set mongoose global options for security
     mongoose.set('strictQuery', true);
     mongoose.set('autoIndex', MONGODB_CONFIG.autoIndex);
-    mongoose.set('bufferCommands', MONGODB_CONFIG.bufferCommands);
+    mongoose.set('bufferCommands', MONGODB_CONFIG.bufferCommands || false); // FIXED: Added fallback
 
     const conn = await mongoose.connect(mongoURI, connectionConfig);
 
@@ -189,12 +200,13 @@ const connectDB = async (retries = MAX_RETRIES, delay = RETRY_DELAY) => {
 
     connectionRetries++;
 
-    if (connectionRetries <= retries) {
-      const nextDelay = Math.min(delay * Math.pow(1.5, connectionRetries - 1), 30000);
-      console.log(`🔁 Retrying in ${nextDelay / 1000}s... (${retries - connectionRetries + 1} attempts left)`);
+    // FIXED: Changed 'retries' parameter to 'maxRetries' for consistency
+    if (connectionRetries <= maxRetries) {
+      const nextDelay = Math.min(initialDelay * Math.pow(1.5, connectionRetries - 1), 30000);
+      console.log(`🔁 Retrying in ${nextDelay / 1000}s... (${maxRetries - connectionRetries + 1} attempts left)`);
 
       await new Promise(resolve => setTimeout(resolve, nextDelay));
-      return connectDB(retries, delay);
+      return connectDB(maxRetries, initialDelay); // FIXED: Use correct parameter names
     } else {
       console.error("💥 All MongoDB connection attempts failed.");
 

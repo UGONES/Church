@@ -1,36 +1,108 @@
-# docker-compose.yml
 version: '3.8'
 
 services:
-  nginx-rtmp:
-    image: tiangolo/nginx-rtmp
-    ports:
-      - "1935:1935"  # RTMP port
-      - "8080:80"    # HTTP port for HLS/DASH playback
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./recordings:/tmp/recordings
-      - ./hls:/tmp/hls
-      - ./dash:/tmp/dash
+  # Main Nginx + RTMP streaming server
+  nginx-streaming:
+    build: .
+    container_name: church-streaming
     restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "1935:1935"      # RTMP streaming
+      - "8000:8000"      # HLS serving
+      - "8001:8001"      # Streams API
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl
+      - ./media:/tmp/media
+      - ./logs:/var/log/nginx
+      - ./hls-data:/tmp/hls
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - DOMAIN=${DOMAIN:-localhost}
+    networks:
+      - church-network
+    depends_on:
+      - app-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Your main Node.js application server
+  app-server:
+    build:
+      context: .
+      dockerfile: dockerfile-app
+    container_name: church-server
+    restart: unless-stopped
+    working_dir: /server
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./src:/server/src
+      - ./src/.env:/server/.env:ro
+      - ./node_modules:/server/node_modules
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - MONGODB_URI=${MONGODB_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - RTMP_SERVER_URL=rtmp://nginx-streaming:1935/live
+      - HLS_BASE_URL=http://nginx-streaming:8000
+    command: ["sh", "/server/src/scripts/start.sh"]
+    networks:
+      - church-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  # MongoDB database
+  mongodb:
+    image: mongo:6
+    container_name: church-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data/mongodb:/data/db
+      - ./mongodb-init.js:/docker-entrypoint-initdb.d/mongodb-init.js:ro
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASS:-password}
+      - MONGO_INITDB_DATABASE=${MONGO_DB:-churchdb}
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - church-network
 
-  node-app:
-    build: .
+  # Redis for caching (optional but recommended)
+  redis:
+    image: redis:7-alpine
+    container_name: church-redis
+    restart: unless-stopped
     ports:
-      - "5000:5000"  # Your main app port
-    depends_on:
-      - nginx-rtmp
-    environment:
-      - RTMP_SERVER_URL=rtmp://nginx-rtmp:1935/live
-      - HLS_BASE_URL=http://localhost:8080
+      - "6379:6379"
     volumes:
-      - ./recordings:/app/recordings
+      - ./data/redis:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASS:-your_redis_password}
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - church-network
-    restart: unless-stopped
 
 networks:
   church-network:
     driver: bridge
+
+volumes:
+  mongodb-data:
+  redis-data:
+  media-data:

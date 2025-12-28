@@ -1,0 +1,49 @@
+# church/server/dockerfile
+FROM nginx:1.24-alpine
+
+# Install dependencies
+RUN apk add --no-cache \
+    nodejs \
+    npm \
+    ffmpeg \
+    openssl \
+    curl \
+    bash \
+    python3 \
+    py3-pip \
+    supervisor
+
+# Install Node.js dependencies for RTMP server
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --production
+
+# Copy RTMP server
+COPY rtmp-server.js ./
+
+# Copy nginx config
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Copy supervisord config
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Create necessary directories
+RUN mkdir -p \
+    /tmp/hls \
+    /tmp/dash \
+    /tmp/media \
+    /var/log/nginx \
+    /var/log/supervisor \
+    /etc/nginx/ssl
+
+# Generate default SSL if not exists
+RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/nginx/ssl/server.key \
+    -out /etc/nginx/ssl/server.crt \
+    -subj "/C=US/ST=State/L=City/O=Church/CN=localhost" 2>/dev/null || true
+
+# Expose ports
+EXPOSE 80 443 1935 8000 8001
+
+# Start supervisor
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
