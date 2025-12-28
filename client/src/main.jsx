@@ -10,7 +10,6 @@ import { AlertProvider } from './utils/Alert';
 import { AuthProvider } from './hooks/useAuth';
 import { HelmetProvider } from '@dr.pogodin/react-helmet';
 import { SocialAuthProvider } from "./contexts/SocialAuthContext";
-import { SpeedInsights } from "@vercel/speed-insights/next"
 
 
 ReactDOM.createRoot(document.getElementById("root")).render(

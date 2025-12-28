@@ -10,8 +10,8 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 // Connection configuration - FIXED SSL/TLS conflict
 const MONGODB_CONFIG = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
+  // useNewUrlParser: true,
+  // useUnifiedTopology: true,
   serverSelectionTimeoutMS: 30000,
   socketTimeoutMS: 45000,
   maxPoolSize: 50,
@@ -29,7 +29,7 @@ const MONGODB_CONFIG = {
   
   // Simplified SSL configuration
   ssl: process.env.NODE_ENV === 'production',
-  sslValidate: process.env.NODE_ENV === 'production',
+  // sslValidate: process.env.NODE_ENV === 'production',
   
   // Environment-specific optimizations
   ...(process.env.NODE_ENV === 'production' && {
@@ -160,7 +160,7 @@ const connectDB = async (maxRetries = MAX_RETRIES, initialDelay = RETRY_DELAY) =
       ...MONGODB_CONFIG,
       // Use simplified SSL configuration for MongoDB Atlas
       ssl: true, // Always use SSL for MongoDB Atlas
-      sslValidate: true,
+      // sslValidate: true,
     };
 
     // Set mongoose global options for security
