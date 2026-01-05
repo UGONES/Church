@@ -1,7 +1,21 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-
+import {
+  Church,
+  Home,
+  Calendar,
+  Video,
+  DollarSign,
+  Users,
+  MessageSquare,
+  User,
+  LogOut,
+  HandHeart,
+  Menu,
+  X,
+  Cog,
+} from "lucide-react";
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
@@ -35,8 +49,8 @@ const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center cursor-pointer">
-            <i className="fas fa-church text-[#FF7E45] text-3xl mr-2"></i>
+          <Link to="/" className="flex items-center cursor-pointer space-x-2">
+            <Church color="#FF7E45" size={30} />
             <h1 className="text-xl md:text-2xl font-bold">
               St. Michael&apos;s & All Angels Church
             </h1>
@@ -127,8 +141,11 @@ const Header = () => {
             aria-label="Toggle mobile menu"
             aria-expanded={mobileMenuOpen}
           >
-            <i className={`fas ${mobileMenuOpen ? "fa-times text-danger" : "fa-bars"} text-2xl`}></i>
-          </button>
+            {mobileMenuOpen ? (
+              <X size={28} className="text-danger" />
+            ) : (
+              <Menu size={28} />
+            )}          </button>
         </div>
       </div>
 
@@ -142,31 +159,31 @@ const Header = () => {
           className={`fixed top-0 left-0 bottom-0 w-64 bg-white z-50 transform ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
             } transition-transform duration-300 ease-in-out overflow-y-auto`}
         >
-          <div className="p-4 border-b">
-            <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center">
-              <i className="fas fa-church text-[#FF7E45] text-xl mr-2"></i>
+          <div className="p-3 border-b">
+            <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center space-x-2">
+              <Church color="#FF7E45" size={30} />
               <h2 className="font-bold text-lg truncate">St. Michael&apos;s Church</h2>
             </Link>
           </div>
-          <ul className="p-4 space-y-2">
-            <li><Link to="/" className="block p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-home mr-2"></i>Home</Link></li>
-            <li><Link to="/events" className="block p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-calendar-alt mr-2"></i>Events</Link></li>
-            <li><Link to="/sermons" className="block p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-video mr-2"></i>Sermons</Link></li>
-            <li><Link to="/donate" className="block p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-dollar-sign mr-2"></i>Donate</Link></li>
-            <li><Link to="/blog" className="block p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-blog mr-2"></i>Blog</Link></li>
-            <li><Link to="/ministries" className="block p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-people-carry mr-2"></i>Ministries</Link></li>
-            <li><Link to="/testimonials" className="block p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-comments mr-2"></i>Testimonials</Link></li>
-            <li><Link to="/prayer" className="block p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><i className="fas fa-praying-hands mr-2"></i>Prayer</Link></li>
+          <ul className="p-4 space-y-2 flex flex-col">
+            <li><Link to="/" className="flex items-center gap-3 p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><Home color="#FF7E45" size={20} />Home</Link></li>
+            <li><Link to="/events" className="flex items-center gap-3 p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><Calendar color="#FF7E45" size={20} />Events</Link></li>
+            <li><Link to="/sermons" className="flex items-center gap-3 p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><Video color="#FF7E45" size={20} />Sermons</Link></li>
+            <li><Link to="/donate" className="flex items-center gap-3 p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><DollarSign color="#FF7E45" size={20} />Donate</Link></li>
+            <li><Link to="/blog" className="flex items-center gap-3 p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><MessageSquare color="#FF7E45" size={20} />Blog</Link></li>
+            <li><Link to="/ministries" className="flex items-center gap-3 p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><Users color="#FF7E45" size={20} />Ministries</Link></li>
+            <li><Link to="/testimonials" className="flex items-center gap-3 p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><MessageSquare color="#FF7E45" size={20} />Testimonials</Link></li>
+            <li><Link to="/prayer" className="flex items-center gap-3 p-2 hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}><HandHeart color="#FF7E45" size={20} />Prayer</Link></li>
 
             {/* role-aware dashboard */}
             {dashboardPath && (
               <li>
                 <Link
                   to={dashboardPath}
-                  className="block p-2 hover:text-[#FF7E45] whitespace-nowrap"
+                  className="flex items-center gap-3 p-2 hover:text-[#FF7E45] whitespace-nowrap"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <i className="fas fa-cog mr-2"></i>
+                  <Cog color="#FF7E45" size={20} />
                   {userRole === "admin"
                     ? "Admin Dashboard"
                     : userRole === "moderator"
@@ -189,16 +206,16 @@ const Header = () => {
             ) : (
               <div className="space-y-2">
                 <p className="font-medium flex items-center whitespace-nowrap">
-                  <i className="fas fa-user-circle mr-2 text-[#FF7E45]"></i>
+                  <User size={20} className="mr-2" />
                   <span className="truncate">{userName}</span>
                 </p>
                 {userId && (
                   <>
                     <Link to={`/profile/${userId}`} className="w-full btn btn-outline flex items-center justify-center hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}>
-                      <i className="fas fa-user mr-2"></i>Profile
+                      <User size={20} className="mr-2" /> Profile
                     </Link>
                     <Link to={`/my-rsvps/${userId}`} className="w-full btn btn-outline flex items-center justify-center hover:text-[#FF7E45] whitespace-nowrap" onClick={() => setMobileMenuOpen(false)}>
-                      <i className="fas fa-calendar-check mr-2"></i>My RSVPs
+                      <Calendar size={20} className="mr-2" /> My RSVPs
                     </Link>
                   </>
                 )}
@@ -206,7 +223,7 @@ const Header = () => {
                   className="w-full bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-900 transition-colors duration-200 flex items-center justify-center font-medium"
                   onClick={handleLogout}
                 >
-                  <i className="fas fa-sign-out-alt mr-2"></i>Logout
+                  <LogOut size={20} className="mr-2" /> Logout
                 </button>
               </div>
             )}

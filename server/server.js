@@ -165,11 +165,11 @@ const startServer = async () => {
 
 app.set('io', io);
 
-// console.log('🚀 Starting RTMP Server from dedicated starter...');
-// startRtmp().catch(error => {
-//   console.error('💥 Fatal error:', error);
-//   process.exit(1);
-// });
+console.log('🚀 Starting RTMP Server from dedicated starter...');
+startRtmp().catch(error => {
+  console.error('💥 Fatal error:', error);
+  process.exit(1);
+});
 
 startServer();
 

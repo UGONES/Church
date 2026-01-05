@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@dr.pogodin/react-helmet": "^3.0.5",
-    "@fortawesome/fontawesome-free": "^7.1.0",
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/poppins": "^5.2.7",
     "@fullcalendar/core": "^6.1.20",
     "@fullcalendar/daygrid": "^6.1.20",
     "@fullcalendar/interaction": "^6.1.20",
@@ -29,6 +30,7 @@
     "dayjs": "^1.11.19",
     "hls.js": "^1.6.15",
     "jwt-decode": "^4.0.0",
+    "lucide-react": "^0.562.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-facebook": "^10.0.1",

@@ -446,7 +446,7 @@ const fetchBlogPosts = async () => {
                 <div className="text-center py-12">
                   <i className="fas fa-newspaper text-4xl text-gray-400 mb-4"></i>
                   <p className="text-gray-600">No posts found in this category.</p>
-                  {isAdmin && (
+                  {isStaff && (
                     <button
                       onClick={() => setShowCreateModal(true)}
                       className="mt-4 bg-[#FF7E45] text-white px-6 py-2 rounded-lg hover:bg-[#FFA76A] transition-colors"
