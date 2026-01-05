@@ -6,7 +6,7 @@ import fs from 'fs';
 import http from 'http';
 import { Server } from 'socket.io';
 import { initChat } from './src/socket/chatSocket.mjs';
-// import { startRtmp } from './rtmp-server.js';
+import { startRtmp } from './rtmp-server.js';
 
 import cloudinary from './src/config/cloudinary.mjs';
 
