@@ -171,13 +171,18 @@ let rtmpServer = null;
 
 const initializeRTMPServer = async () => {
   try {
-    // Only start RTMP in development or if explicitly enabled
-    if (process.env.NODE_ENV === 'development' || process.env.ENABLE_RTMP === 'true') {
-      console.log('🚀 Starting RTMP Server...');
+    // Only start RTMP if explicitly enabled and not in production (or if specifically enabled)
+    const shouldStartRTMP =
+      process.env.NODE_ENV === 'development' &&
+      process.env.ENABLE_RTMP !== 'false';
+
+    if (shouldStartRTMP) {
+      console.log('🚀 Initializing RTMP Server...');
       rtmpServer = await startRtmp();
-      console.log('✅ RTMP Server initialized');
+      console.log('✅ RTMP Server initialized successfully');
     } else {
-      console.log('⚠️ RTMP server disabled in production mode');
+      console.log('⚠️ RTMP server disabled - Set ENABLE_RTMP=true to enable');
+      rtmpServer = null;
     }
   } catch (error) {
     console.error('❌ RTMP Server failed to start:', error.message);
@@ -186,19 +191,20 @@ const initializeRTMPServer = async () => {
   }
 };
 
-// Start everything
+// Start everything in correct order
 const startEverything = async () => {
   try {
-    // Start RTMP server first (if needed)
+    // Initialize RTMP server first (if enabled)
     await initializeRTMPServer();
-    
-    // Then start the main server
+
+    // Then start the main Express server
     await startServer();
   } catch (error) {
     console.error('💥 Failed to start application:', error);
     process.exit(1);
   }
 };
+
 
 // Start the application
 startEverything();

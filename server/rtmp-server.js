@@ -955,16 +955,4 @@ export const startRtmp = async () => {
   }
 };
 
-console.log('🔍 DEBUG: File loaded, checking execution mode...');
-console.log('🔍 DEBUG: import.meta.url:', import.meta.url);
-console.log('🔍 DEBUG: process.argv[1]:', process.argv[1]);
-
-// Simple direct execution
-if (import.meta.url.includes('rtmp-server.js')) {
-  console.log('🚀 Starting RTMP Server...');
-  startRtmp().catch(error => {
-    console.error('💥 Fatal error:', error);
-    process.exit(1);
-  });
-}
-
+export { startRtmp, startNodeMediaServer };
