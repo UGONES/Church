@@ -167,37 +167,39 @@ app.set('io', io);
 
 console.log('🚀 Starting RTMP Server from dedicated starter...');
 
-let rtmpServer = null;
 
 const initializeRTMPServer = async () => {
-  try {
-    // Only start RTMP if explicitly enabled and not in production (or if specifically enabled)
-    const shouldStartRTMP =
-      process.env.NODE_ENV === 'development' &&
-      process.env.ENABLE_RTMP !== 'false';
-
-    if (shouldStartRTMP) {
-      console.log('🚀 Initializing RTMP Server...');
-      rtmpServer = await startRtmp();
-      console.log('✅ RTMP Server initialized successfully');
-    } else {
-      console.log('⚠️ RTMP server disabled - Set ENABLE_RTMP=true to enable');
-      rtmpServer = null;
-    }
-  } catch (error) {
-    console.error('❌ RTMP Server failed to start:', error.message);
-    console.log('⚠️ Continuing without RTMP server');
-    rtmpServer = null;
+  // ALWAYS disable RTMP on Render for now
+  if (process.env.RENDER === 'true' || process.env.NODE_ENV === 'production') {
+    console.log('⚠️ RTMP server disabled on Render/production');
+    console.log('📹 If you need streaming, deploy RTMP as a separate service');
+    return null;
   }
+
+  // Only run RTMP locally in development
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      console.log('🚀 Initializing RTMP Server for development...');
+      const rtmp = await startRtmp();
+      console.log('✅ RTMP Server initialized successfully');
+      return rtmp;
+    } catch (error) {
+      console.error('❌ RTMP Server failed:', error.message);
+      console.log('⚠️ Continuing without RTMP server');
+      return null;
+    }
+  }
+
+  return null;
 };
 
-// Start everything in correct order
+// Then in your startEverything function:
 const startEverything = async () => {
   try {
-    // Initialize RTMP server first (if enabled)
+    // Initialize RTMP (will be null on Render)
     await initializeRTMPServer();
 
-    // Then start the main Express server
+    // Start the main Express server
     await startServer();
   } catch (error) {
     console.error('💥 Failed to start application:', error);
@@ -205,8 +207,6 @@ const startEverything = async () => {
   }
 };
 
-
-// Start the application
 startEverything();
 
 export default app;

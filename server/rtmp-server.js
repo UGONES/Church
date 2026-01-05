@@ -555,275 +555,275 @@ export async function startNodeMediaServer(options = {}) {
     process.exit(1);
   }
 
-  // Streams API Server for a quick status
-  const streamsServer = http.createServer(createServerWithSecurity((req, res) => {
+  // // Streams API Server for a quick status
+  // const streamsServer = http.createServer(createServerWithSecurity((req, res) => {
 
-    if (req.method === 'OPTIONS') {
-      res.writeHead(200);
-      res.end();
-      return;
-    }
+  //   if (req.method === 'OPTIONS') {
+  //     res.writeHead(200);
+  //     res.end();
+  //     return;
+  //   }
 
-    if (req.url === '/api/streams' && req.method === 'GET') {
-      try {
-        const sessions = Array.from(activeSessions.values());
-        const activeStreams = sessions.filter(s => s.publish && s.publish.isActive);
+  //   if (req.url === '/api/streams' && req.method === 'GET') {
+  //     try {
+  //       const sessions = Array.from(activeSessions.values());
+  //       const activeStreams = sessions.filter(s => s.publish && s.publish.isActive);
 
-        const baseUrl = process.env.HLS_BASE_URL || `http://localhost:${httpPort}`;
-
-
-        const streams = activeStreams.map(stream => ({
-          id: stream.id,
-          streamKey: stream.streamKey,
-          streamPath: stream.publish.streamPath,
-          startTime: stream.connectTime,
-          subscribers: stream.players ? stream.players.length : 0,
-          hlsUrl: `${baseUrl}/live/${stream.streamKey}/index.m3u8`
-        }));
-
-        const response = {
-          success: true,
-          server: {
-            environment: isProduction ? 'production' : 'development',
-            domain: domain,
-            rtmpPort,
-            hlsPort: httpPort,
-            apiPort: apiPort
-          },
-          live: streams.reduce((acc, stream) => {
-            acc[stream.streamKey] = {
-              subscribers: stream.subscribers,
-              startTime: stream.startTime,
-              hlsUrl: stream.hlsUrl
-            };
-            return acc;
-          }, {}),
-          streams
-        };
-
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(response));
-      } catch (error) {
-        console.error('Error in /api/streams:', error);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: false,
-          error: isProduction ? 'Internal server error' : error.message
-        }));
-      }
-      return;
-    }
-
-    if (req.url === '/api/hls-status' && req.method === 'GET') {
-      try {
-        const liveDir = path.join(__dirname, 'media', 'live');
-        const streams = [];
-        const baseUrl = process.env.HLS_BASE_URL || `http://localhost:${httpPort}`;
+  //       const baseUrl = process.env.HLS_BASE_URL || `http://localhost:${httpPort}`;
 
 
-        if (fs.existsSync(liveDir)) {
-          const items = fs.readdirSync(liveDir, { withFileTypes: true });
-          items.forEach(item => {
-            if (item.isDirectory()) {
-              const streamKey = item.name;
-              const m3u8Path = path.join(liveDir, streamKey, 'index.m3u8');
-              const hasM3U8 = fs.existsSync(m3u8Path);
+  //       const streams = activeStreams.map(stream => ({
+  //         id: stream.id,
+  //         streamKey: stream.streamKey,
+  //         streamPath: stream.publish.streamPath,
+  //         startTime: stream.connectTime,
+  //         subscribers: stream.players ? stream.players.length : 0,
+  //         hlsUrl: `${baseUrl}/live/${stream.streamKey}/index.m3u8`
+  //       }));
 
-              streams.push({
-                streamKey,
-                hasM3U8,
-                hlsUrl: `${baseUrl}/live/${streamKey}/index.m3u8`,
-                lastModified: hasM3U8 ? fs.statSync(m3u8Path).mtime : null
-              });
-            }
-          });
-        }
+  //       const response = {
+  //         success: true,
+  //         server: {
+  //           environment: isProduction ? 'production' : 'development',
+  //           domain: domain,
+  //           rtmpPort,
+  //           hlsPort: httpPort,
+  //           apiPort: apiPort
+  //         },
+  //         live: streams.reduce((acc, stream) => {
+  //           acc[stream.streamKey] = {
+  //             subscribers: stream.subscribers,
+  //             startTime: stream.startTime,
+  //             hlsUrl: stream.hlsUrl
+  //           };
+  //           return acc;
+  //         }, {}),
+  //         streams
+  //       };
 
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: true,
-          hlsPort: httpPort,
-          mediaDir: liveDir,
-          streams,
-          activeSessions: Array.from(activeSessions.values()).map(s => ({
-            id: s.id,
-            streamKey: s.streamKey,
-            isActive: s.publish.isActive
-          }))
-        }));
-      } catch (error) {
-        console.error('Error in /api/hls-status:', error);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, error: error.message }));
-      }
-      return;
-    }
+  //       res.writeHead(200, { 'Content-Type': 'application/json' });
+  //       res.end(JSON.stringify(response));
+  //     } catch (error) {
+  //       console.error('Error in /api/streams:', error);
+  //       res.writeHead(500, { 'Content-Type': 'application/json' });
+  //       res.end(JSON.stringify({
+  //         success: false,
+  //         error: isProduction ? 'Internal server error' : error.message
+  //       }));
+  //     }
+  //     return;
+  //   }
 
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ success: false, error: 'Endpoint not found' }));
-  }));
+  //   if (req.url === '/api/hls-status' && req.method === 'GET') {
+  //     try {
+  //       const liveDir = path.join(__dirname, 'media', 'live');
+  //       const streams = [];
+  //       const baseUrl = process.env.HLS_BASE_URL || `http://localhost:${httpPort}`;
 
-  // Enhanced HLS file server
-  const hlsServer = http.createServer(createServerWithSecurity((req, res) => {
-    try {
 
-      if (req.method === 'OPTIONS') {
-        res.writeHead(200);
-        res.end();
-        return;
-      }
+  //       if (fs.existsSync(liveDir)) {
+  //         const items = fs.readdirSync(liveDir, { withFileTypes: true });
+  //         items.forEach(item => {
+  //           if (item.isDirectory()) {
+  //             const streamKey = item.name;
+  //             const m3u8Path = path.join(liveDir, streamKey, 'index.m3u8');
+  //             const hasM3U8 = fs.existsSync(m3u8Path);
 
-      // Handle HLS manifest requests
-      if (req.url.match(/\.m3u8$/) && req.method === 'GET') {
-        const streamKey = req.url.split('/').pop().replace('.m3u8', '');
+  //             streams.push({
+  //               streamKey,
+  //               hasM3U8,
+  //               hlsUrl: `${baseUrl}/live/${streamKey}/index.m3u8`,
+  //               lastModified: hasM3U8 ? fs.statSync(m3u8Path).mtime : null
+  //             });
+  //           }
+  //         });
+  //       }
 
-        if (!safeValidate(streamKey)) {
-          res.writeHead(403, { 'Content-Type': 'text/plain' });
-          res.end('Invalid stream key');
-          return;
-        }
-        const m3u8Path = path.join(__dirname, 'media', 'live', streamKey, 'index.m3u8');
+  //       res.writeHead(200, { 'Content-Type': 'application/json' });
+  //       res.end(JSON.stringify({
+  //         success: true,
+  //         hlsPort: httpPort,
+  //         mediaDir: liveDir,
+  //         streams,
+  //         activeSessions: Array.from(activeSessions.values()).map(s => ({
+  //           id: s.id,
+  //           streamKey: s.streamKey,
+  //           isActive: s.publish.isActive
+  //         }))
+  //       }));
+  //     } catch (error) {
+  //       console.error('Error in /api/hls-status:', error);
+  //       res.writeHead(500, { 'Content-Type': 'application/json' });
+  //       res.end(JSON.stringify({ success: false, error: error.message }));
+  //     }
+  //     return;
+  //   }
 
-        console.log(`📁 HLS request: ${streamKey} -> ${m3u8Path}`);
-        console.log(`📁 Directory exists: ${fs.existsSync(path.dirname(m3u8Path))}`);
-        console.log(`📁 File exists: ${fs.existsSync(m3u8Path)}`);
+  //   res.writeHead(404, { 'Content-Type': 'application/json' });
+  //   res.end(JSON.stringify({ success: false, error: 'Endpoint not found' }));
+  // }));
 
-        if (fs.existsSync(m3u8Path)) {
-          const m3u8Content = fs.readFileSync(m3u8Path, 'utf8');
-          res.writeHead(200, {
-            'Content-Type': 'application/vnd.apple.mpegurl',
-            'Cache-Control': 'no-cache, max-age=0',
-            'Access-Control-Allow-Origin': '*'
-          });
-          res.end(m3u8Content);
-          console.log(`✅ Served HLS for: ${streamKey}`);
-        } else {
-          console.log(`❌ HLS not found: ${m3u8Path}`);
-          const dirPath = path.dirname(m3u8Path);
-          if (fs.existsSync(dirPath)) {
-            console.log(`📁 Directory contents:`, fs.readdirSync(dirPath));
-          }
-          res.writeHead(404, {
-            'Content-Type': 'text/plain',
-            'Access-Control-Allow-Origin': '*'
-          });
-          res.end('Stream not ready or not found');
-        }
-        return;
-      }
+  // // Enhanced HLS file server
+  // const hlsServer = http.createServer(createServerWithSecurity((req, res) => {
+  //   try {
 
-      // Handle TS segment requests
-      if (req.url.match(/\.ts$/) && req.method === 'GET') {
-        const urlParts = req.url.split('/');
-        const filename = urlParts[urlParts.length - 1];
-        const streamKey = urlParts[urlParts.length - 2];
+  //     if (req.method === 'OPTIONS') {
+  //       res.writeHead(200);
+  //       res.end();
+  //       return;
+  //     }
 
-        if (!safeValidate(streamKey)) {
-          res.writeHead(403, { 'Content-Type': 'text/plain' });
-          res.end('Invalid stream key');
-          return;
-        }
-        const tsPath = path.join(__dirname, 'media', 'live', streamKey, filename);
+  //     // Handle HLS manifest requests
+  //     if (req.url.match(/\.m3u8$/) && req.method === 'GET') {
+  //       const streamKey = req.url.split('/').pop().replace('.m3u8', '');
 
-        if (fs.existsSync(tsPath)) {
-          const tsContent = fs.readFileSync(tsPath);
-          res.writeHead(200, {
-            'Content-Type': 'video/mp2t',
-            'Cache-Control': 'max-age=3600',
-            'Access-Control-Allow-Origin': '*'
-          });
-          res.end(tsContent);
-        } else {
-          res.writeHead(404, {
-            'Content-Type': 'text/plain',
-            'Access-Control-Allow-Origin': '*'
-          });
-          res.end('Segment not found');
-        }
-        return;
-      }
+  //       if (!safeValidate(streamKey)) {
+  //         res.writeHead(403, { 'Content-Type': 'text/plain' });
+  //         res.end('Invalid stream key');
+  //         return;
+  //       }
+  //       const m3u8Path = path.join(__dirname, 'media', 'live', streamKey, 'index.m3u8');
 
-      // Handle root requests
-      if ((req.url === '/' || req.url === '/health' || req.url === '/status') && req.method === 'GET') {
-        res.writeHead(200, {
-          'Content-Type': 'text/html',
-          'Access-Control-Allow-Origin': '*'
-        });
+  //       console.log(`📁 HLS request: ${streamKey} -> ${m3u8Path}`);
+  //       console.log(`📁 Directory exists: ${fs.existsSync(path.dirname(m3u8Path))}`);
+  //       console.log(`📁 File exists: ${fs.existsSync(m3u8Path)}`);
 
-        const baseUrl = process.env.HLS_BASE_URL || `http://127.0.0.1:${httpPort}`;
-        const rtmpUrl = `${process.env.RTMP_BASE_URL || `rtmp://localhost:${rtmpPort}`}/live`;
-        const apiUrl = process.env.API_BASE_URL || `http://localhost:${apiPort}`;
+  //       if (fs.existsSync(m3u8Path)) {
+  //         const m3u8Content = fs.readFileSync(m3u8Path, 'utf8');
+  //         res.writeHead(200, {
+  //           'Content-Type': 'application/vnd.apple.mpegurl',
+  //           'Cache-Control': 'no-cache, max-age=0',
+  //           'Access-Control-Allow-Origin': '*'
+  //         });
+  //         res.end(m3u8Content);
+  //         console.log(`✅ Served HLS for: ${streamKey}`);
+  //       } else {
+  //         console.log(`❌ HLS not found: ${m3u8Path}`);
+  //         const dirPath = path.dirname(m3u8Path);
+  //         if (fs.existsSync(dirPath)) {
+  //           console.log(`📁 Directory contents:`, fs.readdirSync(dirPath));
+  //         }
+  //         res.writeHead(404, {
+  //           'Content-Type': 'text/plain',
+  //           'Access-Control-Allow-Origin': '*'
+  //         });
+  //         res.end('Stream not ready or not found');
+  //       }
+  //       return;
+  //     }
 
-        const html = `
-        <html>
-          <head><title>RTMP/HLS Server - Status: RUNNING</title></head>
-          <body style="font-family: Arial, sans-serif; padding: 20px;">
-            <h1>✅ RTMP/HLS Streaming Server - RUNNING</h1>
-            <p><strong>Environment:</strong> ${isProduction ? 'Production' : 'Development'}</p>
-            <p><strong>RTMP URL:</strong> ${rtmpUrl}</p>
-            <p><strong>HLS Base URL:</strong> ${baseUrl}/live/{streamkey}.m3u8</p>
-            <p><strong>API Status:</strong> <a href="${apiUrl}/api/hls-status">HLS Status</a></p>
-            <p><strong>Streams API:</strong> <a href="${apiUrl}/api/streams">Active Streams</a></p>
-            <p><strong>FFmpeg:</strong> ${ffmpegAvailable ? '✅ Available' : '❌ Not Found'}</p>
-            <p><strong>Active Sessions:</strong> ${Array.from(activeSessions.values()).filter(s => s.publish.isActive).length}</p>
-            <hr>
-            <h3>Quick Test URLs:</h3>
-            <ul>
-              <li><a href="/live/test.m3u8">Test HLS Manifest</a></li>
-              <li><a href="${apiUrl}/api/streams">Streams API</a></li>
-              <li><a href="${apiUrl}/api/hls-status">HLS Status</a></li>
-            </ul>
-          </body>
-        </html>
-      `;
-        res.end(html);
-        return;
-      }
+  //     // Handle TS segment requests
+  //     if (req.url.match(/\.ts$/) && req.method === 'GET') {
+  //       const urlParts = req.url.split('/');
+  //       const filename = urlParts[urlParts.length - 1];
+  //       const streamKey = urlParts[urlParts.length - 2];
 
-      // Handle /live/ directory requests
-      if (req.url.startsWith('/live/') && req.method === 'GET') {
-        const streamKey = req.url.split('/')[2]?.replace('.m3u8', '');
+  //       if (!safeValidate(streamKey)) {
+  //         res.writeHead(403, { 'Content-Type': 'text/plain' });
+  //         res.end('Invalid stream key');
+  //         return;
+  //       }
+  //       const tsPath = path.join(__dirname, 'media', 'live', streamKey, filename);
 
-        if (streamKey && safeValidate(streamKey)) {
-          const m3u8Path = path.join(__dirname, 'media', 'live', streamKey, 'index.m3u8');
+  //       if (fs.existsSync(tsPath)) {
+  //         const tsContent = fs.readFileSync(tsPath);
+  //         res.writeHead(200, {
+  //           'Content-Type': 'video/mp2t',
+  //           'Cache-Control': 'max-age=3600',
+  //           'Access-Control-Allow-Origin': '*'
+  //         });
+  //         res.end(tsContent);
+  //       } else {
+  //         res.writeHead(404, {
+  //           'Content-Type': 'text/plain',
+  //           'Access-Control-Allow-Origin': '*'
+  //         });
+  //         res.end('Segment not found');
+  //       }
+  //       return;
+  //     }
 
-          if (fs.existsSync(m3u8Path)) {
-            const m3u8Content = fs.readFileSync(m3u8Path, 'utf8');
-            res.writeHead(200, {
-              'Content-Type': 'application/vnd.apple.mpegurl',
-              'Cache-Control': 'no-cache, max-age=0',
-              'Access-Control-Allow-Origin': '*'
-            });
-            res.end(m3u8Content);
-            console.log(`✅ Served HLS via /live/ path: ${streamKey}`);
-          } else {
-            res.writeHead(404, {
-              'Content-Type': 'text/plain',
-              'Access-Control-Allow-Origin': '*'
-            });
-            res.end('Stream not found');
-          }
-          return;
-        }
-      }
+  //     // Handle root requests
+  //     if ((req.url === '/' || req.url === '/health' || req.url === '/status') && req.method === 'GET') {
+  //       res.writeHead(200, {
+  //         'Content-Type': 'text/html',
+  //         'Access-Control-Allow-Origin': '*'
+  //       });
 
-      res.writeHead(404, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' });
-      res.end('Not found');
+  //       const baseUrl = process.env.HLS_BASE_URL || `http://127.0.0.1:${httpPort}`;
+  //       const rtmpUrl = `${process.env.RTMP_BASE_URL || `rtmp://localhost:${rtmpPort}`}/live`;
+  //       const apiUrl = process.env.API_BASE_URL || `http://localhost:${apiPort}`;
 
-    } catch (error) {
-      console.error('❌ HLS server error:', error);
-      res.writeHead(500, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' });
-      res.end('Server error');
-    }
-  }));
+  //       const html = `
+  //       <html>
+  //         <head><title>RTMP/HLS Server - Status: RUNNING</title></head>
+  //         <body style="font-family: Arial, sans-serif; padding: 20px;">
+  //           <h1>✅ RTMP/HLS Streaming Server - RUNNING</h1>
+  //           <p><strong>Environment:</strong> ${isProduction ? 'Production' : 'Development'}</p>
+  //           <p><strong>RTMP URL:</strong> ${rtmpUrl}</p>
+  //           <p><strong>HLS Base URL:</strong> ${baseUrl}/live/{streamkey}.m3u8</p>
+  //           <p><strong>API Status:</strong> <a href="${apiUrl}/api/hls-status">HLS Status</a></p>
+  //           <p><strong>Streams API:</strong> <a href="${apiUrl}/api/streams">Active Streams</a></p>
+  //           <p><strong>FFmpeg:</strong> ${ffmpegAvailable ? '✅ Available' : '❌ Not Found'}</p>
+  //           <p><strong>Active Sessions:</strong> ${Array.from(activeSessions.values()).filter(s => s.publish.isActive).length}</p>
+  //           <hr>
+  //           <h3>Quick Test URLs:</h3>
+  //           <ul>
+  //             <li><a href="/live/test.m3u8">Test HLS Manifest</a></li>
+  //             <li><a href="${apiUrl}/api/streams">Streams API</a></li>
+  //             <li><a href="${apiUrl}/api/hls-status">HLS Status</a></li>
+  //           </ul>
+  //         </body>
+  //       </html>
+  //     `;
+  //       res.end(html);
+  //       return;
+  //     }
 
-  streamsServer.listen(apiPort, '0.0.0.0', () => {
-    console.log(`📊 Streams API server running on :${apiPort}`);
-  });
+  //     // Handle /live/ directory requests
+  //     if (req.url.startsWith('/live/') && req.method === 'GET') {
+  //       const streamKey = req.url.split('/')[2]?.replace('.m3u8', '');
 
-  hlsServer.listen(httpPort, '0.0.0.0', () => {
-    console.log(`🎬 HLS Server running on :${httpPort}`);
-  });
+  //       if (streamKey && safeValidate(streamKey)) {
+  //         const m3u8Path = path.join(__dirname, 'media', 'live', streamKey, 'index.m3u8');
+
+  //         if (fs.existsSync(m3u8Path)) {
+  //           const m3u8Content = fs.readFileSync(m3u8Path, 'utf8');
+  //           res.writeHead(200, {
+  //             'Content-Type': 'application/vnd.apple.mpegurl',
+  //             'Cache-Control': 'no-cache, max-age=0',
+  //             'Access-Control-Allow-Origin': '*'
+  //           });
+  //           res.end(m3u8Content);
+  //           console.log(`✅ Served HLS via /live/ path: ${streamKey}`);
+  //         } else {
+  //           res.writeHead(404, {
+  //             'Content-Type': 'text/plain',
+  //             'Access-Control-Allow-Origin': '*'
+  //           });
+  //           res.end('Stream not found');
+  //         }
+  //         return;
+  //       }
+  //     }
+
+  //     res.writeHead(404, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' });
+  //     res.end('Not found');
+
+  //   } catch (error) {
+  //     console.error('❌ HLS server error:', error);
+  //     res.writeHead(500, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' });
+  //     res.end('Server error');
+  //   }
+  // }));
+
+  // streamsServer.listen(apiPort, '0.0.0.0', () => {
+  //   console.log(`📊 Streams API server running on :${apiPort}`);
+  // });
+
+  // hlsServer.listen(httpPort, '0.0.0.0', () => {
+  //   console.log(`🎬 HLS Server running on :${httpPort}`);
+  // });
 
   // Periodic live sessions monitoring
   const monitorInterval = setInterval(() => {
