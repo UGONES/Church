@@ -9,6 +9,7 @@ import { initChat } from './src/socket/chatSocket.mjs';
 import { startRtmp } from './rtmp-server.js';
 
 import cloudinary from './src/config/cloudinary.mjs';
+import  RegExp  from 'util/types';
 
 import dotenv from 'dotenv';
 import path from 'path';
@@ -49,6 +50,40 @@ app.use(helmet());
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true
+}));
+
+const allowedOrigins = [
+  'http://localhost:5173', 
+  'http://localhost:3000', // Alternative port
+  'https://st-micheal-s-and-all-angels-church.onrender.com', // Your Render backend
+  'https://your-vercel-app.vercel.app', // Your Vercel app
+  'https://*.vercel.app', // All Vercel preview deployments
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    // Check if the origin is in the allowed list
+    if (allowedOrigins.some(allowedOrigin => {
+      // Handle wildcard subdomains
+      if (allowedOrigin.includes('*')) {
+        const regex = new RegExp(allowedOrigin.replace('*', '.*'));
+        return regex.test(origin);
+      }
+      return allowedOrigin === origin;
+    })) {
+      return callback(null, true);
+    }
+    
+    // If origin doesn't match
+    console.warn(`🚫 CORS blocked origin: ${origin}`);
+    return callback(new Error('Not allowed by CORS'), false);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range']
 }));
 
 // Rate limiting
