@@ -950,7 +950,8 @@ export const startRtmp = async () => {
     return nms;
   } catch (error) {
     console.error('❌ Failed to start RTMP Server:', error);
-    process.exit(1);
+    console.log('⚠️ RTMP server failed to start, continuing without it');
+    return null;
   }
 };
 

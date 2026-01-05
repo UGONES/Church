@@ -166,11 +166,41 @@ const startServer = async () => {
 app.set('io', io);
 
 console.log('🚀 Starting RTMP Server from dedicated starter...');
-startRtmp().catch(error => {
-  console.error('💥 Fatal error:', error);
-  process.exit(1);
-});
 
-startServer();
+let rtmpServer = null;
+
+const initializeRTMPServer = async () => {
+  try {
+    // Only start RTMP in development or if explicitly enabled
+    if (process.env.NODE_ENV === 'development' || process.env.ENABLE_RTMP === 'true') {
+      console.log('🚀 Starting RTMP Server...');
+      rtmpServer = await startRtmp();
+      console.log('✅ RTMP Server initialized');
+    } else {
+      console.log('⚠️ RTMP server disabled in production mode');
+    }
+  } catch (error) {
+    console.error('❌ RTMP Server failed to start:', error.message);
+    console.log('⚠️ Continuing without RTMP server');
+    rtmpServer = null;
+  }
+};
+
+// Start everything
+const startEverything = async () => {
+  try {
+    // Start RTMP server first (if needed)
+    await initializeRTMPServer();
+    
+    // Then start the main server
+    await startServer();
+  } catch (error) {
+    console.error('💥 Failed to start application:', error);
+    process.exit(1);
+  }
+};
+
+// Start the application
+startEverything();
 
 export default app;
