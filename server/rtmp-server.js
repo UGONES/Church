@@ -955,4 +955,3 @@ export const startRtmp = async () => {
   }
 };
 
-export { startRtmp, startNodeMediaServer };
