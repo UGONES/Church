@@ -7,10 +7,6 @@ function generateSecret(length = 64) {
 
 function generateKeys() {
   const secrets = {
-    // Stripe
-    STRIPE_WEBHOOK_SECRET: `whsec_live_${generateSecret(32)}`,
-    STRIPE_PUBLISHABLE_KEY: `pk_live_${generateSecret(32)}`,
-    STRIPE_SECRET_KEY: `sk_live_${generateSecret(32)}`,
 
     // google analytics
     GOOGLE_ANALYTICS_ID: `UA-${generateSecret(8)}`,
@@ -33,10 +29,6 @@ const prodSecrets = generateKeys();
 
 // Create .env.example with placeholder values
 const envExample = `
-#STRIPE API KEYS
-STRIPE_SECRET_KEY=
-STRIPE_PUBLISHABLE_KEY=
-STRIPE_WEBHOOK_SECRET=
 
 #RTMP SECRET
 RTMP_SECRET=your_stream_auth_secret_change_this
@@ -54,10 +46,6 @@ COOKIE_SECRET=dev_cookie_secret_12345
 
 // Create development .env
 const envDev = `
-#STRIPE WEBHOOK SECRET
-STRIPE_WEBHOOK_SECRET="${devSecrets.STRIPE_WEBHOOK_SECRET}"
-STRIPE_PUBLISHABLE_KEY="${devSecrets.STRIPE_PUBLISHABLE_KEY}"
-STRIPE_SECRET_KEY="${devSecrets.STRIPE_SECRET_KEY}"
 
 #RTMP SECRET
 RTMP_SECRET="${devSecrets.RTMP_SECRET}"
