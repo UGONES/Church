@@ -44,10 +44,29 @@ dotenv.config({ path: path.resolve(__dirname, './src/.env') });
 
 const app = express();
 
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
-  credentials: true
-}));
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+
+    const allowedOrigins = [
+      process.env.CLIENT_URL,
+      process.env.DOMAIN,
+      'https://smc-church-beta.vercel.app',
+      'http://localhost:5173' 
+    ].filter(Boolean);
+
+    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+      callback(null, true);
+    } else {
+      console.warn(`Blocked by CORS: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 
 // Security middleware
 app.use(helmet());
