@@ -61,6 +61,7 @@ if (process.env.NODE_ENV === 'production') {
 // ✅ Use ONE CORS middleware with proper configuration
 app.use(cors({
   origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, postman)
     if (!origin) return callback(null, true);
 
     // Check if the origin is in the allowed list
@@ -81,8 +82,12 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   exposedHeaders: ['Content-Range', 'X-Content-Range']
 }));
+
+// Security middleware (AFTER CORS)
+app.use(helmet());
 
 // Security middleware (AFTER CORS)
 app.use(helmet());
