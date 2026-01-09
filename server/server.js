@@ -45,51 +45,56 @@ dotenv.config({ path: path.resolve(__dirname, './src/.env') });
 
 const app = express();
 
-// Security middleware
-app.use(helmet());
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
-  credentials: true
-}));
-
+// ✅ **FIXED CORS Configuration**
 const allowedOrigins = [
   'http://localhost:5173', 
-  'http://localhost:3000', // Alternative port
-  'https://st-micheal-s-and-all-angels-church.onrender.com/api', // Your Render backend
-  'https://smc-church-beta.vercel.app/', // Your Vercel app
-  'https://*.vercel.app', // All Vercel preview deployments
+  'http://localhost:3000',
+  'https://smc-church-beta.vercel.app', // Remove trailing slash!
+  'https://st-micheal-s-and-all-angels-church.onrender.com', // Backend itself (for testing)
 ];
 
+// Add all Vercel preview URLs dynamically
+if (process.env.NODE_ENV === 'production') {
+  // Allow all Vercel preview deployments
+  allowedOrigins.push(/\.vercel\.app$/);
+  // Allow the main Vercel deployment
+  allowedOrigins.push('https://smc-church-beta.vercel.app');
+}
+
+// ✅ Use ONE CORS middleware with proper configuration
 app.use(cors({
   origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, postman)
     if (!origin) return callback(null, true);
     
     // Check if the origin is in the allowed list
     if (allowedOrigins.some(allowedOrigin => {
-      // Handle wildcard subdomains
-      if (allowedOrigin.includes('*')) {
-        const regex = new RegExp(allowedOrigin.replace('*', '.*'));
-        return regex.test(origin);
+      if (typeof allowedOrigin === 'string') {
+        return allowedOrigin === origin;
+      } else if (allowedOrigin instanceof RegExp) {
+        return allowedOrigin.test(origin);
       }
-      return allowedOrigin === origin;
+      return false;
     })) {
       return callback(null, true);
     }
     
-    // If origin doesn't match
     console.warn(`🚫 CORS blocked origin: ${origin}`);
-    return callback(new Error('Not allowed by CORS'), false);
+    return callback(new Error(`Origin ${origin} not allowed by CORS`), false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   exposedHeaders: ['Content-Range', 'X-Content-Range']
 }));
+
+// Security middleware (AFTER CORS)
+app.use(helmet());
 
 // Rate limiting
 app.use(rateLimiters.generalLimiter);
 
-// Middleware
+// Rest of your middleware...
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
