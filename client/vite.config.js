@@ -35,25 +35,25 @@ export default defineConfig({
       '@fullcalendar/interaction'
     ]
   },
-  server: {
-    headers: {
-      'X-Frame-Options': 'DENY',
-      'X-Content-Type-Options': 'nosniff',
-      'Referrer-Policy': 'strict-origin-when-cross-origin',
-    },
-    proxy: {
-      "/api": {
-        target: process.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000',
-        changeOrigin: true,
-        secure: false
-      },
-      "/auth": {
-        target: process.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000',
-        changeOrigin: true,
-        secure: false
-      }
-    },
-  },
+  // server: {
+  //   headers: {
+  //     'X-Frame-Options': 'DENY',
+  //     'X-Content-Type-Options': 'nosniff',
+  //     'Referrer-Policy': 'strict-origin-when-cross-origin',
+  //   },
+  //   proxy: {
+  //     "/api": {
+  //       target: process.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000',
+  //       changeOrigin: true,
+  //       secure: false
+  //     },
+  //     "/auth": {
+  //       target: process.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000',
+  //       changeOrigin: true,
+  //       secure: false
+  //     }
+  //   },
+  // },
   esbuild: {
     jsx: 'automatic',
   },

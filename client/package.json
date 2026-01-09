@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "start": "vite",
-    "vercel-build": "npm ci --ignore-scripts && npm run build"
+    "vercel-build": "vite build"
   },
   "dependencies": {
     "@dr.pogodin/react-helmet": "^3.0.5",
