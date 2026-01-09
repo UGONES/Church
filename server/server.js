@@ -55,8 +55,8 @@ app.use(cors({
 const allowedOrigins = [
   'http://localhost:5173', 
   'http://localhost:3000', // Alternative port
-  'https://st-micheal-s-and-all-angels-church.onrender.com', // Your Render backend
-  'https://your-vercel-app.vercel.app', // Your Vercel app
+  'https://st-micheal-s-and-all-angels-church.onrender.com/api', // Your Render backend
+  'https://smc-church-beta.vercel.app/', // Your Vercel app
   'https://*.vercel.app', // All Vercel preview deployments
 ];
 
