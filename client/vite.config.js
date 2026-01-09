@@ -14,12 +14,14 @@ export default defineConfig({
       }
     }
   },
-   build: {
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
     rollupOptions: {
       output: {
-        entryFileNames: `assets/[name].js`,
-        chunkFileNames: `assets/[name].js`,
-        assetFileNames: `assets/[name].[ext]`
+        entryFileNames: `assets/[name]-[hash].js`,
+        chunkFileNames: `assets/[name]-[hash].js`,
+        assetFileNames: `assets/[name]-[hash].[ext]`
       }
     }
   },
@@ -40,7 +42,16 @@ export default defineConfig({
       'Referrer-Policy': 'strict-origin-when-cross-origin',
     },
     proxy: {
-      "/api": "http://localhost:5000"
+      "/api": {
+        target: process.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false
+      },
+      "/auth": {
+        target: process.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false
+      }
     },
   },
   esbuild: {

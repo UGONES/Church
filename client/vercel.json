@@ -1,16 +1,52 @@
 {
   "headers": [
     {
-      "source": "/(.*)\\.jsx",
+      "source": "/(.*)",
       "headers": [
         {
-          "key": "Content-Type",
-          "value": "application/javascript"
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://st-micheal-s-and-all-angels-church.onrender.com wss://st-micheal-s-and-all-angels-church.onrender.com https://api.stripe.com https://maps.googleapis.com; frame-src 'self' https://js.stripe.com;"
         }
       ]
     }
   ],
-  "buildCommand": "npm run vercel-build",
+  "buildCommand": "npm install && npm run build",
   "outputDirectory": "dist",
-  "installCommand": "npm ci --ignore-scripts"
+  "installCommand": "npm ci",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "env": {
+    "VITE_API_URL": "https://st-micheal-s-and-all-angels-church.onrender.com/api",
+    "VITE_SOCKET_URL": "https://st-micheal-s-and-all-angels-church.onrender.com",
+    "VITE_STRIPE_PUBLISHABLE_KEY": "pk_live_f503d8fb7e9bd8def8d87e1cf2f3612ab95092ed58a26997da486f1bb98f75fb",
+    "VITE_GOOGLE_ANALYTICS_ID": "UA-f21b5a3db8e222e5",
+    "VITE_GOOGLE_CLIENT_ID": "1072457760612-aleee87cojlvo1mk6qhf74hu1tqcd8f2.apps.googleusercontent.com",
+    "VITE_FACEBOOK_APP_ID": "1995190017686767",
+    "VITE_CLOUDINARY_CLOUD_NAME": "dbjtzczvv",
+    "VITE_CLOUDINARY_UPLOAD_PRESET": "church_uploads",
+    "VITE_CLOUDINARY_API_KEY": "752613618484582",
+    "VITE_ADMIN_CODE_1": "STMICHAEL2024",
+    "VITE_ADMIN_CODE_2": "S5TM2I2CH0AEL",
+    "VITE_ADMIN_CODE_3": "ST2MI6CH0AE2L",
+    "VITE_MOD_CODE_1": "MODCODE2045F3",
+    "VITE_MOD_CODE_2": "MODCODE21D476",
+    "VITE_MOD_CODE_3": "MODCODE009B46"
+  }
 }
