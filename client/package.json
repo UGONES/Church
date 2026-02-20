@@ -36,10 +36,10 @@
     "react-facebook": "^10.0.1",
     "react-modal": "^3.16.3",
     "react-player": "^3.4.0",
-    "react-router-dom": "^7.11.0",
+    "react-router-dom": "^7.13.0",
     "react-toastify": "^11.0.5",
     "socket.io-client": "^4.8.1",
-    "swiper": "^12.0.3",
+    "swiper": "^12.1.2",
     "uuid": "^13.0.0",
     "video.js": "^8.23.4"
   },
